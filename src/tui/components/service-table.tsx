@@ -77,7 +77,7 @@ export const ServiceTable = ({
           fit(state.health === 'unknown' ? '—' : state.health, 9),
           fit(uptime, 8),
           fit(String(state.restarts || '·'), 3),
-          fit(state.entry.autostart ? '✓' : '·', 3),
+          fit(state.entry.autostart ? '✓' : '·', 12),
           fit(state.routeUrl ?? '', routeWidth).trimEnd(),
         ]
         return (
