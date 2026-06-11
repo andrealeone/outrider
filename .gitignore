@@ -1,0 +1,8 @@
+
+.DS_Store
+.zed
+.agents
+.claude
+.fallow
+
+node_modules

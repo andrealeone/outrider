@@ -1,0 +1,33 @@
+{
+  "plugins": ["node", "typescript", "import", "promise", "oxc"],
+  "options": {
+    "typeAware": true,
+    "typeCheck": true,
+    "maxWarnings": 10
+  },
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "warn"
+  },
+  "rules": {
+    "eslint/sort-vars": "off",
+    "eslint/max-lines": "off",
+    "eslint/require-await": "off",
+    "eslint/require-unicode-regexp": "off",
+    "eslint/max-lines-per-function": "off",
+    "eslint/no-negated-condition": "off",
+    "typescript/no-deprecated": "off",
+    "typescript/no-unsafe-assignment": "off",
+    "typescript/no-unsafe-type-assertion": "off",
+    "typescript/no-useless-default-assignment": "off",
+    "typescript/prefer-readonly-parameter-types": "off",
+    "import/no-unassigned-import": "off",
+    "import/max-dependencies": "off",
+    "typescript/no-misused-spread": "off",
+    "typescript/no-misused-promises": "off",
+    "typescript/no-unnecessary-type-parameters": "off",
+    "typescript/strict-boolean-expressions": "off",
+    "typescript/prefer-nullish-coalescing": "off"
+  }
+}
