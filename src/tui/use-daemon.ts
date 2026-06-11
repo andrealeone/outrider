@@ -40,6 +40,7 @@ export interface DaemonHook {
   validateService: (def: ServiceDefinition, editOf?: string) => Promise<string[]>
   importStack: (path: string, dryRun: boolean) => Promise<ImportReport>
   fetchLogs: (id: string, tail?: number) => Promise<LogLine[]>
+  clearLogs: (id: string) => Promise<string | undefined>
 }
 
 /** Synthesise dashboard rows from the persisted registry (daemon off). */
@@ -268,5 +269,16 @@ export const useDaemon = (): DaemonHook => {
       [client],
     ),
     fetchLogs: useCallback((id: string, tail = 300) => client.logs(id, tail), [client]),
+    clearLogs: useCallback(
+      async (id: string) => {
+        try {
+          await client.clearLogs(id)
+          return undefined
+        } catch (err) {
+          return err instanceof Error ? err.message : String(err)
+        }
+      },
+      [client],
+    ),
   }
 }

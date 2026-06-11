@@ -121,6 +121,11 @@ export class Reconciler {
     this.supervisor.forget(id)
   }
 
+  /** Drop stale completed/error runtime state so snapshots use the latest registry entry. */
+  refreshInactiveService(id: string): void {
+    if (!this.supervisor.isActive(id)) this.supervisor.forget(id)
+  }
+
   async restart(id: string): Promise<void> {
     const entry = this.registry.get(id)
     if (!entry) return

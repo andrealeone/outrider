@@ -23,7 +23,7 @@ diff-only writes. On a non-TTY stdout the TUI degrades to a plain JSON state
 dump.
 
 **Views.** Dashboard (default), logs (follow, regex search, wrap,
-scrollback), detail (config snapshot, instances, masked environment), add
+scrollback, hide-past, per-service log deletion), detail (config snapshot, instances, masked environment), add
 service (live-validated form), import stack (dry-run report before anything
 registers). A fixed vim-style keymap in v1; the config file reserves a keymap
 key for later. Keyboard-first throughout — no mouse, per the cuts discussion.

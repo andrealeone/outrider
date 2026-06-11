@@ -136,21 +136,33 @@ export class Registry {
   }
 
   private entryFromDefinition(def: ServiceDefinition, previous?: ServiceEntry): ServiceEntry {
+    const route = def.route ? { ...previous?.route, route: def.route } : undefined
+    const config: ProcessConfig = {
+      ...(previous?.config ?? {}),
+      'command': def.command,
+      'working_dir': def.workingDir,
+      'availability': def.restart
+        ? { ...(previous?.config.availability ?? {}), restart: def.restart }
+        : previous?.config.availability,
+      'x-portless': route,
+    }
+    if (def.env !== undefined) {
+      config.environment = Object.entries(def.env).map(([k, v]) => `${k}=${v}`)
+    } else if (previous === undefined) {
+      config.environment = []
+    }
+
     return {
-      id: def.name,
-      name: def.name,
-      namespace: def.namespace,
+      id: previous?.id ?? def.name,
+      name: previous?.name ?? def.name,
+      stack: previous?.stack,
+      namespace: def.namespace ?? previous?.namespace,
       desired: previous?.desired ?? 'down',
       autostart: def.autostart ?? previous?.autostart ?? false,
-      config: {
-        'command': def.command,
-        'working_dir': def.workingDir,
-        'environment': Object.entries(def.env ?? {}).map(([k, v]) => `${k}=${v}`),
-        'availability': def.restart ? { restart: def.restart } : undefined,
-        'x-portless': def.route ? { route: def.route } : undefined,
-      },
-      dir: def.workingDir ? resolve(def.workingDir) : homedir(),
-      route: def.route ? { route: def.route } : undefined,
+      config,
+      dir: previous?.dir ?? (def.workingDir ? resolve(def.workingDir) : homedir()),
+      shell: previous?.shell,
+      route,
     }
   }
 
@@ -163,19 +175,10 @@ export class Registry {
     return entry
   }
 
-  /** Replace a standalone service's definition, preserving desired state. */
-  updateStandalone(id: string, def: ServiceDefinition): ServiceEntry {
+  /** Replace a service's editable fields, preserving desired state and stack metadata. */
+  updateService(id: string, def: ServiceDefinition): ServiceEntry {
     const existing = this.model.services[id]
     if (!existing) throw new RegistryError('not-found', `no service "${id}"`)
-    if (existing.stack !== undefined) {
-      throw new RegistryError(
-        'invalid',
-        `"${id}" belongs to stack "${existing.stack}"; edit its compose file and re-import instead`,
-      )
-    }
-    if (def.name !== id) {
-      throw new RegistryError('invalid', 'renaming is not supported; delete and recreate instead')
-    }
     this.validateDefinition(def, id)
     const entry = this.entryFromDefinition(def, existing)
     this.assertRouteFree(entry)
@@ -184,8 +187,17 @@ export class Registry {
     return entry
   }
 
-  /** `editOf` allows the name to collide with the service being edited. */
+  /** `editOf` validates edits against the existing entry, including stack members. */
   validateDefinition(def: ServiceDefinition, editOf?: string): void {
+    const existing = editOf === undefined ? undefined : this.model.services[editOf]
+    if (existing !== undefined) {
+      if (def.name !== existing.name) {
+        throw new RegistryError('invalid', 'renaming is not supported; delete and recreate instead')
+      }
+      if (!def.command?.trim()) throw new RegistryError('invalid', 'command is required')
+      return
+    }
+
     if (!def.name || !/^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$/i.test(def.name)) {
       throw new RegistryError(
         'invalid',
@@ -194,7 +206,7 @@ export class Registry {
     }
     if (def.name.includes('/'))
       throw new RegistryError('invalid', 'standalone names cannot contain "/"')
-    if (this.model.services[def.name] && def.name !== editOf) {
+    if (this.model.services[def.name]) {
       throw new RegistryError('conflict', `service "${def.name}" already exists`)
     }
     if (!def.command?.trim()) throw new RegistryError('invalid', 'command is required')

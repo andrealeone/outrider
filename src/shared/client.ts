@@ -95,6 +95,8 @@ export class Client {
 
   logs = (id: string, tail = 200): Promise<LogLine[]> =>
     this.request('GET', `/v1/services/${encodeURIComponent(id)}/logs?tail=${tail}`)
+  clearLogs = (id: string): Promise<void> =>
+    this.request('DELETE', `/v1/services/${encodeURIComponent(id)}/logs`)
 
   shutdown = (): Promise<void> => this.request('POST', '/v1/shutdown')
 

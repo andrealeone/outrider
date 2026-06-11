@@ -19,6 +19,9 @@ import { RegistryError } from './registry'
 import { withDependencies } from './scheduler'
 
 const EVENTS_TOPIC = 'events'
+const POST_SERVICE_ACTIONS = new Set(['start', 'stop', 'restart', 'scale'])
+const GET_SERVICE_ACTIONS = new Set(['logs'])
+const DELETE_SERVICE_ACTIONS = new Set(['logs'])
 
 interface ApiDeps {
   info: DaemonInfo
@@ -99,8 +102,7 @@ export class Api {
     const { registry, reconciler, router, info } = this.deps
     const method = req.method
     const body = async <T>(): Promise<T> => (await req.json().catch(() => ({}))) as T
-    const [head, rawId, action] = path
-    const id = rawId === undefined ? undefined : decodeURIComponent(rawId)
+    const [head] = path
 
     if (method === 'GET' && head === 'info') return json(info)
     if (method === 'GET' && head === 'state') {
@@ -124,16 +126,16 @@ export class Api {
     }
 
     if (method === 'POST' && head === 'import') return this.importRoute(body)
-    if (head === 'stacks' && method === 'DELETE' && id !== undefined) {
-      return this.removeStackRoute(id)
+    if (head === 'stacks' && method === 'DELETE' && path[1] !== undefined) {
+      return this.removeStackRoute(decodeURIComponent(path[1]))
     }
     if (head === 'shutdown' && method === 'POST') {
       setTimeout(this.deps.onShutdown, 20)
       return json({ ok: true })
     }
-    if (head === 'services') return this.serviceRoutes(method, id, action, url, body)
+    if (head === 'services') return this.serviceRoutes(method, path.slice(1), url, body)
 
-    return errorResponse('not-found', `no route for ${method} ${url.pathname}`, 404)
+    return errorResponse('not-found', `No route for ${method} ${url.pathname}`, 404)
   }
 
   private async importRoute(body: <T>() => Promise<T>): Promise<Response> {
@@ -180,18 +182,19 @@ export class Api {
 
   private async serviceRoutes(
     method: string,
-    id: string | undefined,
-    action: string | undefined,
+    rawPath: string[],
     url: URL,
     body: <T>() => Promise<T>,
   ): Promise<Response> {
     const { registry, reconciler } = this.deps
+    const parsed = this.parseServicePath(method, rawPath)
+    const { id, action } = parsed
 
     if (id === undefined && method === 'POST') {
       const entry = registry.addStandalone(await body())
       return json(reconciler.stateOf(entry.id), 201)
     }
-    if (id === 'validate' && method === 'POST') {
+    if (id === 'validate' && action === undefined && method === 'POST') {
       try {
         const candidate = await body<ServiceDefinition & { editOf?: string }>()
         registry.validateDefinition(candidate, candidate.editOf)
@@ -207,7 +210,25 @@ export class Api {
       action === undefined
         ? await this.serviceEntityRoute(method, id, body)
         : await this.serviceActionRoute(method, id, action, url, body)
-    return handled ?? errorResponse('not-found', `no route for ${method} on services/${id}`, 404)
+    return handled ?? errorResponse('not-found', `No route for ${method} on services/${id}`, 404)
+  }
+
+  private parseServicePath(
+    method: string,
+    rawPath: string[],
+  ): { id: string | undefined; action: string | undefined } {
+    if (rawPath.length === 0) return { id: undefined, action: undefined }
+
+    const decoded = rawPath.map((part) => decodeURIComponent(part))
+    const last = decoded.at(-1)
+    const hasAction =
+      last !== undefined &&
+      ((method === 'POST' && POST_SERVICE_ACTIONS.has(last)) ||
+        (method === 'GET' && GET_SERVICE_ACTIONS.has(last)) ||
+        (method === 'DELETE' && DELETE_SERVICE_ACTIONS.has(last)))
+
+    const idParts = hasAction ? decoded.slice(0, -1) : decoded
+    return { id: idParts.join('/'), action: hasAction ? last : undefined }
   }
 
   /** DELETE / PUT / PATCH on one service. */
@@ -232,9 +253,11 @@ export class Api {
       return json({ ok: true })
     }
     if (method === 'PUT') {
-      const entry = registry.updateStandalone(id, await body())
-      // A live service restarts so the new definition takes effect.
+      const entry = registry.updateService(id, await body())
+      // A live service restarts so the new definition takes effect; an inactive
+      // service drops stale completed/error runtime state so the edited entry is visible immediately.
       if (entry.desired === 'up') await reconciler.restart(id)
+      else reconciler.refreshInactiveService(id)
       return json(reconciler.stateOf(id))
     }
     if (method === 'PATCH') {
@@ -260,9 +283,16 @@ export class Api {
   ): Promise<Response | undefined> {
     const { registry, reconciler, logger } = this.deps
 
-    if (method === 'GET' && action === 'logs') {
-      const tail = Number(url.searchParams.get('tail') ?? 200)
-      return json(logger.tail(id, Number.isFinite(tail) ? tail : 200))
+    if (action === 'logs') {
+      if (method === 'GET') {
+        const tail = Number(url.searchParams.get('tail') ?? 200)
+        return json(logger.tail(id, Number.isFinite(tail) ? tail : 200))
+      }
+      if (method === 'DELETE') {
+        if (!registry.get(id)) throw new RegistryError('not-found', `no service "${id}"`)
+        logger.clear(id)
+        return json({ ok: true })
+      }
     }
     if (method !== 'POST') return undefined
     if (!registry.get(id)) throw new RegistryError('not-found', `no service "${id}"`)

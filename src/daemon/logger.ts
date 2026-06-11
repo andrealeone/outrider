@@ -3,6 +3,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
   renameSync,
   statSync,
   unlinkSync,
@@ -74,6 +75,12 @@ export class Logger {
     return this.sinks.get(serviceId)?.ring.tail(n) ?? []
   }
 
+  clear(serviceId: string): void {
+    const sink = this.sinks.get(serviceId)
+    sink?.ring.clear()
+    this.clearFiles(sink?.dir ?? serviceLogDir(serviceId))
+  }
+
   /** Watch for a ready_log_line match on one instance; returns a cancel fn. */
   watchReadyLine(
     serviceId: string,
@@ -103,6 +110,22 @@ export class Logger {
       appendFileSync(sink.file, `${prefix}${tag}${entry.line}\n`)
     } catch {
       // Log persistence must never take a service down with it.
+    }
+  }
+
+  private clearFiles(dir: string): void {
+    try {
+      if (!existsSync(dir)) return
+      for (const name of readdirSync(dir)) {
+        if (name !== 'current.log' && !name.startsWith('current.log.')) continue
+        try {
+          unlinkSync(join(dir, name))
+        } catch {
+          // Deleting persisted logs is best-effort for the same reason writes are.
+        }
+      }
+    } catch {
+      // The in-memory ring was still cleared; persistence failures are non-fatal.
     }
   }
 
