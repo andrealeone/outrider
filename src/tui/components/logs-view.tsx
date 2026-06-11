@@ -99,7 +99,7 @@ export const LogsView = ({ daemon, id, rows, width, active, onBack }: Props) => 
     <Box flexDirection="column" height={rows} paddingX={1}>
       <Box justifyContent="space-between">
         <Text bold color={theme.accent}>
-          logs · {id}
+          Logs · {id}
         </Text>
         <Text color={theme.dim}>
           {follow ? 'following' : `line ${position + 1}/${matched.length}`}

@@ -37,9 +37,9 @@ export const ServiceTable = ({
 }: Props) => {
   const nameWidth = Math.max(14, Math.min(28, width - 70))
   const stackWidth = 10
-  // Pointer+toggle prefix (4), seven padded cells, eight separator spaces,
+  // Pointer+toggle prefix (4), seven padded cells, sixteen separator chars (2 per gap),
   // and the box's own horizontal padding: ROUTE gets whatever remains.
-  const fixed = 4 + nameWidth + stackWidth + 12 + 9 + 8 + 3 + 4 + 8
+  const fixed = 4 + nameWidth + stackWidth + 12 + 9 + 8 + 3 + 3 + 16
   const routeWidth = Math.max(6, width - 2 - fixed)
   const visible = services.slice(offset, offset + height)
 
@@ -47,14 +47,27 @@ export const ServiceTable = ({
     <Box flexDirection="column" paddingX={1}>
       <Text color={theme.dim}>
         {'    '}
-        {fit('NAME', nameWidth)} {fit('STACK', stackWidth)} {fit('STATUS', 12)} {fit('HEALTH', 9)}{' '}
-        {fit('UPTIME', 8)} {fit('↻', 3)} {fit('AUTO', 4)} ROUTE
+        {fit('NAME', nameWidth)}
+        {'  '}
+        {fit('STACK', stackWidth)}
+        {'  '}
+        {fit('STATUS', 12)}
+        {'  '}
+        {fit('HEALTH', 9)}
+        {'  '}
+        {fit('UPTIME', 8)}
+        {'  '}
+        {fit('↻', 3)}
+        {'  '}
+        {fit('⏻', 3)}
+        {'  '}
+        {'ROUTE'}
       </Text>
       {visible.map((state, i) => {
         const index = offset + i
         const isSelected = index === selected
         const desiredUp = state.entry.desired === 'up'
-        const rowColor = isSelected ? theme.accent : undefined
+        const rowColor = isSelected ? theme.select : undefined
         const uptime =
           state.status === 'running' && state.startedAt !== undefined
             ? formatUptime(state.startedAt)
@@ -64,7 +77,7 @@ export const ServiceTable = ({
           fit(state.health === 'unknown' ? '—' : state.health, 9),
           fit(uptime, 8),
           fit(String(state.restarts || '·'), 3),
-          fit(state.entry.autostart ? '✓' : '·', 4),
+          fit(state.entry.autostart ? '✓' : '·', 3),
           fit(state.routeUrl ?? '', routeWidth).trimEnd(),
         ]
         return (
@@ -74,7 +87,8 @@ export const ServiceTable = ({
             </Text>
             <Text color={desiredUp ? theme.ok : theme.dim}>{desiredUp ? '◉ ' : '○ '}</Text>
             <Text color={rowColor} bold={isSelected} dimColor={!online && !isSelected}>
-              {cells.join(' ')}{' '}
+              {cells.join('  ')}
+              {'  '}
             </Text>
             {online ? (
               <StatusBadge status={state.status} frame={frame} />
@@ -82,8 +96,8 @@ export const ServiceTable = ({
               <Text color={theme.dim}>{fit('· offline', 12)}</Text>
             )}
             <Text color={rowColor} bold={isSelected} dimColor={!online && !isSelected}>
-              {' '}
-              {trailing.join(' ')}
+              {'  '}
+              {trailing.join('  ')}
             </Text>
           </Box>
         )

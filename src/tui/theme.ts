@@ -1,8 +1,10 @@
 import type { ProcessStatus } from '../shared/types/protocol'
 
 export interface Theme {
-  /** Pastel green: titles, selection, the running state. */
+  /** Pastel green: titles, the running state. */
   accent: string
+  /** Soft blue: selected table row. */
+  select: string
   ok: string
   warn: string
   error: string
@@ -15,6 +17,7 @@ export interface Theme {
 // nothing paints a background, so the dashboard adapts to any terminal.
 const palette: Theme = {
   accent: '#8fce87',
+  select: '#7ab8d5',
   ok: '#8fce87',
   warn: '#d8b465',
   error: '#e08e8e',
@@ -25,6 +28,7 @@ const palette: Theme = {
 // A slightly deeper variant for light backgrounds, opt-in via OUTRIDER_THEME.
 const light: Theme = {
   accent: '#4e9a4e',
+  select: '#1e72aa',
   ok: '#4e9a4e',
   warn: '#a5812e',
   error: '#c4595e',
