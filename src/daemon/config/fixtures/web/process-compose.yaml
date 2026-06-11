@@ -1,0 +1,54 @@
+version: '0.5'
+name: webstack
+
+vars:
+  VERSION: 1.4.0
+
+environment:
+  - GLOBAL_FLAG=on
+
+processes:
+  db:
+    command: 'run-db --data $DATA_DIR'
+    readiness_probe:
+      exec:
+        command: 'check-db'
+      period_seconds: 2
+      failure_threshold: 3
+
+  migrate:
+    command: 'migrate-db'
+    depends_on:
+      db:
+        condition: process_healthy
+    availability:
+      restart: 'no'
+
+  api:
+    command: 'serve-api --version {{.VERSION}}'
+    replicas: 2
+    namespace: backend
+    environment:
+      - API_MODE=prod
+    depends_on:
+      migrate:
+        condition: process_completed_successfully
+    readiness_probe:
+      http_get:
+        path: /healthz
+        port: 8080
+    availability:
+      restart: on_failure
+      backoff_seconds: 2
+      max_restarts: 5
+    x-portless:
+      route: api
+
+  worker:
+    command: 'run-worker'
+    depends_on:
+      api:
+        condition: process_healthy
+    shutdown:
+      signal: 2
+      timeout_seconds: 5

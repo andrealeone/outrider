@@ -1,0 +1,44 @@
+version: '0.5'
+name: web-demo
+
+vars:
+  GREETING: hello from outrider
+
+environment:
+  - DEMO_GLOBAL=1
+
+processes:
+  db:
+    command: "touch /tmp/outrider-demo-db && while true; do echo 'db: serving'; sleep 2; done"
+    readiness_probe:
+      exec:
+        command: 'test -f /tmp/outrider-demo-db'
+      period_seconds: 1
+    shutdown:
+      command: 'rm -f /tmp/outrider-demo-db'
+
+  migrate:
+    command: "echo 'migrate: {{.GREETING}}' && sleep 1 && echo 'migrate: done'"
+    depends_on:
+      db:
+        condition: process_healthy
+    availability:
+      restart: 'no'
+
+  api:
+    command: 'echo ''api: ready to serve'' && while true; do echo "api: tick $DEMO_GLOBAL"; sleep 3; done'
+    ready_log_line: 'ready to serve'
+    replicas: 2
+    depends_on:
+      migrate:
+        condition: process_completed_successfully
+    availability:
+      restart: on_failure
+      backoff_seconds: 1
+      max_restarts: 3
+
+  worker:
+    command: "while true; do echo 'worker: crunching'; sleep 4; done"
+    depends_on:
+      api:
+        condition: process_log_ready

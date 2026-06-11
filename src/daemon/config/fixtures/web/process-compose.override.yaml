@@ -1,0 +1,7 @@
+processes:
+  api:
+    environment:
+      - API_MODE=dev
+    replicas: 1
+  worker:
+    disabled: true
