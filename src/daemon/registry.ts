@@ -136,7 +136,16 @@ export class Registry {
   }
 
   private entryFromDefinition(def: ServiceDefinition, previous?: ServiceEntry): ServiceEntry {
-    const route = def.route ? { ...previous?.route, route: def.route } : undefined
+    // An alias port marks an externally managed route (a fixed port the
+    // command owns); clearing it reverts to a normal daemon-managed route.
+    const route = def.route
+      ? {
+          ...previous?.route,
+          route: def.route,
+          alias: def.aliasPort !== undefined,
+          port: def.aliasPort ?? previous?.route?.port,
+        }
+      : undefined
     const config: ProcessConfig = {
       ...(previous?.config ?? {}),
       'command': def.command,
@@ -189,6 +198,11 @@ export class Registry {
 
   /** `editOf` validates edits against the existing entry, including stack members. */
   validateDefinition(def: ServiceDefinition, editOf?: string): void {
+    if (def.aliasPort !== undefined) {
+      if (!def.route?.trim()) throw new RegistryError('invalid', 'an alias port requires a route')
+      if (!Number.isInteger(def.aliasPort) || def.aliasPort < 1 || def.aliasPort > 65535)
+        throw new RegistryError('invalid', 'alias port must be an integer between 1 and 65535')
+    }
     const existing = editOf === undefined ? undefined : this.model.services[editOf]
     if (existing !== undefined) {
       if (def.name !== existing.name) {

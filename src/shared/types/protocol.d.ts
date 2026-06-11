@@ -77,6 +77,12 @@ export interface ServiceDefinition {
   workingDir?: string
   env?: Record<string, string>
   route?: string
+  /**
+   * When set, the route is a static portless alias pointing at this fixed
+   * port — for external tools that manage their own port and ignore the
+   * injected PORT. Requires `route`.
+   */
+  aliasPort?: number
   restart?: 'no' | 'on_failure' | 'always'
   autostart?: boolean
   namespace?: string

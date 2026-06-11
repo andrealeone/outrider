@@ -139,6 +139,11 @@ const validateRoute = (
   if (route.port !== undefined && (!Number.isInteger(route.port) || route.port < 1)) {
     errors.push(`process "${name}": x-portless.port must be a positive integer`)
   }
+  if (route.alias && route.port === undefined) {
+    errors.push(
+      `process "${name}": x-portless.alias needs x-portless.port — an alias routes to a fixed port`,
+    )
+  }
 }
 
 type Warn = (code: string, message: string) => void

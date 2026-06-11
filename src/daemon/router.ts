@@ -91,13 +91,16 @@ export class PortlessRouter implements Router {
     return up
   }
 
-  async register(route: string, port: number): Promise<RouteBinding> {
+  async register(route: string, port: number, alias = false): Promise<RouteBinding> {
     await this.ensureProxy()
     const hostname = parseHostname(route, this.tld)
-    // Registered under the daemon's pid: portless prunes routes whose owner
-    // died, so a crashed daemon leaves no stale claims behind. force stays
+    // Managed routes register under the daemon's pid: portless prunes routes
+    // whose owner died, so a crashed daemon leaves no stale claims behind.
+    // Aliases use pid 0 — the same static-route mechanism as `portless alias`,
+    // for external tools that own their port. portless never prunes those, so
+    // the daemon clears them itself (see Reconciler boot/shutdown). force stays
     // off — a route held by a live foreign process is an error, not a kill.
-    this.store.addRoute(hostname, port, process.pid, false)
+    this.store.addRoute(hostname, port, alias ? 0 : process.pid, false)
     return { route, hostname, port, url: formatUrl(hostname, this.proxyPort, this.tls) }
   }
 

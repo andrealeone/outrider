@@ -26,8 +26,10 @@ class FakeRouter implements Router {
   ensureProxy(): Promise<boolean> {
     return Promise.resolve(true)
   }
-  register(route: string, port: number): Promise<RouteBinding> {
+  aliased = new Set<string>()
+  register(route: string, port: number, alias = false): Promise<RouteBinding> {
     this.registered.set(route, port)
+    if (alias) this.aliased.add(route)
     return Promise.resolve({
       route,
       hostname: `${route}.localhost`,
@@ -37,6 +39,7 @@ class FakeRouter implements Router {
   }
   unregister(route: string): Promise<void> {
     this.registered.delete(route)
+    this.aliased.delete(route)
     return Promise.resolve()
   }
   urlFor(route: string): string {
@@ -211,6 +214,23 @@ describe('daemon over the socket', () => {
     await client.stop('routed')
     await waitForStatus('routed', 'completed')
     expect(fakeRouter.registered.has('routed')).toBe(false)
+  })
+
+  test('alias-port services register a static alias on the fixed port', async () => {
+    await client.addService({
+      name: 'external',
+      command: 'sleep 60',
+      route: 'external',
+      aliasPort: 10020,
+    })
+    await client.start('external')
+    await waitForStatus('external', 'running')
+    expect(fakeRouter.aliased.has('external')).toBe(true)
+    expect(fakeRouter.registered.get('external')).toBe(10020)
+
+    await client.stop('external')
+    await waitForStatus('external', 'completed')
+    expect(fakeRouter.aliased.has('external')).toBe(false)
   })
 
   test('service lifecycle: edit restarts a live service, delete removes it', async () => {
