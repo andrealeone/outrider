@@ -224,8 +224,8 @@ export class Supervisor {
 
   private argvFor(entry: ServiceEntry, command: string): string[] {
     if (entry.config.entrypoint?.length) return entry.config.entrypoint
-    const shell = entry.shell?.shell_command ?? 'bash'
-    const flag = entry.shell?.shell_argument ?? '-c'
+    const shell = entry.shell?.shell_command ?? process.env.SHELL ?? '/bin/bash'
+    const flag = entry.shell?.shell_argument ?? '-ic'
     return [shell, flag, command]
   }
 

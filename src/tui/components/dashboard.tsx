@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from 'ink'
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import type { ServiceState } from '../../shared/types/protocol'
 import type { ServiceEntry } from '../../shared/types/registry'
