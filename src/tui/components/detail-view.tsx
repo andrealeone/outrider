@@ -2,6 +2,8 @@ import { Box, Text, useInput } from 'ink'
 import React from 'react'
 
 import type { ServiceState } from '../../shared/types/protocol'
+import type { InstanceState } from '../../shared/types/protocol'
+import type { ServiceEntry } from '../../shared/types/registry'
 
 import { maskSecret } from '../../shared/utils/format'
 import { formatUptime } from '../../shared/utils/time'
@@ -23,6 +25,47 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
   </Box>
 )
 
+const statusLine = (state: ServiceState): string => {
+  const health = state.health !== 'unknown' ? ` (${state.health})` : ''
+  const uptime =
+    state.status === 'running' && state.startedAt !== undefined
+      ? ` · up ${formatUptime(state.startedAt)}`
+      : ''
+  return `${state.status}${health}${uptime}`
+}
+
+const restartPolicyLine = (entry: ServiceEntry): string => {
+  const max = entry.config.availability?.max_restarts
+  return `${entry.config.availability?.restart ?? 'no'}${max ? ` (max ${max})` : ''}`
+}
+
+const probesLine = (entry: ServiceEntry): string =>
+  [
+    entry.config.readiness_probe ? 'readiness' : undefined,
+    entry.config.liveness_probe ? 'liveness' : undefined,
+    entry.config.ready_log_line !== undefined ? 'log line' : undefined,
+  ]
+    .filter(Boolean)
+    .join(', ') || '—'
+
+const dependsLine = (entry: ServiceEntry): string =>
+  Object.entries(entry.config.depends_on ?? {})
+    .map(([dep, c]) => `${dep} (${c?.condition ?? 'process_started'})`)
+    .join(', ')
+
+const instanceLine = (inst: InstanceState): string => {
+  const pid = inst.pid !== undefined ? ` · pid ${inst.pid}` : ''
+  const exit = inst.exitCode !== undefined ? ` · exit ${inst.exitCode}` : ''
+  return `${inst.name} · ${inst.status}${pid}${exit} · ↻ ${inst.restarts}`
+}
+
+const maskedEnv = (entry: ServiceEntry): string[] =>
+  (entry.config.environment ?? []).map((line) => {
+    const eq = line.indexOf('=')
+    const key = eq === -1 ? line : line.slice(0, eq)
+    return `${key}=${maskSecret(key, eq === -1 ? '' : line.slice(eq + 1))}`
+  })
+
 /** Full config snapshot, environment with secrets masked, and route status. */
 export const DetailView = ({ state, rows, active, onBack }: Props) => {
   useInput(
@@ -41,11 +84,7 @@ export const DetailView = ({ state, rows, active, onBack }: Props) => {
   }
 
   const { entry } = state
-  const env = (entry.config.environment ?? []).map((line) => {
-    const eq = line.indexOf('=')
-    const key = eq === -1 ? line : line.slice(0, eq)
-    return `${key}=${maskSecret(key, eq === -1 ? '' : line.slice(eq + 1))}`
-  })
+  const env = maskedEnv(entry)
 
   return (
     <Box flexDirection="column" height={rows} paddingX={1}>
@@ -54,13 +93,7 @@ export const DetailView = ({ state, rows, active, onBack }: Props) => {
       </Text>
       <Row label="command">{entry.config.command ?? entry.config.entrypoint?.join(' ') ?? '—'}</Row>
       <Row label="working dir">{entry.config.working_dir ?? entry.dir}</Row>
-      <Row label="status">
-        {state.status}
-        {state.health !== 'unknown' ? ` (${state.health})` : ''}
-        {state.status === 'running' && state.startedAt !== undefined
-          ? ` · up ${formatUptime(state.startedAt)}`
-          : ''}
-      </Row>
+      <Row label="status">{statusLine(state)}</Row>
       <Row label="desired">
         {entry.desired} · autostart {entry.autostart ? 'on' : 'off'}
       </Row>
@@ -68,37 +101,13 @@ export const DetailView = ({ state, rows, active, onBack }: Props) => {
       <Row label="exit code">{state.exitCode === undefined ? '—' : String(state.exitCode)}</Row>
       <Row label="route">{state.routeUrl ?? entry.route?.route ?? '—'}</Row>
       <Row label="namespace">{entry.namespace ?? '—'}</Row>
-      <Row label="restart policy">
-        {entry.config.availability?.restart ?? 'no'}
-        {entry.config.availability?.max_restarts
-          ? ` (max ${entry.config.availability.max_restarts})`
-          : ''}
-      </Row>
-      <Row label="probes">
-        {[
-          entry.config.readiness_probe ? 'readiness' : undefined,
-          entry.config.liveness_probe ? 'liveness' : undefined,
-          entry.config.ready_log_line !== undefined ? 'log line' : undefined,
-        ]
-          .filter(Boolean)
-          .join(', ') || '—'}
-      </Row>
-      {entry.config.depends_on ? (
-        <Row label="depends on">
-          {Object.entries(entry.config.depends_on)
-            .map(([dep, c]) => `${dep} (${c?.condition ?? 'process_started'})`)
-            .join(', ')}
-        </Row>
-      ) : null}
+      <Row label="restart policy">{restartPolicyLine(entry)}</Row>
+      <Row label="probes">{probesLine(entry)}</Row>
+      {entry.config.depends_on ? <Row label="depends on">{dependsLine(entry)}</Row> : null}
       <Box flexDirection="column" marginTop={1}>
         <Text color={theme.dim}>instances</Text>
         {state.instances.map((inst) => (
-          <Text key={inst.name}>
-            {'  '}
-            {inst.name} · {inst.status}
-            {inst.pid !== undefined ? ` · pid ${inst.pid}` : ''}
-            {inst.exitCode !== undefined ? ` · exit ${inst.exitCode}` : ''} · ↻ {inst.restarts}
-          </Text>
+          <Text key={inst.name}> {instanceLine(inst)}</Text>
         ))}
         {state.instances.length === 0 ? <Text color={theme.dim}> none</Text> : null}
       </Box>

@@ -135,14 +135,13 @@ export class Registry {
     return ids
   }
 
-  addStandalone(def: ServiceDefinition): ServiceEntry {
-    this.validateDefinition(def)
-    const entry: ServiceEntry = {
+  private entryFromDefinition(def: ServiceDefinition, previous?: ServiceEntry): ServiceEntry {
+    return {
       id: def.name,
       name: def.name,
       namespace: def.namespace,
-      desired: 'down',
-      autostart: def.autostart ?? false,
+      desired: previous?.desired ?? 'down',
+      autostart: def.autostart ?? previous?.autostart ?? false,
       config: {
         'command': def.command,
         'working_dir': def.workingDir,
@@ -153,13 +152,40 @@ export class Registry {
       dir: def.workingDir ? resolve(def.workingDir) : homedir(),
       route: def.route ? { route: def.route } : undefined,
     }
+  }
+
+  addStandalone(def: ServiceDefinition): ServiceEntry {
+    this.validateDefinition(def)
+    const entry = this.entryFromDefinition(def)
     this.assertRouteFree(entry)
     this.model.services[entry.id] = entry
     this.persist()
     return entry
   }
 
-  validateDefinition(def: ServiceDefinition): void {
+  /** Replace a standalone service's definition, preserving desired state. */
+  updateStandalone(id: string, def: ServiceDefinition): ServiceEntry {
+    const existing = this.model.services[id]
+    if (!existing) throw new RegistryError('not-found', `no service "${id}"`)
+    if (existing.stack !== undefined) {
+      throw new RegistryError(
+        'invalid',
+        `"${id}" belongs to stack "${existing.stack}"; edit its compose file and re-import instead`,
+      )
+    }
+    if (def.name !== id) {
+      throw new RegistryError('invalid', 'renaming is not supported; delete and recreate instead')
+    }
+    this.validateDefinition(def, id)
+    const entry = this.entryFromDefinition(def, existing)
+    this.assertRouteFree(entry)
+    this.model.services[id] = entry
+    this.persist()
+    return entry
+  }
+
+  /** `editOf` allows the name to collide with the service being edited. */
+  validateDefinition(def: ServiceDefinition, editOf?: string): void {
     if (!def.name || !/^[a-z0-9]([a-z0-9_-]*[a-z0-9])?$/i.test(def.name)) {
       throw new RegistryError(
         'invalid',
@@ -168,7 +194,7 @@ export class Registry {
     }
     if (def.name.includes('/'))
       throw new RegistryError('invalid', 'standalone names cannot contain "/"')
-    if (this.model.services[def.name]) {
+    if (this.model.services[def.name] && def.name !== editOf) {
       throw new RegistryError('conflict', `service "${def.name}" already exists`)
     }
     if (!def.command?.trim()) throw new RegistryError('invalid', 'command is required')

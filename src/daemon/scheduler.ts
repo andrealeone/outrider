@@ -8,6 +8,29 @@ export type GateResult = 'go' | 'wait' | 'never'
 
 const TERMINAL: ReadonlySet<string> = new Set(['completed', 'error', 'skipped'])
 
+/** Decide one dependency condition against the dependency's live state. */
+const gateForCondition = (condition: string, state: ServiceState | undefined): GateResult => {
+  const status = state?.status ?? 'pending'
+  const gone = TERMINAL.has(status)
+  switch (condition) {
+    case 'process_started':
+      if (status === 'running' || status === 'completed') return 'go'
+      return status === 'skipped' || status === 'error' ? 'never' : 'wait'
+    case 'process_completed':
+      if (status === 'completed' || status === 'error') return 'go'
+      return status === 'skipped' ? 'never' : 'wait'
+    case 'process_completed_successfully':
+      if (status === 'completed' && state?.exitCode === 0) return 'go'
+      return gone ? 'never' : 'wait'
+    case 'process_healthy':
+    case 'process_log_ready':
+      if (state?.health === 'ready' && status === 'running') return 'go'
+      return gone ? 'never' : 'wait'
+    default:
+      return 'wait'
+  }
+}
+
 /**
  * Gate one service's start on its depends_on conditions, evaluated against
  * live state. 'never' means the condition cannot be satisfied any more
@@ -20,39 +43,7 @@ export const evaluateGate = (
   let result: GateResult = 'go'
   for (const [dep, depConfig] of Object.entries(entry.config.depends_on ?? {})) {
     const depId = entry.stack === undefined ? dep : `${entry.stack}/${dep}`
-    const state = stateOf(depId)
-    const condition = depConfig?.condition ?? 'process_started'
-    const status = state?.status ?? 'pending'
-    const gone = TERMINAL.has(status)
-
-    let single: GateResult
-    switch (condition) {
-      case 'process_started':
-        single =
-          status === 'running' || status === 'completed'
-            ? 'go'
-            : status === 'skipped' || status === 'error'
-              ? 'never'
-              : 'wait'
-        break
-      case 'process_completed':
-        single =
-          status === 'completed' || status === 'error'
-            ? 'go'
-            : status === 'skipped'
-              ? 'never'
-              : 'wait'
-        break
-      case 'process_completed_successfully':
-        single = status === 'completed' && state?.exitCode === 0 ? 'go' : gone ? 'never' : 'wait'
-        break
-      case 'process_healthy':
-      case 'process_log_ready':
-        single = state?.health === 'ready' && status === 'running' ? 'go' : gone ? 'never' : 'wait'
-        break
-      default:
-        single = 'wait'
-    }
+    const single = gateForCondition(depConfig?.condition ?? 'process_started', stateOf(depId))
     if (single === 'never') return 'never'
     if (single === 'wait') result = 'wait'
   }

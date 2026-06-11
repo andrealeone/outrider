@@ -115,6 +115,12 @@ export class Reconciler {
     else if (entry.desired === 'up') await this.requestUp([id], true)
   }
 
+  /** Stop a service and drop its runtime bookkeeping (before removal). */
+  async forgetService(id: string): Promise<void> {
+    await this.requestDown([id])
+    this.supervisor.forget(id)
+  }
+
   async restart(id: string): Promise<void> {
     const entry = this.registry.get(id)
     if (!entry) return

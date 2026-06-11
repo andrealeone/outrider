@@ -2,6 +2,9 @@
   "name": "outrider",
   "type": "module",
   "private": true,
+  "bin": {
+    "outrider": "src/main.ts"
+  },
   "scripts": {
     "check": "fallow",
     "fix": "fallow fix",
@@ -9,7 +12,7 @@
     "format:check": "oxfmt --check",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
-    "build": "bun scripts/build.ts && cp dist/outrider ~/.local/bin/outrider"
+    "compile": "bun scripts/build.ts && rm ~/.local/bin/outrider && cp dist/outrider ~/.local/bin/outrider"
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",

@@ -41,6 +41,13 @@ interface InstanceRuntime {
   backoffTimer?: ReturnType<typeof setTimeout>
   launchTimer?: ReturnType<typeof setTimeout>
   cancelReadyWatch?: () => void
+  /**
+   * Resolves once handleExit has fully processed the exit. proc.exited can
+   * settle before the onExit callback runs, so stops await this instead to
+   * avoid observing a half-stopped instance.
+   */
+  settled?: Promise<void>
+  settle?: () => void
 }
 
 interface ServiceRuntime {
@@ -131,15 +138,6 @@ export class Supervisor {
       [...runtime.instances.values()].map((inst) => this.stopInstance(runtime, inst)),
     )
     this.emitState(runtime)
-  }
-
-  async restart(
-    entry: ServiceEntry,
-    routeEnv: Record<string, string> = {},
-    routeUrl?: string,
-  ): Promise<void> {
-    await this.stop(entry.id)
-    this.start(entry, routeEnv, routeUrl)
   }
 
   /** Mark a service skipped: a dependency can never be satisfied. */
@@ -243,6 +241,9 @@ export class Supervisor {
     inst.status = 'launching'
     inst.health = 'unknown'
     inst.startedAt = nowIso()
+    inst.settled = new Promise((markSettled) => {
+      inst.settle = markSettled
+    })
 
     let proc: Subprocess<'ignore', 'pipe', 'pipe'>
     try {
@@ -260,6 +261,7 @@ export class Supervisor {
       })
     } catch (err) {
       inst.status = 'error'
+      inst.settle?.()
       this.logger.write(entry.id, inst.name, 'system', `spawn failed: ${(err as Error).message}`)
       this.scheduleRestart(runtime, inst, 1)
       this.emitState(runtime)
@@ -409,12 +411,14 @@ export class Supervisor {
         'daemon detached; tracked via shutdown command',
       )
       this.emitState(runtime)
+      inst.settle?.()
       return
     }
 
     if (inst.stopRequested) {
       inst.status = 'completed'
       this.emitState(runtime)
+      inst.settle?.()
       return
     }
 
@@ -431,6 +435,7 @@ export class Supervisor {
       )
     }
     this.emitState(runtime)
+    inst.settle?.()
   }
 
   private shouldRestart(
@@ -506,7 +511,7 @@ export class Supervisor {
     if (entry.config.shutdown?.command) {
       await this.runShutdownCommand(runtime, inst)
       if (proc.exitCode === null && proc.signalCode === null) this.killGroup(inst, 'SIGKILL', entry)
-      await proc.exited
+      await (inst.settled ?? proc.exited)
       return
     }
 
@@ -517,7 +522,7 @@ export class Supervisor {
     const killTimer = setTimeout(() => {
       this.killGroup(inst, 'SIGKILL', entry)
     }, timeout)
-    await proc.exited
+    await (inst.settled ?? proc.exited)
     clearTimeout(killTimer)
   }
 
