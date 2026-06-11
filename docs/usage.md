@@ -1,0 +1,83 @@
+# Day-to-day usage
+
+The whole public surface is three commands: `outrider`, `outrider on`,
+`outrider off`. Everything else happens inside the dashboard.
+
+## The dashboard
+
+`outrider` opens a table of every registered service: name, stack, status,
+health, uptime, restart count, and route. Each row carries an on/off toggle
+(`◉`/`○`). Flipping it sets _desired state_ through the daemon; the row then
+animates through its transition states (pending → launching → running) as the
+reconciler does the work. Toggles update optimistically and reconcile against
+daemon events.
+
+| Key               | Action                                   |
+| ----------------- | ---------------------------------------- |
+| `j` / `k`, arrows | move selection                           |
+| `g` / `G`         | jump to top / bottom                     |
+| `space` / `enter` | toggle the service up/down               |
+| `r`               | restart                                  |
+| `+` / `-`         | scale replicas up / down                 |
+| `A`               | toggle autostart (start at daemon boot)  |
+| `l`               | logs view                                |
+| `i`               | detail view                              |
+| `a`               | add a standalone service                 |
+| `m`               | import a stack                           |
+| `/`               | fuzzy search                             |
+| `f`               | cycle stack filter                       |
+| `s`               | cycle sort (name, status, stack, uptime) |
+| `D`               | daemon master switch                     |
+| `q`               | quit (services keep running)             |
+
+The header shows aggregate counts and the daemon switch. Switching the daemon
+off asks one confirmation, streams the reverse-order shutdown live, then drops
+into **offline mode**: the dashboard renders the persisted registry read-only,
+and the same `D` key spawns the daemon again.
+
+## Logs
+
+`l` opens the log pane: follow mode (`f`), wrap toggle (`w`), regex search with
+highlighting (`/`), scrollback (`j`/`k`, `G` to re-tail). Live lines come from
+the daemon's in-memory ring buffer; stderr and supervisor messages are marked.
+
+## Detail
+
+`i` shows the full config snapshot: command, working directory, restart
+policy, probes, dependencies, per-instance state with pids and exit codes,
+route status, and the environment with values whose keys look secret (TOKEN,
+SECRET, PASSWORD, KEY, …) masked. The masking is a documented heuristic, not
+a guarantee.
+
+## Adding a service
+
+`a` opens a form: name, command, working directory, optional route, restart
+policy, autostart. The form validates live against the daemon before saving.
+Standalone services live in the registry with no backing file.
+
+## Importing a stack
+
+`m` asks for a path to a `process-compose.yaml` (or a directory containing
+one), runs a dry-run validation first, and shows the merged result: processes,
+resolved start order, and any compatibility warnings. Nothing registers until
+you confirm. Re-importing the same stack refreshes it: new processes appear,
+removed ones are stopped and dropped, desired states are preserved.
+
+## Desired state, autostart, and reboots
+
+Every service carries a desired state (up or down) and an autostart flag.
+`outrider off` stops processes but leaves desired state untouched; at the next
+`on` (or reboot), services with `autostart` _and_ desired `up` come back.
+Restart counters persist across daemon restarts.
+
+## Scripting against the daemon
+
+The socket speaks plain JSON; until the scripting commands land you can drive
+it directly (see the [CLI reference](cli-reference.md) for the endpoint list):
+
+```bash
+curl -s --unix-socket "$XDG_RUNTIME_DIR/outrider.sock" \
+  http://outrider/v1/up -X POST -d '{"names":["mystack"]}'
+```
+
+A hidden `outrider state` prints the full state snapshot as JSON.

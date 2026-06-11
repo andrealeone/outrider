@@ -1,0 +1,4 @@
+# Merges automatically on top of process-compose.yaml at import.
+processes:
+  api:
+    replicas: 1

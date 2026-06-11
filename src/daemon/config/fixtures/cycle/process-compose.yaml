@@ -1,0 +1,13 @@
+processes:
+  a:
+    command: 'true'
+    depends_on:
+      b: { condition: process_started }
+  b:
+    command: 'true'
+    depends_on:
+      c: { condition: process_started }
+  c:
+    command: 'true'
+    depends_on:
+      a: { condition: process_started }
