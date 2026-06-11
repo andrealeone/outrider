@@ -21,4 +21,8 @@ Route allocation happens here: for an `x-portless` service the reconciler
 takes the fixed port or asks the OS for an ephemeral one, registers the route
 through the Router, and injects `PORT`, `PORTLESS_URL`, and `OUTRIDER_URL`
 into the spawn environment. Registration failure degrades to starting without
-a route, logged to the service's system stream.
+a route, logged to the service's system stream. A route marked `alias`
+registers as a static pid-0 alias on its fixed port instead of a
+daemon-owned one (see [Router](router.md)); because portless never prunes
+those, the reconciler clears every known alias on boot before the resume
+pass, so a prior crash can't leave one dangling.
