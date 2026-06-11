@@ -37,7 +37,7 @@ const App = () => {
         />
       )
     case 'add':
-      return <AddService daemon={daemon} active onDone={back} />
+      return <AddService daemon={daemon} active edit={view.edit} onDone={back} />
     case 'import':
       return <ImportStack daemon={daemon} active onDone={back} />
     case 'dashboard':

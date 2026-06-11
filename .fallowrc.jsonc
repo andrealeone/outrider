@@ -1,0 +1,24 @@
+{
+  // Entry points beyond package.json bin: repo tooling and the build-time
+  // stub that tsconfig "paths" substitutes for react-devtools-core (fallow
+  // cannot see paths-based references).
+  "entry": ["scripts/*.ts", "src/tui/devtools-stub.ts"],
+  "rules": {
+    // CLI commands are file routes: every module intentionally exports the
+    // same { description, run, hidden } shape, keyed by file path.
+    "duplicate-exports": "off",
+    // The daemon wires components through constructor injection; fallow's
+    // resolver misses method calls made through destructured dependency
+    // objects (e.g. api.ts's `const { registry } = this.deps`), flagging
+    // members that are in active use (Registry.importProject and friends).
+    "unused-class-members": "off",
+  },
+  "health": {
+    // CRAP assumes coverage data; without coverage-final.json it estimates
+    // zero coverage and flags any function with cyclomatic >= 5. Gate on
+    // the complexity thresholds instead until coverage is wired up.
+    "maxCrap": 900,
+    "maxCyclomatic": 25,
+    "maxCognitive": 25,
+  },
+}

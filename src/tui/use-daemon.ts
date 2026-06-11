@@ -34,7 +34,10 @@ export interface DaemonHook {
   daemonOn: () => void
   daemonOff: () => void
   addService: (def: ServiceDefinition) => Promise<string | undefined>
-  validateService: (def: ServiceDefinition) => Promise<string[]>
+  updateService: (id: string, def: ServiceDefinition) => Promise<string | undefined>
+  /** Removes a standalone service, or the whole stack for a stack member. */
+  removeService: (state: ServiceState) => void
+  validateService: (def: ServiceDefinition, editOf?: string) => Promise<string[]>
   importStack: (path: string, dryRun: boolean) => Promise<ImportReport>
   fetchLogs: (id: string, tail?: number) => Promise<LogLine[]>
 }
@@ -86,6 +89,13 @@ export const useDaemon = (): DaemonHook => {
   useEffect(() => {
     const connect = async (): Promise<void> => {
       if (!alive.current) return
+      const goOffline = (): void => {
+        setConnection('offline')
+        byId.current = new Map(offlineSnapshot().map((s) => [s.entry.id, s]))
+        dirty.current = true
+        flush()
+        setTimeout(() => void connect(), RECONNECT_MS)
+      }
       try {
         const info = await client.info()
         setDaemon(info)
@@ -135,25 +145,16 @@ export const useDaemon = (): DaemonHook => {
             }
           },
           () => {
-            if (!alive.current) return
-            setConnection('offline')
-            byId.current = new Map(offlineSnapshot().map((s) => [s.entry.id, s]))
-            dirty.current = true
-            flush()
-            setTimeout(() => void connect(), RECONNECT_MS)
+            if (alive.current) goOffline()
           },
         )
         setConnection('online')
       } catch (err) {
         if (!alive.current) return
-        setConnection('offline')
         setNotice(
           err instanceof Error && !err.message.includes('not running') ? err.message : undefined,
         )
-        byId.current = new Map(offlineSnapshot().map((s) => [s.entry.id, s]))
-        dirty.current = true
-        flush()
-        setTimeout(() => void connect(), RECONNECT_MS)
+        goOffline()
       }
     }
 
@@ -229,10 +230,32 @@ export const useDaemon = (): DaemonHook => {
       },
       [client],
     ),
-    validateService: useCallback(
-      async (def: ServiceDefinition) => {
+    updateService: useCallback(
+      async (id: string, def: ServiceDefinition) => {
         try {
-          const result = await client.validateService(def)
+          await client.updateService(id, def)
+          return undefined
+        } catch (err) {
+          return err instanceof Error ? err.message : String(err)
+        }
+      },
+      [client],
+    ),
+    removeService: useCallback(
+      (state: ServiceState) => {
+        const { entry } = state
+        guard(() =>
+          entry.stack === undefined
+            ? client.removeService(entry.id)
+            : client.removeStack(entry.stack),
+        )
+      },
+      [client, guard],
+    ),
+    validateService: useCallback(
+      async (def: ServiceDefinition, editOf?: string) => {
+        try {
+          const result = await client.validateService(def, editOf)
           return result.errors
         } catch (err) {
           return [err instanceof Error ? err.message : String(err)]

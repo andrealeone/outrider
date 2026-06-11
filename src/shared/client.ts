@@ -17,7 +17,7 @@ import { ApiCallError, DaemonUnreachableError, ProtocolMismatchError } from './c
 import { socketPath } from './utils/paths'
 import { PROTOCOL_VERSION } from './version'
 
-export { ApiCallError, DaemonUnreachableError, ProtocolMismatchError } from './client-errors'
+export { ApiCallError, ProtocolMismatchError } from './client-errors'
 
 export class Client {
   constructor(readonly socket: string = socketPath) {}
@@ -78,10 +78,15 @@ export class Client {
     this.request('PATCH', `/v1/services/${encodeURIComponent(id)}`, body)
   addService = (def: ServiceDefinition): Promise<ServiceState> =>
     this.request('POST', '/v1/services', def)
+  updateService = (id: string, def: ServiceDefinition): Promise<ServiceState> =>
+    this.request('PUT', `/v1/services/${encodeURIComponent(id)}`, def)
   removeService = (id: string): Promise<void> =>
     this.request('DELETE', `/v1/services/${encodeURIComponent(id)}`)
-  validateService = (def: ServiceDefinition): Promise<{ ok: boolean; errors: string[] }> =>
-    this.request('POST', '/v1/services/validate', def)
+  validateService = (
+    def: ServiceDefinition,
+    editOf?: string,
+  ): Promise<{ ok: boolean; errors: string[] }> =>
+    this.request('POST', '/v1/services/validate', { ...def, editOf })
 
   importStack = (body: ImportBody): Promise<ImportReport> =>
     this.request('POST', '/v1/import', body)

@@ -74,13 +74,6 @@ export class Logger {
     return this.sinks.get(serviceId)?.ring.tail(n) ?? []
   }
 
-  /** Load rotated history from disk, oldest first (for the TUI history view). */
-  history(serviceId: string, maxLines: number): string[] {
-    const sink = this.sinks.get(serviceId)
-    if (!sink || !existsSync(sink.file)) return []
-    return readFileSync(sink.file, 'utf8').split('\n').filter(Boolean).slice(-maxLines)
-  }
-
   /** Watch for a ready_log_line match on one instance; returns a cancel fn. */
   watchReadyLine(
     serviceId: string,

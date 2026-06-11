@@ -141,47 +141,51 @@ const validateRoute = (
   }
 }
 
-const validateProcess = (
+type Warn = (code: string, message: string) => void
+
+const validateProcessKeys = (
   name: string,
   proc: ProcessConfig,
-  config: ProjectConfig,
   strict: boolean,
-  result: ValidationResult,
-  routeClaims: Map<string, string>,
+  errors: string[],
+  warn: Warn,
 ): void => {
-  const { errors, warnings } = result
-  const warn = (code: string, message: string): void => {
-    warnings.push({ code, message, process: name })
-  }
-
   for (const key of Object.keys(proc)) {
     if (PROCESS_KEYS.has(key) || key.startsWith('x-')) continue
     if (strict) errors.push(`process "${name}": unknown key "${key}" (strict mode)`)
     else warn('unknown-key', `process "${name}": unknown key "${key}" was ignored`)
   }
-
   if (!proc.command && !proc.entrypoint?.length && !proc.disabled) {
     errors.push(`process "${name}": command or entrypoint is required`)
   }
+}
 
+const validateDependencies = (
+  name: string,
+  proc: ProcessConfig,
+  config: ProjectConfig,
+  errors: string[],
+  warn: Warn,
+): void => {
   for (const [dep, depConfig] of Object.entries(proc.depends_on ?? {})) {
     const condition = depConfig?.condition ?? 'process_started'
     if (!CONDITIONS.has(condition)) {
       errors.push(`process "${name}": depends_on.${dep} has unknown condition "${condition}"`)
     }
-    if (!(dep in config.processes)) {
-      const replicaInstance = /^(.+)-\d+$/.exec(dep)
-      if (replicaInstance && (replicaInstance[1] as string) in config.processes) {
-        warn(
-          'deferred-feature',
-          `process "${name}": per-instance replica dependency "${dep}" is deferred; depend on "${replicaInstance[1]}" to wait for the whole group`,
-        )
-      } else {
-        errors.push(`process "${name}": depends_on references unknown process "${dep}"`)
-      }
+    if (dep in config.processes) continue
+    const replicaInstance = /^(.+)-\d+$/.exec(dep)
+    if (replicaInstance && (replicaInstance[1] as string) in config.processes) {
+      warn(
+        'deferred-feature',
+        `process "${name}": per-instance replica dependency "${dep}" is deferred; depend on "${replicaInstance[1]}" to wait for the whole group`,
+      )
+    } else {
+      errors.push(`process "${name}": depends_on references unknown process "${dep}"`)
     }
   }
+}
 
+const validateProbes = (name: string, proc: ProcessConfig, errors: string[], warn: Warn): void => {
   if (proc.readiness_probe && proc.ready_log_line) {
     errors.push(
       `process "${name}": ready_log_line and readiness_probe are mutually exclusive upstream; keep one`,
@@ -189,7 +193,20 @@ const validateProcess = (
   }
   if (proc.readiness_probe) validateProbe(name, 'readiness_probe', proc.readiness_probe, errors)
   if (proc.liveness_probe) validateProbe(name, 'liveness_probe', proc.liveness_probe, errors)
+  if (proc.readiness_probe?.success_threshold !== undefined) {
+    warn(
+      'upstream-placeholder',
+      `process "${name}": success_threshold is a placeholder upstream and is not evaluated; documented for honesty`,
+    )
+  }
+}
 
+const validateAvailability = (
+  name: string,
+  proc: ProcessConfig,
+  errors: string[],
+  warn: Warn,
+): void => {
   const availability = proc.availability
   if (availability?.restart !== undefined && !RESTART_POLICIES.has(availability.restart)) {
     errors.push(
@@ -208,11 +225,13 @@ const validateProcess = (
       `process "${name}": restart policy exit_on_failure terminates ephemeral runs only; in persistent mode the process is treated as restart "no"`,
     )
   }
-
   if (proc.replicas !== undefined && (!Number.isInteger(proc.replicas) || proc.replicas < 0)) {
     errors.push(`process "${name}": replicas must be a non-negative integer`)
   }
+}
 
+/** Cut and deferred features warn by name — never a silent ignore. */
+const warnTriagedFeatures = (name: string, proc: ProcessConfig, warn: Warn): void => {
   if (proc.is_elevated) {
     warn(
       'cut-feature',
@@ -224,12 +243,26 @@ const validateProcess = (
       warn('deferred-feature', `process "${name}": ${note}`)
     }
   }
-  if (proc.readiness_probe?.success_threshold !== undefined) {
-    warn(
-      'upstream-placeholder',
-      `process "${name}": success_threshold is a placeholder upstream and is not evaluated; documented for honesty`,
-    )
+}
+
+const validateProcess = (
+  name: string,
+  proc: ProcessConfig,
+  config: ProjectConfig,
+  strict: boolean,
+  result: ValidationResult,
+  routeClaims: Map<string, string>,
+): void => {
+  const { errors } = result
+  const warn: Warn = (code, message) => {
+    result.warnings.push({ code, message, process: name })
   }
+
+  validateProcessKeys(name, proc, strict, errors, warn)
+  validateDependencies(name, proc, config, errors, warn)
+  validateProbes(name, proc, errors, warn)
+  validateAvailability(name, proc, errors, warn)
+  warnTriagedFeatures(name, proc, warn)
 
   const route = proc['x-portless']
   if (route !== undefined) validateRoute(name, route, routeClaims, errors)

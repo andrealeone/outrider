@@ -213,6 +213,51 @@ describe('daemon over the socket', () => {
     expect(fakeRouter.registered.has('routed')).toBe(false)
   })
 
+  test('service lifecycle: edit restarts a live service, delete removes it', async () => {
+    await client.addService({ name: 'editable', command: 'echo before && sleep 60' })
+    await client.start('editable')
+    await waitForStatus('editable', 'running')
+
+    // Live validation: a name collision is rejected unless it is the edited id.
+    expect((await client.validateService({ name: 'editable', command: 'x' })).ok).toBe(false)
+    expect((await client.validateService({ name: 'editable', command: 'x' }, 'editable')).ok).toBe(
+      true,
+    )
+
+    await client.updateService('editable', {
+      name: 'editable',
+      command: 'echo after && sleep 60',
+      autostart: true,
+    })
+    const updated = await waitForStatus('editable', 'running')
+    expect(updated.entry.autostart).toBe(true)
+    expect(updated.entry.config.command).toBe('echo after && sleep 60')
+    await waitFor(async () => (await client.logs('editable')).some((l) => l.line === 'after'), 4000)
+
+    // Renaming and editing stack members are refused.
+    const errorOf = (work: Promise<unknown>): Promise<string> =>
+      work.then(
+        () => '',
+        (err: Error) => err.message,
+      )
+    expect(
+      await errorOf(client.updateService('editable', { name: 'renamed', command: 'x' })),
+    ).toContain('renaming')
+    expect(
+      await errorOf(client.updateService('depstack/main', { name: 'depstack/main', command: 'x' })),
+    ).toContain('compose file')
+
+    await client.removeService('editable')
+    const snapshot = await client.state()
+    expect(snapshot.services.some((s) => s.entry.id === 'editable')).toBe(false)
+
+    // Deleting a stack member is refused; deleting the stack removes all of it.
+    expect(await errorOf(client.removeService('depstack/main'))).toContain('stack')
+    await client.removeStack('depstack')
+    const after = await client.state()
+    expect(after.services.some((s) => s.entry.stack === 'depstack')).toBe(false)
+  }, 20_000)
+
   test('events stream over the websocket', async () => {
     const received: string[] = []
     const unsubscribe = client.events((event) => {
@@ -231,7 +276,7 @@ describe('daemon over the socket', () => {
   test('registry persists desired state and survives a reload', async () => {
     const registry = await client.registry()
     expect(registry.services['fleet']?.config.replicas).toBe(1)
-    expect(registry.stacks['depstack']?.contentHash).toHaveLength(16)
+    expect(registry.stacks['crashstack']?.contentHash).toHaveLength(16)
 
     const reloaded = new StateStore(
       join(tmp, 'registry.json'),

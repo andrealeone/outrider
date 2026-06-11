@@ -2,6 +2,7 @@ import { Box, Text, useInput } from 'ink'
 import React, { useMemo, useState } from 'react'
 
 import type { ServiceState } from '../../shared/types/protocol'
+import type { ServiceEntry } from '../../shared/types/registry'
 import type { DaemonHook } from '../use-daemon'
 
 import { theme } from '../theme'
@@ -13,7 +14,7 @@ export type View =
   | { name: 'dashboard' }
   | { name: 'logs'; id: string }
   | { name: 'detail'; id: string }
-  | { name: 'add' }
+  | { name: 'add'; edit?: ServiceEntry }
   | { name: 'import' }
 
 interface Props {
@@ -46,6 +47,7 @@ export const Dashboard = ({ daemon, rows, width, frame, active, onOpen, onQuit }
   const [sortIndex, setSortIndex] = useState(0)
   const [stackFilter, setStackFilter] = useState<string>()
   const [confirmOff, setConfirmOff] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<ServiceState>()
 
   const stacks = useMemo(
     () => [...new Set(daemon.services.map((s) => s.entry.stack ?? '(standalone)'))].sort(),
@@ -77,7 +79,7 @@ export const Dashboard = ({ daemon, rows, width, frame, active, onOpen, onQuit }
     })
   }, [daemon.services, stackFilter, search, sortIndex])
 
-  const tableHeight = Math.max(3, rows - 6)
+  const tableHeight = Math.max(3, rows - 7)
   const clampedSelection = Math.min(selected, Math.max(0, filtered.length - 1))
   const offset = Math.max(
     0,
@@ -85,52 +87,98 @@ export const Dashboard = ({ daemon, rows, width, frame, active, onOpen, onQuit }
   )
   const current: ServiceState | undefined = filtered[clampedSelection]
 
+  /** y/n prompts and the search input swallow keys while open. */
+  const handleModalKeys = (input: string, key: { escape: boolean; return: boolean }): boolean => {
+    if (confirmOff) {
+      if (input === 'y') daemon.daemonOff()
+      if (input === 'y' || input === 'n' || key.escape) setConfirmOff(false)
+      return true
+    }
+    if (confirmDelete !== undefined) {
+      if (input === 'y') daemon.removeService(confirmDelete)
+      if (input === 'y' || input === 'n' || key.escape) setConfirmDelete(undefined)
+      return true
+    }
+    if (searching) {
+      if (key.escape) setSearch('')
+      if (key.escape || key.return) setSearching(false)
+      return true
+    }
+    return false
+  }
+
+  const cycleStackFilter = (): void => {
+    setStackFilter((f) => {
+      const index = f === undefined ? -1 : stacks.indexOf(f)
+      return index + 1 >= stacks.length ? undefined : stacks[index + 1]
+    })
+  }
+
+  const globalActions: Record<string, () => void> = {
+    'q': onQuit,
+    'j': () => {
+      setSelected((s) => Math.min(s + 1, filtered.length - 1))
+    },
+    'k': () => {
+      setSelected((s) => Math.max(s - 1, 0))
+    },
+    'g': () => {
+      setSelected(0)
+    },
+    'G': () => {
+      setSelected(Math.max(0, filtered.length - 1))
+    },
+    '/': () => {
+      setSearching(true)
+    },
+    's': () => {
+      setSortIndex((i) => i + 1)
+    },
+    'f': cycleStackFilter,
+    'a': () => {
+      onOpen({ name: 'add' })
+    },
+    'm': () => {
+      onOpen({ name: 'import' })
+    },
+    'D': () => {
+      if (daemon.connection === 'online') setConfirmOff(true)
+      else daemon.daemonOn()
+    },
+  }
+
+  const serviceActions = (state: ServiceState): Record<string, () => void> => ({
+    ' ': () => {
+      daemon.toggle(state)
+    },
+    'r': () => {
+      daemon.restart(state.entry.id)
+    },
+    'A': () => {
+      daemon.setAutostart(state.entry.id, !state.entry.autostart)
+    },
+    'e': () => {
+      onOpen({ name: 'add', edit: state.entry })
+    },
+    'x': () => {
+      setConfirmDelete(state)
+    },
+    'l': () => {
+      onOpen({ name: 'logs', id: state.entry.id })
+    },
+    'i': () => {
+      onOpen({ name: 'detail', id: state.entry.id })
+    },
+  })
+
   useInput(
     (input, key) => {
-      if (confirmOff) {
-        if (input === 'y') {
-          daemon.daemonOff()
-          setConfirmOff(false)
-        } else if (input === 'n' || key.escape) setConfirmOff(false)
-        return
-      }
-      if (searching) {
-        if (key.escape) {
-          setSearch('')
-          setSearching(false)
-        } else if (key.return) setSearching(false)
-        return
-      }
-
-      if (input === 'q') onQuit()
-      else if (input === 'j' || key.downArrow)
-        setSelected((s) => Math.min(s + 1, filtered.length - 1))
-      else if (input === 'k' || key.upArrow) setSelected((s) => Math.max(s - 1, 0))
-      else if (input === 'g') setSelected(0)
-      else if (input === 'G') setSelected(Math.max(0, filtered.length - 1))
-      else if (input === '/') setSearching(true)
-      else if (input === 's') setSortIndex((i) => i + 1)
-      else if (input === 'f') {
-        setStackFilter((f) => {
-          const index = f === undefined ? -1 : stacks.indexOf(f)
-          return index + 1 >= stacks.length ? undefined : stacks[index + 1]
-        })
-      } else if (input === 'D') {
-        if (daemon.connection === 'online') setConfirmOff(true)
-        else daemon.daemonOn()
-      } else if (input === 'a') onOpen({ name: 'add' })
-      else if (input === 'm') onOpen({ name: 'import' })
-      else if (current !== undefined) {
-        if (input === ' ' || key.return) daemon.toggle(current)
-        else if (input === 'r') daemon.restart(current.entry.id)
-        else if (input === '+')
-          daemon.scale(current.entry.id, (current.entry.config.replicas ?? 1) + 1)
-        else if (input === '-')
-          daemon.scale(current.entry.id, Math.max(1, (current.entry.config.replicas ?? 1) - 1))
-        else if (input === 'A') daemon.setAutostart(current.entry.id, !current.entry.autostart)
-        else if (input === 'l') onOpen({ name: 'logs', id: current.entry.id })
-        else if (input === 'i') onOpen({ name: 'detail', id: current.entry.id })
-      }
+      if (handleModalKeys(input, key)) return
+      if (key.downArrow) globalActions['j']?.()
+      else if (key.upArrow) globalActions['k']?.()
+      else if (key.return && current !== undefined) daemon.toggle(current)
+      else if (globalActions[input]) globalActions[input]?.()
+      else if (current !== undefined) serviceActions(current)[input]?.()
     },
     { isActive: active },
   )
@@ -145,7 +193,7 @@ export const Dashboard = ({ daemon, rows, width, frame, active, onOpen, onQuit }
       />
       <Box paddingX={1}>
         <Text color={theme.dim}>
-          {stackFilter === undefined ? 'all stacks' : `stack: ${stackFilter}`} · sort:{' '}
+          {stackFilter === undefined ? 'All stacks' : `stack: ${stackFilter}`} · sort:{' '}
           {SORTS[sortIndex % SORTS.length]}
           {searching || search !== '' ? ' · /' : ''}
         </Text>
@@ -160,6 +208,7 @@ export const Dashboard = ({ daemon, rows, width, frame, active, onOpen, onQuit }
           />
         ) : null}
       </Box>
+      <Box height={1} />
       <ServiceTable
         services={filtered}
         selected={clampedSelection}
@@ -176,6 +225,14 @@ export const Dashboard = ({ daemon, rows, width, frame, active, onOpen, onQuit }
             switch the daemon off? services stop in reverse dependency order. [y]es [n]o
           </Text>
         </Box>
+      ) : confirmDelete !== undefined ? (
+        <Box paddingX={1} borderStyle="round" borderColor={theme.error}>
+          <Text color={theme.error}>
+            {confirmDelete.entry.stack === undefined
+              ? `delete service "${confirmDelete.entry.id}"? it will be stopped and removed from the registry. [y]es [n]o`
+              : `"${confirmDelete.entry.id}" belongs to stack "${confirmDelete.entry.stack}" — delete the whole stack and stop its services? [y]es [n]o`}
+          </Text>
+        </Box>
       ) : daemon.notice !== undefined ? (
         <Box paddingX={1}>
           <Text color={theme.error}>{daemon.notice}</Text>
@@ -185,7 +242,7 @@ export const Dashboard = ({ daemon, rows, width, frame, active, onOpen, onQuit }
         <Text color={theme.dim}>
           {daemon.connection === 'offline'
             ? 'daemon is off — registry shown read-only · [D] switch on · [q]uit'
-            : '[space] toggle · [r]estart · [+/-] scale · [l]ogs · [i]nfo · [a]dd · i[m]port · [/] search · [f]ilter · [s]ort · [A]utostart · [D]aemon · [q]uit'}
+            : '[space] toggle · [r]estart · [e]dit · [x] delete · [l]ogs · [i]nfo · [a]dd · i[m]port · [/] search · [f]ilter · [s]ort · [A]utostart · [D]aemon · [q]uit'}
         </Text>
       </Box>
     </Box>

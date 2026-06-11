@@ -1,32 +1,38 @@
 import type { ProcessStatus } from '../shared/types/protocol'
 
 export interface Theme {
+  /** Pastel green: titles, selection, the running state. */
   accent: string
-  dim: string
-  text: string
-  selection: string
   ok: string
   warn: string
   error: string
   info: string
-  route: string
+  dim: string
 }
 
-const dark: Theme = {
-  accent: 'cyan',
+// Mid-lightness pastels chosen to stay legible on both light and dark
+// backgrounds. Text cells carry no colour at all (terminal default) and
+// nothing paints a background, so the dashboard adapts to any terminal.
+const palette: Theme = {
+  accent: '#8fce87',
+  ok: '#8fce87',
+  warn: '#d8b465',
+  error: '#e08e8e',
+  info: '#7da6d9',
   dim: 'gray',
-  text: 'white',
-  selection: 'cyan',
-  ok: 'green',
-  warn: 'yellow',
-  error: 'red',
-  info: 'blue',
-  route: 'magenta',
 }
 
-const light: Theme = { ...dark, text: 'black', dim: 'gray', selection: 'blue', accent: 'blue' }
+// A slightly deeper variant for light backgrounds, opt-in via OUTRIDER_THEME.
+const light: Theme = {
+  accent: '#4e9a4e',
+  ok: '#4e9a4e',
+  warn: '#a5812e',
+  error: '#c4595e',
+  info: '#4f7cb8',
+  dim: 'gray',
+}
 
-export const theme: Theme = process.env.OUTRIDER_THEME === 'light' ? light : dark
+export const theme: Theme = process.env.OUTRIDER_THEME === 'light' ? light : palette
 
 export const statusColor = (status: ProcessStatus): string =>
   ({
@@ -34,7 +40,7 @@ export const statusColor = (status: ProcessStatus): string =>
     launching: theme.warn,
     running: theme.ok,
     completed: theme.info,
-    skipped: theme.route,
+    skipped: theme.dim,
     error: theme.error,
     terminating: theme.warn,
     restarting: theme.warn,

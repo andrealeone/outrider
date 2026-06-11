@@ -44,7 +44,8 @@ shape: `{ "error": { "code", "message" } }`. Clients handshake via `GET
 | `POST /v1/import` `{path, dryRun?}`               | import or refresh a stack; dry run returns the report only           |
 | `DELETE /v1/stacks/:name`                         | stop and remove a stack                                              |
 | `POST /v1/services`                               | register a standalone service                                        |
-| `POST /v1/services/validate`                      | validate a definition without saving                                 |
+| `PUT /v1/services/:id`                            | replace a standalone definition; a live service restarts to apply it |
+| `POST /v1/services/validate`                      | validate a definition without saving (`editOf` allows the own name)  |
 | `PATCH /v1/services/:id` `{desired?, autostart?}` | desired-state and autostart changes                                  |
 | `POST /v1/services/:id/start·stop·restart`        | immediate lifecycle actions                                          |
 | `POST /v1/services/:id/scale` `{replicas}`        | runtime replica change (persisted)                                   |

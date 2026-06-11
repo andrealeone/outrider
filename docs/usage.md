@@ -6,11 +6,13 @@ The whole public surface is three commands: `outrider`, `outrider on`,
 ## The dashboard
 
 `outrider` opens a table of every registered service: name, stack, status,
-health, uptime, restart count, and route. Each row carries an on/off toggle
-(`◉`/`○`). Flipping it sets _desired state_ through the daemon; the row then
-animates through its transition states (pending → launching → running) as the
-reconciler does the work. Toggles update optimistically and reconcile against
-daemon events.
+health, uptime, restart count, autostart flag (AUTO), and route. Each row
+carries an on/off toggle (`◉`/`○`). Flipping it sets _desired state_ through
+the daemon; the row then animates through its transition states (pending →
+launching → running) as the reconciler does the work. Toggles update
+optimistically and reconcile against daemon events. The status cell keeps its
+semantic colour (green running, red error); every other cell follows the
+terminal's own colours, so the dashboard adapts to any theme.
 
 | Key               | Action                                   |
 | ----------------- | ---------------------------------------- |
@@ -18,7 +20,8 @@ daemon events.
 | `g` / `G`         | jump to top / bottom                     |
 | `space` / `enter` | toggle the service up/down               |
 | `r`               | restart                                  |
-| `+` / `-`         | scale replicas up / down                 |
+| `e`               | edit the selected service                |
+| `x`               | delete the selected service (confirmed)  |
 | `A`               | toggle autostart (start at daemon boot)  |
 | `l`               | logs view                                |
 | `i`               | detail view                              |
@@ -54,6 +57,19 @@ a guarantee.
 `a` opens a form: name, command, working directory, optional route, restart
 policy, autostart. The form validates live against the daemon before saving.
 Standalone services live in the registry with no backing file.
+
+## Editing and deleting
+
+`e` reopens the same form prefilled for the selected service. The name is
+fixed (delete and recreate to rename); saving persists the new definition and
+restarts the service if it is running, so the change takes effect
+immediately. Stack members cannot be edited in place — their compose file is
+the source of truth, so edit the file and re-import.
+
+`x` deletes the selected service after one confirmation: it is stopped,
+unrouted, and removed from the registry. For a stack member the confirmation
+offers to remove the whole stack instead, since partial stacks would drift
+from their source file.
 
 ## Importing a stack
 
