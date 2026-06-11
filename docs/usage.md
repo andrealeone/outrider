@@ -54,9 +54,17 @@ a guarantee.
 
 ## Adding a service
 
-`a` opens a form: name, command, working directory, optional route, restart
-policy, autostart. The form validates live against the daemon before saving.
-Standalone services live in the registry with no backing file.
+`a` opens a form: name, command, working directory, optional route, optional
+alias port, restart policy, autostart. The form validates live against the
+daemon before saving. Standalone services live in the registry with no backing
+file.
+
+Leave **alias port** blank for a normal daemon-managed route, where the daemon
+picks the port and injects `PORT`. Set it to a fixed port (e.g. `10020`) when
+the command owns that port itself and ignores the injected one — `kubectl
+port-forward`, `tsh proxy`, and the like. The route then becomes a static
+portless alias pointing at that port; it requires a route to be set. (See the
+[config schema](config-schema.md) for the `x-portless.alias` equivalent.)
 
 ## Editing and deleting
 

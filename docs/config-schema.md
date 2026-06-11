@@ -109,6 +109,7 @@ processes:
       route: api # required — the hostname label → api.localhost
       framework: auto # optional — auto | none | vite | astro | expo | …
       port: 8080 # optional — fixed port for PORT-deaf services
+      alias: false # optional — see Static aliases below; requires port
 ```
 
 Routing is opt-in per process. Configs that hard-code ports keep working
@@ -117,3 +118,13 @@ and may not collide with portless's reserved subcommand names; conflicts fail
 the import naming both claimants. `framework` feeds the quirk table that
 appends `--port` for tools that ignore the injected `PORT` (Vite, Astro,
 Expo, React Router, Angular).
+
+**Static aliases.** A managed route (the default) is owned by the daemon: it
+points at the daemon-injected `PORT` and is registered under the daemon's pid,
+so portless prunes it when the daemon dies. Setting `alias: true` instead
+registers a static portless alias (pid 0) pointing straight at the fixed
+`port` — for external tools that bind their own port and ignore the injected
+`PORT` (e.g. `kubectl port-forward`, `tsh proxy`). `alias` requires `port`
+(an alias has no ephemeral port to fall back on). portless never prunes pid-0
+aliases, so the daemon clears its own on boot and shutdown to avoid dangling
+routes after a crash.

@@ -8,10 +8,18 @@ implementation.
 
 **Registration.** Portless's alias mechanism maps a hostname to a port
 without wrapping the child command, which fits a daemon that already owns
-spawning. Routes register through `RouteStore.addRoute(hostname, port, pid)`
-under the daemon's pid: portless prunes routes whose owner died, so a crashed
-daemon leaves no stale claims. Force-claiming is off — a route held by a live
-foreign process is an error, not a kill.
+spawning. Managed routes register through
+`RouteStore.addRoute(hostname, port, pid)` under the daemon's pid: portless
+prunes routes whose owner died, so a crashed daemon leaves no stale claims.
+Force-claiming is off — a route held by a live foreign process is an error,
+not a kill.
+
+**Static aliases.** A route with `x-portless.alias: true` is registered under
+pid 0 — the same static-route mechanism as `portless alias` — for external
+tools that own their fixed port and ignore the injected `PORT`. portless never
+prunes pid-0 routes, so the daemon takes over their lifecycle: the reconciler
+clears every known alias on boot (the resume pass re-registers the ones that
+come back up) and unregisters them when their service stops.
 
 **Proxy lifecycle.** Exactly one component owns proxy startup, and it is this
 daemon: `ensureProxy` health-checks the proxy (the `X-Portless` header on
