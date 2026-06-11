@@ -50,6 +50,7 @@ shape: `{ "error": { "code", "message" } }`. Clients handshake via `GET
 | `POST /v1/services/:id/start·stop·restart`        | immediate lifecycle actions                                          |
 | `POST /v1/services/:id/scale` `{replicas}`        | runtime replica change (persisted)                                   |
 | `GET /v1/services/:id/logs?tail=N`                | ring-buffer tail                                                     |
+| `DELETE /v1/services/:id/logs`                    | clear this service's in-memory and persisted logs                    |
 | `DELETE /v1/services/:id`                         | remove a standalone service                                          |
 | `POST /v1/shutdown`                               | full ordered shutdown, daemon exits                                  |
 | `WS /v1/events`                                   | event stream: snapshots, state changes, log lines, probe transitions |

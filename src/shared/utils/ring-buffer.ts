@@ -24,6 +24,12 @@ export class RingBuffer<T> {
     return out
   }
 
+  clear(): void {
+    this.items.fill(undefined)
+    this.head = 0
+    this.count = 0
+  }
+
   get size(): number {
     return this.count
   }

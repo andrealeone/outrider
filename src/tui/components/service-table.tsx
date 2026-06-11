@@ -57,9 +57,9 @@ export const ServiceTable = ({
         {'  '}
         {fit('UPTIME', 8)}
         {'  '}
-        {fit('↻', 3)}
+        {fit('RST', 3)}
         {'  '}
-        {fit('⏻', 3)}
+        {fit('AUTOSTART', 12)}
         {'  '}
         {'ROUTE'}
       </Text>

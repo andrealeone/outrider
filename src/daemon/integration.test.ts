@@ -234,7 +234,7 @@ describe('daemon over the socket', () => {
     expect(updated.entry.config.command).toBe('echo after && sleep 60')
     await waitFor(async () => (await client.logs('editable')).some((l) => l.line === 'after'), 4000)
 
-    // Renaming and editing stack members are refused.
+    // Renaming is refused; stack members can be edited through their slash-containing id.
     const errorOf = (work: Promise<unknown>): Promise<string> =>
       work.then(
         () => '',
@@ -243,9 +243,13 @@ describe('daemon over the socket', () => {
     expect(
       await errorOf(client.updateService('editable', { name: 'renamed', command: 'x' })),
     ).toContain('renaming')
-    expect(
-      await errorOf(client.updateService('depstack/main', { name: 'depstack/main', command: 'x' })),
-    ).toContain('compose file')
+    expect((await client.validateService({ name: 'main', command: 'x' }, 'depstack/main')).ok).toBe(
+      true,
+    )
+    await client.updateService('depstack/main', { name: 'main', command: 'echo stack-edited' })
+    const stackEdited = await stateOf('depstack/main')
+    expect(stackEdited?.entry.stack).toBe('depstack')
+    expect(stackEdited?.entry.config.command).toBe('echo stack-edited')
 
     await client.removeService('editable')
     const snapshot = await client.state()

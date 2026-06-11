@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { homedir, userInfo } from 'node:os'
+import { basename, delimiter, join, resolve } from 'node:path'
 
 import type { Subprocess } from 'bun'
 import type { AvailabilityConfig } from '../shared/types/process-compose'
@@ -23,6 +24,102 @@ import { applyFrameworkQuirks } from './framework-quirks'
 const DEFAULT_BACKOFF_SECONDS = 1
 const DEFAULT_SHUTDOWN_TIMEOUT_SECONDS = 10
 const DEFAULT_LAUNCH_TIMEOUT_SECONDS = 60
+
+const userHome = (): string => {
+  try {
+    return userInfo().homedir || process.env.HOME || homedir()
+  } catch {
+    return process.env.HOME || homedir()
+  }
+}
+
+const fallbackShell = (): string => {
+  try {
+    return (
+      userInfo().shell ||
+      process.env.SHELL ||
+      (process.platform === 'darwin' ? '/bin/zsh' : '/bin/bash')
+    )
+  } catch {
+    return process.env.SHELL || (process.platform === 'darwin' ? '/bin/zsh' : '/bin/bash')
+  }
+}
+
+const commonPathEntries = (): string[] => {
+  const home = userHome()
+  return [
+    join(home, '.local', 'bin'),
+    join(home, 'bin'),
+    join(home, '.bun', 'bin'),
+    join(home, '.cargo', 'bin'),
+    join(home, '.asdf', 'shims'),
+    join(home, '.mise', 'shims'),
+    join(home, '.local', 'share', 'mise', 'shims'),
+    join(home, '.volta', 'bin'),
+    join(home, '.pyenv', 'shims'),
+    join(home, '.rbenv', 'shims'),
+    '/opt/homebrew/bin',
+    '/opt/homebrew/sbin',
+    '/usr/local/bin',
+    '/usr/local/sbin',
+    '/usr/bin',
+    '/bin',
+    '/usr/sbin',
+    '/sbin',
+  ]
+}
+
+const withCommonPath = (path: string | undefined): string =>
+  [...new Set([...commonPathEntries(), ...(path ?? '').split(delimiter).filter(Boolean)])].join(
+    delimiter,
+  )
+
+const shellQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`
+
+const exportCommonPath = (): string => `export PATH=${shellQuote(withCommonPath(undefined))}:$PATH`
+
+const defaultShellArgv = (shell: string, command: string): string[] => {
+  switch (basename(shell)) {
+    case 'zsh':
+      return [
+        shell,
+        '-f',
+        '-ic',
+        [
+          'PROMPT=; RPROMPT=; PS1=',
+          "trap 'exit 143' TERM INT",
+          'unsetopt monitor',
+          'source ~/.zshenv >/dev/null 2>&1 || true',
+          'source ~/.zprofile >/dev/null 2>&1 || true',
+          'source ~/.zshrc >/dev/null 2>&1 || true',
+          'source ~/.zlogin >/dev/null 2>&1 || true',
+          exportCommonPath(),
+          `eval ${shellQuote(command)}`,
+        ].join('; '),
+      ]
+    case 'bash':
+      return [
+        shell,
+        '--noprofile',
+        '--norc',
+        '-ic',
+        [
+          'PS1=',
+          "trap 'exit 143' TERM INT",
+          'set +m',
+          'shopt -s expand_aliases',
+          'source ~/.bash_profile >/dev/null 2>&1 || true',
+          'source ~/.bash_login >/dev/null 2>&1 || true',
+          'source ~/.profile >/dev/null 2>&1 || true',
+          'source ~/.bashrc >/dev/null 2>&1 || true',
+          exportCommonPath(),
+          `eval ${shellQuote(command)}`,
+        ].join('; '),
+      ]
+    default:
+      return [shell, '-ic', command]
+  }
+}
 
 interface InstanceRuntime {
   name: string
@@ -196,6 +293,9 @@ export class Supervisor {
   private buildEnv(runtime: ServiceRuntime, inst: InstanceRuntime): Record<string, string> {
     const { entry } = runtime
     const env: Record<string, string | undefined> = { ...process.env }
+    env.HOME ??= userHome()
+    env.SHELL ??= fallbackShell()
+    env.PATH = withCommonPath(env.PATH)
 
     const dotenvFile = resolve(entry.dir, '.env')
     if (!entry.config.is_dotenv_disabled && existsSync(dotenvFile)) {
@@ -208,6 +308,7 @@ export class Supervisor {
       else this.logger.write(entry.id, inst.name, 'system', `env_file not found: ${path}`)
     }
     Object.assign(env, parseEnvList(entry.config.environment), runtime.routeEnv)
+    env.PATH = withCommonPath(env.PATH)
 
     // Upstream-compatible names plus outrider aliases.
     env.PC_PROC_NAME = inst.name
@@ -224,9 +325,10 @@ export class Supervisor {
 
   private argvFor(entry: ServiceEntry, command: string): string[] {
     if (entry.config.entrypoint?.length) return entry.config.entrypoint
-    const shell = entry.shell?.shell_command ?? process.env.SHELL ?? '/bin/bash'
-    const flag = entry.shell?.shell_argument ?? '-ic'
-    return [shell, flag, command]
+    const shell = entry.shell?.shell_command ?? fallbackShell()
+    if (entry.shell?.shell_argument !== undefined)
+      return [shell, entry.shell.shell_argument, command]
+    return defaultShellArgv(shell, command)
   }
 
   private spawnInstance(runtime: ServiceRuntime, inst: InstanceRuntime): void {

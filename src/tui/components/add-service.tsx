@@ -115,7 +115,7 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
   return (
     <Box flexDirection="column" padding={1}>
       <Text bold color={theme.accent}>
-        {editing ? `edit service · ${edit.id}` : 'add service'}
+        {editing ? `Edit service · ${edit.id}` : 'Add service'}
       </Text>
       <Text color={theme.dim}>
         tab/enter to move, esc to cancel
