@@ -18,7 +18,16 @@ interface Props {
 
 const RESTART_OPTIONS = ['no', 'on_failure', 'always'] as const
 
-const FIELDS = ['name', 'command', 'workingDir', 'route', 'restart', 'autostart', 'submit'] as const
+const FIELDS = [
+  'name',
+  'command',
+  'workingDir',
+  'route',
+  'aliasPort',
+  'restart',
+  'autostart',
+  'submit',
+] as const
 
 type Field = (typeof FIELDS)[number]
 
@@ -30,6 +39,9 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
   const [command, setCommand] = useState(edit?.config.command ?? '')
   const [workingDir, setWorkingDir] = useState(edit?.config.working_dir ?? '')
   const [route, setRoute] = useState(edit?.route?.route ?? '')
+  const [aliasPort, setAliasPort] = useState(
+    edit?.route?.alias ? String(edit.route.port ?? '') : '',
+  )
   const [restartIndex, setRestartIndex] = useState(
     Math.max(0, RESTART_OPTIONS.indexOf((edit?.config.availability?.restart ?? 'no') as never)),
   )
@@ -42,6 +54,7 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
     command: command.trim(),
     workingDir: workingDir.trim() === '' ? undefined : workingDir.trim(),
     route: route.trim() === '' ? undefined : route.trim(),
+    aliasPort: aliasPort.trim() === '' ? undefined : Number(aliasPort.trim()),
     restart: RESTART_OPTIONS[restartIndex % RESTART_OPTIONS.length],
     autostart,
   })
@@ -57,7 +70,7 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
     return () => {
       clearTimeout(timer)
     }
-  }, [name, command, workingDir, route])
+  }, [name, command, workingDir, route, aliasPort])
 
   const move = (delta: number): void => {
     // The name field is locked while editing, so navigation starts at 1.
@@ -135,6 +148,13 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
         {textField('command', command, setCommand, 'command', 'bun run server.ts')}
         {textField('working dir', workingDir, setWorkingDir, 'workingDir', '(home)')}
         {textField('route', route, setRoute, 'route', '(none — e.g. api → api.localhost)')}
+        {textField(
+          'alias port',
+          aliasPort,
+          setAliasPort,
+          'aliasPort',
+          '(none — fixed port for external tools, e.g. 10020)',
+        )}
         <Box>
           <Box width={14}>
             <Text color={field === 'restart' ? theme.accent : theme.dim}>

@@ -77,6 +77,14 @@ export interface PortlessExtension {
   route: string
   framework?: string
   port?: number
+  /**
+   * Register a static portless alias instead of a managed route. External
+   * tools that bind a fixed port and ignore the injected PORT (e.g. kubectl
+   * port-forward, tsh proxy) are routed this way: the alias points at `port`
+   * directly. Aliases use pid 0 and survive portless's stale-route cleanup,
+   * so the daemon clears them explicitly on shutdown and boot.
+   */
+  alias?: boolean
 }
 
 export interface ProcessConfig {

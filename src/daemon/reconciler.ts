@@ -47,6 +47,13 @@ export class Reconciler {
         void this.router.unregister(event.service.entry.route.route).catch(() => undefined)
       }
     })
+    // Static aliases (pid 0) survive portless's stale-route cleanup, so a
+    // crashed daemon leaves them dangling at ports nothing listens on. Clear
+    // every known alias on boot; the resume pass re-registers the ones that
+    // come back up, and the rest stay gone until their service starts.
+    for (const s of this.registry.list()) {
+      if (s.route?.alias) void this.router.unregister(s.route.route).catch(() => undefined)
+    }
     // Cold boot: resume everything marked autostart with desired state up.
     const resume = this.registry.list().filter((s) => s.desired === 'up' && s.autostart)
     void this.requestUp(resume.map((s) => s.id))
@@ -189,9 +196,10 @@ export class Reconciler {
     let routeUrl: string | undefined
 
     if (entry.route) {
+      const alias = entry.route.alias === true
       const port = entry.route.port ?? freePort()
       try {
-        const binding = await this.router.register(entry.route.route, port)
+        const binding = await this.router.register(entry.route.route, port, alias)
         routeUrl = binding.url
         routeEnv = {
           PORT: String(port),
