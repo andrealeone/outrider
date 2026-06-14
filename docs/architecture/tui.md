@@ -11,9 +11,10 @@ flush so event bursts cost one render; log lines bypass React state entirely
 and fan out to subscriber callbacks (the logs view batches them to frame
 boundaries and never rerenders the table). Toggles update optimistically and
 reconcile against daemon events, so every keypress paints feedback in the
-next frame instead of waiting on a socket round trip. A dropped socket flips
-to offline mode — rows rendered read-only from the persisted
-`registry.json` — with a reconnect loop behind it.
+next frame instead of waiting on a socket round trip. A socket that drops or
+never opens (the client never throws synchronously from `events()`) flips to
+offline mode — rows rendered read-only from the persisted `registry.json` —
+with a reconnect loop behind it.
 
 **Rendering discipline.** One shared frame clock (`frame-clock.ts`) drives
 spinners, transition animations, and uptime counters, so a busy dashboard

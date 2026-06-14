@@ -1,16 +1,17 @@
 {
   "version": 1,
   "skills": {
-    "bun": {
-      "source": "bun.sh",
-      "sourceType": "well-known",
-      "computedHash": "a35be3bbad9ba66bc962d0f29098cd2b7a582023976cdb3649a3b6dc171a26de"
-    },
     "fallow": {
       "source": "fallow-rs/fallow-skills",
       "sourceType": "github",
       "skillPath": "fallow/skills/fallow/SKILL.md",
-      "computedHash": "f4bd18502122c5802e2c13e58ecb947b29be1c7141c85aec151ee2e944ad0532"
+      "computedHash": "707038def548ff62a77d7daa9b8202134173941e917b59c70ba123912aab399c"
+    },
+    "improve": {
+      "source": "shadcn/improve",
+      "sourceType": "github",
+      "skillPath": "skills/improve/SKILL.md",
+      "computedHash": "7a0f09dd535fc84391dc63bea826d6aeab985b92423fa4dd93edacb5dfb82524"
     }
   }
 }
