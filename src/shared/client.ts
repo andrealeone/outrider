@@ -100,9 +100,20 @@ export class Client {
 
   shutdown = (): Promise<void> => this.request('POST', '/v1/shutdown')
 
-  /** Subscribe to the event stream; returns an unsubscribe function. */
+  /**
+   * Subscribe to the event stream; returns an unsubscribe function. Never throws
+   * synchronously: a failure to open the socket (e.g. a Bun runtime too old for
+   * the `ws+unix://` scheme) is reported through `onClose`, like any later drop,
+   * so callers get one offline path instead of a constructor exception.
+   */
   events(onEvent: (event: DaemonEvent) => void, onClose?: () => void): () => void {
-    const ws = new WebSocket(`ws+unix://${this.socket}:/v1/events`)
+    let ws: WebSocket
+    try {
+      ws = new WebSocket(`ws+unix://${this.socket}:/v1/events`)
+    } catch {
+      queueMicrotask(() => onClose?.())
+      return () => {}
+    }
     ws.onmessage = (msg) => {
       onEvent(JSON.parse(String(msg.data)) as DaemonEvent)
     }
