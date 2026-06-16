@@ -20,7 +20,7 @@ manage them, and portless integration so services answer on hostnames like
   [Reconciler](architecture/reconciler.md) · [Supervisor](architecture/supervisor.md) ·
   [Scheduler](architecture/scheduler.md) · [Prober](architecture/prober.md) ·
   [Logger](architecture/logger.md) · [Router](architecture/router.md) ·
-  [TUI](architecture/tui.md)
+  [Portless integration](architecture/portless.md) · [TUI](architecture/tui.md)
 
 ### Guides
 

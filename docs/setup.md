@@ -6,8 +6,84 @@
 - [Bun](https://bun.com) 1.3.10+ for building from source (the compiled binary
   embeds its own runtime).
 - Optional: the [portless](https://www.npmjs.com/package/portless) CLI on PATH
-  for named routes (`bun add -g portless`). Without it, everything works except
-  hostnames; routed services start with a named warning instead.
+  for named routes. Without it, everything works except hostnames; routed
+  services start with a named warning instead.
+
+## Installing Bun
+
+You'll need Bun 1.3.10 or later to build outrider from source. Choose one method below:
+
+### Via Homebrew (macOS or Linux)
+
+```bash
+brew install bun
+```
+
+To upgrade to the latest version:
+
+```bash
+brew upgrade bun
+```
+
+### Via asdf
+
+If you use [asdf](https://asdf-vm.com) to manage runtime versions:
+
+```bash
+asdf plugin add bun
+asdf install bun latest
+asdf global bun latest
+```
+
+Or pin to a specific version:
+
+```bash
+asdf install bun 1.3.14
+asdf global bun 1.3.14
+```
+
+### Verify the installation
+
+```bash
+bun --version
+```
+
+Should output `1.3.10` or later. If you see "command not found", add Bun to your PATH
+(Homebrew usually does this; asdf setup is covered in its docs).
+
+## Installing portless (optional but recommended)
+
+[Portless](https://portless.sh) is the service routing layer that lets outrider
+give your services human-friendly hostnames like `api.localhost` instead of
+remembering ports. It's optional — everything works without it, but you won't
+have named routes.
+
+### What portless does
+
+Portless acts as a local reverse proxy with TLS termination. When you add a
+routed service to outrider, the daemon:
+1. Allocates an ephemeral port and starts your service
+2. Registers that port with portless under a hostname (e.g. `api.localhost`)
+3. Proxies HTTPS traffic from the hostname to your service
+
+On first use, portless generates a local certificate authority, adds it to your
+system trust store, and listens on port 443. All this happens automatically — you
+just need the CLI installed.
+
+### Install portless
+
+```bash
+bun add -g portless
+```
+
+This installs portless globally. Verify it worked:
+
+```bash
+portless --version
+```
+
+For more details, see the [portless documentation](https://portless.sh) or the
+[portless.md](architecture/portless.md) architecture guide in this repo.
 
 ## Building from source
 
@@ -89,3 +165,94 @@ portless's own service unit; exactly one component must own proxy startup.
 Hostname policy: `.localhost` by default (browsers resolve it natively),
 `.test` as the supported alternative. `.local` (mDNS collision) and `.dev`
 (HSTS-forced) are refused and fall back to `.localhost`.
+
+## Common errors and troubleshooting
+
+### "bun: command not found"
+
+Bun is not installed or not in your PATH.
+
+**Fix:** Follow the [Bun installation](#installing-bun) section above. After
+installing, verify with `bun --version`. If it still doesn't work, check that
+Bun is in your PATH:
+
+```bash
+which bun
+echo $PATH
+```
+
+If using Homebrew, Bun should be at `/opt/homebrew/bin/bun` (Apple Silicon) or
+`/usr/local/bin/bun` (Intel). If using asdf, run `asdf rehash` and check that
+`~/.asdf/shims` is in your PATH before other directories.
+
+### "Wrong url scheme for WebSocket"
+
+You built the binary with an older Bun version (< 1.3.10). The daemon's control
+socket uses the `ws+unix://` scheme, which older Bun runtimes don't support.
+
+**Fix:** Upgrade Bun to 1.3.10 or later, then rebuild:
+
+```bash
+bun upgrade
+bun scripts/build.ts
+cp dist/outrider ~/.local/bin/outrider
+```
+
+### "portless: command not found" warning when starting routed services
+
+Portless is not installed globally. Routed services will start without hostnames.
+
+**Fix:** Install portless with `bun add -g portless`, then restart the daemon:
+
+```bash
+bun add -g portless
+outrider off
+outrider on
+```
+
+If the warning persists, verify that portless is in your PATH:
+
+```bash
+which portless
+portless --version
+```
+
+### `.local` hostnames not working
+
+`.local` uses mDNS, which can conflict with other services on the network. Outrider
+refuses `.local` hostnames and falls back to `.localhost` instead.
+
+**Fix:** Use `.localhost` (the default) or `.test` (IANA-reserved) for routed
+services. These are already the defaults; if you explicitly set a route to use
+`.local`, change the route label to remove the `.local` suffix.
+
+### "permission denied" when copying the binary to `~/.local/bin`
+
+The directory doesn't exist or isn't writable.
+
+**Fix:** Create the directory first:
+
+```bash
+mkdir -p ~/.local/bin
+cp dist/outrider ~/.local/bin/outrider
+chmod +x ~/.local/bin/outrider
+```
+
+Then ensure `~/.local/bin` is in your PATH:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### "Could not resolve version" during bun installation
+
+This usually means the Bun registry is temporarily unavailable or your network
+connection is blocked.
+
+**Fix:** Try again in a few moments, or check your internet connection. If the
+problem persists, you can also install Bun directly via Homebrew:
+
+```bash
+brew install bun
+```

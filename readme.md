@@ -6,6 +6,12 @@ daemon owns your services' desired state, an Ink dashboard manages them, and
 `api.myapp.localhost` instead of memorised ports. Existing
 `process-compose.yaml` files import and run without edits.
 
+## Getting started
+
+**New to outrider?** Start with the [setup guide](docs/setup.md) — it covers
+installation, prerequisites, and common issues. For a complete overview of
+features and architecture, see the [documentation index](docs/readme.md).
+
 ```bash
 bun install
 bun scripts/build.ts        # → dist/outrider (single self-contained binary)
@@ -19,9 +25,12 @@ The whole public surface is those three commands; everything else — importing
 stacks, adding/editing/deleting services, logs, routes, scaling — happens in
 the dashboard or over the JSON socket API.
 
-Documentation lives in [docs/](docs/readme.md): setup, usage, the CLI and
-socket reference, per-component architecture notes, the config schema with
-its process-compose compatibility report, guides, and runnable demos.
+## Documentation
+
+Full documentation lives in [docs/](docs/readme.md): setup and installation,
+day-to-day usage, the CLI and socket API reference, per-component architecture
+notes, the config schema with its process-compose compatibility report,
+guides for common tasks, and runnable demo configurations.
 
 ## Development
 
