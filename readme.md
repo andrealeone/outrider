@@ -6,7 +6,7 @@ daemon owns your services' desired state, an Ink dashboard manages them, and
 `api.myapp.localhost` instead of memorised ports. Existing
 `process-compose.yaml` files import and run without edits.
 
-## Getting started
+## Jump right in
 
 **New to outrider?** Start with the [setup guide](docs/setup.md) — it covers
 installation, prerequisites, and common issues. For a complete overview of
@@ -25,12 +25,12 @@ The whole public surface is those three commands; everything else — importing
 stacks, adding/editing/deleting services, logs, routes, scaling — happens in
 the dashboard or over the JSON socket API.
 
-## Documentation
+## Explore everything
 
-Full documentation lives in [docs/](docs/readme.md): setup and installation,
-day-to-day usage, the CLI and socket API reference, per-component architecture
-notes, the config schema with its process-compose compatibility report,
-guides for common tasks, and runnable demo configurations.
+Full documentation lives in [docs/](docs/readme.md). Find guides for setup and
+installation, day-to-day usage, the CLI and socket API reference. Dig into
+per-component architecture notes, the config schema with its process-compose
+compatibility report, and runnable demo configurations.
 
 ## Development
 
@@ -40,6 +40,7 @@ bun run check                     # typecheck, lint, format
 bun scripts/generate-manifest.ts  # after adding a CLI command file
 ```
 
-Pinned: Bun 1.3.14 (`.bun-version`), portless 0.14.0. Runtime dependencies
-are ink, react, and portless — anything beyond that needs a written
-justification in the change that introduces it.
+Pinned: Bun 1.3.14 (`.bun-version`), portless 0.14.0.
+
+Runtime dependencies are ink, react, and portless. Anything beyond that needs
+a written justification in the change that introduces it.

@@ -7,63 +7,56 @@ TLS termination. It maps ephemeral port numbers to human-friendly hostnames like
 `api.localhost` or `db.localhost`, so you don't have to remember and manage port
 numbers across your services.
 
-At its core, portless:
-- Runs a local reverse proxy listening on port 443 (HTTPS)
-- Generates a self-signed CA and adds it to your system trust store
-- Maps hostnames to ports via an alias table (`portless alias <hostname> <port>`)
-- Automatically tears down stale routes when their owner process dies
+At its core, portless runs a local reverse proxy listening on port 443 (HTTPS).
+It generates a self-signed CA and adds it to your system trust store. Hostnames
+map to ports via an alias table (`portless alias <hostname> <port>`), and stale
+routes are automatically torn down when their owner process dies.
 
 Portless is explicitly pre-1.0 and warns that its state format may change between
 releases. outrider pins to a specific version (currently 0.14.0) to avoid surprises.
 
-## Why portless matters for outrider
+## Why you want portless
 
-Without portless, running multiple services means:
-- Managing port numbers in your head (`api` on 3000, `worker` on 3001, etc.)
-- Injecting `PORT` env vars and teaching each service to read them
-- Remembering which service is on which port when debugging
+Without portless, running multiple services means juggling port numbers in your
+head (`api` on 3000, `worker` on 3001, etc.), injecting `PORT` env vars and
+teaching each service to read them, and remembering which service is on which
+port when debugging.
 
 With portless, outrider gives each routed service a stable hostname immediately.
 The daemon allocates an ephemeral port, registers it with portless, and you access
 the service at `api.localhost` without ever thinking about the port. This works in
 browsers, curl, and any tool that speaks HTTPS.
 
-## Integration in outrider
+## How outrider uses portless
 
 Portless integration lives in `src/daemon/router.ts` — the only file that imports
 the portless library. This boundary was intentional: portless is pre-1.0 and may
 change, so wrapping it in a clean interface means changes stay local.
 
-### Lifecycle: starting and repairing the proxy
+### Keeping the proxy alive
 
 The daemon owns the proxy lifecycle. When the daemon starts (or resumes after a
-crash), it calls `ensureProxy()` to:
-
-1. Health-check the proxy: send an HTTP HEAD request to `127.0.0.1:443` and look
-   for the `X-Portless` header
-2. If the proxy is down, call `portless proxy start` via the CLI
-3. If the proxy crashes during runtime, `ensureProxy()` detects it and restarts it
+crash), it calls `ensureProxy()` to health-check the proxy by sending an HTTP
+HEAD request to `127.0.0.1:443` and looking for the `X-Portless` header. If the
+proxy is down, it calls `portless proxy start` via the CLI. If the proxy crashes
+during runtime, `ensureProxy()` detects it and restarts it.
 
 The daemon does **not** install portless as a system service unit. Exactly one
 component must own proxy startup, and in outrider that is the daemon itself.
 
-### Registering routes
+### Turning ports into hostnames
 
-When you add a routed service, outrider:
-
-1. Allocates an ephemeral port and starts the service with `PORT` injected
-2. Calls `RouteStore.addRoute(hostname, port, pid)` to register the route with
-   portless under the daemon's pid
-3. The route is now live: `https://hostname.localhost` proxies to your service
+When you add a routed service, outrider allocates an ephemeral port and starts
+the service with `PORT` injected. It then calls `RouteStore.addRoute(hostname, port, pid)`
+to register the route with portless under the daemon's pid. The route is now live:
+`https://hostname.localhost` proxies to your service.
 
 If portless crashes and the daemon restarts it, the daemon re-registers all active
-routes automatically — they don't drop.
+routes automatically — they don't drop. Portless cleans up routes when their owner
+process (identified by pid) dies. Since outrider owns the daemon process, portless
+knows to prune the routes if the daemon crashes, preventing stale routes piling up.
 
-Portless cleans up routes when their owner process (identified by pid) dies. Since
-outrider owns the daemon process, portless knows to prune the routes if the daemon
-crashes. This prevents stale routes piling up.
-
-### Static aliases for external tools
+### When services own their port
 
 Some tools (like `kubectl port-forward` or `tsh proxy`) own a fixed port and
 ignore the injected `PORT` environment variable. For these, outrider supports the
@@ -89,7 +82,7 @@ Without the `alias: true` flag, a fixed port still works, but the route is manag
 the normal way — portless owns cleanup, which may not suit external tools that
 don't signal shutdown cleanly.
 
-## Configuration: x-portless fields
+## Routing at your fingertips
 
 The `x-portless` extension key under each process in a compose file controls
 routing behavior. See [config-schema.md](../config-schema.md) for the complete
@@ -178,7 +171,7 @@ suffix yourself.
 If you try to set a route with an unsupported suffix, outrider rejects it at
 import time and falls back to `.localhost`.
 
-## Troubleshooting
+## Debugging routes
 
 ### "portless: command not found"
 

@@ -9,7 +9,7 @@
   for named routes. Without it, everything works except hostnames; routed
   services start with a named warning instead.
 
-## Installing Bun
+## Meet Bun
 
 You'll need Bun 1.3.10 or later to build outrider from source. Choose one method below:
 
@@ -42,35 +42,34 @@ asdf install bun 1.3.14
 asdf global bun 1.3.14
 ```
 
-### Verify the installation
+### Did it work?
 
 ```bash
 bun --version
 ```
 
-Should output `1.3.10` or later. If you see "command not found", add Bun to your PATH
-(Homebrew usually does this; asdf setup is covered in its docs).
+Should output `1.3.10` or later. If you see "command not found", add Bun to your PATH (Homebrew usually does this; asdf setup is covered in its docs).
 
-## Installing portless (optional but recommended)
+## Portless: hostname magic (optional but worth it)
 
 [Portless](https://portless.sh) is the service routing layer that lets outrider
 give your services human-friendly hostnames like `api.localhost` instead of
 remembering ports. It's optional — everything works without it, but you won't
 have named routes.
 
-### What portless does
+### The portless magic explained
 
 Portless acts as a local reverse proxy with TLS termination. When you add a
-routed service to outrider, the daemon:
-1. Allocates an ephemeral port and starts your service
-2. Registers that port with portless under a hostname (e.g. `api.localhost`)
-3. Proxies HTTPS traffic from the hostname to your service
+routed service to outrider, the daemon allocates an ephemeral port and starts
+your service. It then registers that port with portless under a hostname
+(e.g. `api.localhost`), and portless proxies HTTPS traffic from the hostname
+to your service.
 
 On first use, portless generates a local certificate authority, adds it to your
 system trust store, and listens on port 443. All this happens automatically — you
 just need the CLI installed.
 
-### Install portless
+### Bring portless aboard
 
 ```bash
 bun add -g portless
@@ -85,7 +84,7 @@ portless --version
 For more details, see the [portless documentation](https://portless.sh) or the
 [portless.md](architecture/portless.md) architecture guide in this repo.
 
-## Building from source
+## Compile it yourself
 
 ```bash
 git clone <repo> && cd outrider
@@ -100,17 +99,18 @@ the same file), so installation is a single copy.
 `bun build --compile` embeds the **running** Bun as the binary's runtime, so the
 binary is only as new as the Bun that built it. The daemon's live event stream
 rides a unix-socket WebSocket on the `ws+unix://` scheme, which older runtimes
-reject with *"Wrong url scheme for WebSocket"*. To stop a stale runtime from
-shipping in a binary that can't talk to its own daemon, `scripts/build.ts`
-refuses to compile on a Bun below the floor in `package.json`'s `engines.bun`
-(currently `>=1.3.10`); run `bun upgrade` if the guard trips.
+reject with *"Wrong url scheme for WebSocket"*.
+
+To stop a stale runtime from shipping in a binary that can't talk to its own daemon,
+`scripts/build.ts` refuses to compile on a Bun below the floor in `package.json`'s
+`engines.bun` (currently `>=1.3.10`). If the guard trips, run `bun upgrade` and try again.
 
 Cross-compile all four release targets with `bun scripts/build.ts --all`
 (`dist/outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64`).
 
-### Iterating locally
+### The fast loop
 
-Run straight from source — no compile step — for the fast inner loop; the same
+Run straight from source — no compile step — for rapid iteration. The same
 entrypoint serves every surface:
 
 ```bash
@@ -118,11 +118,11 @@ bun src/main.ts               # dashboard, from source
 bun src/main.ts on            # start the daemon from source
 ```
 
-`bun run compile` is the one-shot rebuild-and-reinstall used while developing:
+`bun run compile` is the rebuild-and-reinstall shortcut for development:
 it builds `dist/outrider`, replaces `~/.local/bin/outrider`, then cycles the
 daemon (`outrider off && outrider on`) so the freshly built binary takes over.
 
-### Checks and tests
+### Keep it honest
 
 ```bash
 bun test                      # unit + integration tests
@@ -130,7 +130,7 @@ bun run check                 # fallow: types, lint, and health thresholds
 bun run format                # oxfmt
 ```
 
-## First run
+## Spin it up
 
 ```bash
 outrider on    # installs the launchd agent / systemd user unit, starts the daemon
@@ -142,7 +142,7 @@ at boot, and reconciles autostart services after a reboot. `outrider off` stops
 every service in reverse dependency order, stops the daemon, and disables boot
 start until the next `on`.
 
-## Filesystem layout
+## Where everything lives
 
 XDG conventions apply on macOS as well — one convention everywhere:
 
@@ -155,7 +155,7 @@ XDG conventions apply on macOS as well — one convention everywhere:
 $XDG_RUNTIME_DIR/outrider.sock           control socket (fallback: ~/.cache/outrider)
 ```
 
-## Routing prerequisites (optional)
+## The portless setup
 
 On first proxy start portless generates a local CA, adds it to the system
 trust store, and binds port 443 (sudo auto-elevation). The outrider daemon
@@ -166,7 +166,7 @@ Hostname policy: `.localhost` by default (browsers resolve it natively),
 `.test` as the supported alternative. `.local` (mDNS collision) and `.dev`
 (HSTS-forced) are refused and fall back to `.localhost`.
 
-## Common errors and troubleshooting
+## Stuck? Here's help
 
 ### "bun: command not found"
 
