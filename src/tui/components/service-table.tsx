@@ -66,7 +66,7 @@ export const ServiceTable = ({
       {visible.map((state, i) => {
         const index = offset + i
         const isSelected = index === selected
-        const desiredUp = state.entry.desired === 'up'
+        const isRunning = state.status === 'running'
         const rowColor = isSelected ? theme.select : undefined
         const uptime =
           state.status === 'running' && state.startedAt !== undefined
@@ -85,7 +85,7 @@ export const ServiceTable = ({
             <Text color={rowColor} bold={isSelected}>
               {isSelected ? '› ' : '  '}
             </Text>
-            <Text color={desiredUp ? theme.ok : theme.dim}>{desiredUp ? '◉ ' : '○ '}</Text>
+            <Text color={isRunning ? theme.ok : theme.dim}>{isRunning ? '◉ ' : '○ '}</Text>
             <Text color={rowColor} bold={isSelected} dimColor={!online && !isSelected}>
               {cells.join('  ')}
               {'  '}
