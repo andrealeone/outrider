@@ -6,6 +6,8 @@ const home = homedir()
 const env = process.env
 
 export const dataDir = join(env.XDG_DATA_HOME ?? join(home, '.local', 'share'), 'outrider')
+/** Plaintext mirror of the registry, edited at scale and applied by `outrider sync`. */
+export const configYmlPath = join(env.XDG_CONFIG_HOME ?? join(home, '.config'), 'outrider.yml')
 const cacheDir = join(env.XDG_CACHE_HOME ?? join(home, '.cache'), 'outrider')
 export const runtimeDir = env.XDG_RUNTIME_DIR ?? cacheDir
 
