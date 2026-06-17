@@ -47,7 +47,9 @@ export const diff = (current: RegistryModel, desired: SyncDoc): SyncOp[] => {
   }
 
   for (const entry of standalone) {
-    if (!(entry.id in desired.services)) ops.push({ kind: 'delete', name: entry.id })
+    if (!Object.prototype.hasOwnProperty.call(desired.services, entry.id)) {
+      ops.push({ kind: 'delete', name: entry.id })
+    }
   }
 
   return ops.sort((a, b) => a.name.localeCompare(b.name))
