@@ -25,6 +25,10 @@ const TAG_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i
 const normalizeTags = (tags?: string[]): string[] | undefined => {
   if (tags === undefined) return undefined
   const cleaned = [...new Set(tags.map((t) => t.trim().toLowerCase()).filter(Boolean))]
+  for (const tag of cleaned) {
+    if (!TAG_PATTERN.test(tag))
+      throw new RegistryError('invalid', `invalid tag "${tag}"; use letters, digits, and dashes`)
+  }
   return cleaned.length > 0 ? cleaned : undefined
 }
 
