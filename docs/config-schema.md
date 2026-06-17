@@ -49,7 +49,7 @@ are supported natively.
 | `vars`, `is_template_disabled`                                            | supported                                                                                                                     |
 | `is_tty`, `is_foreground`                                                 | parsed, deferred with a named warning                                                                                         |
 | `is_elevated`                                                             | parsed, cut with a named warning — write `sudo` in the command                                                                |
-| `x-*` extension keys                                                      | tolerated (x-portless and x-tags are read, others pass through)                                                              |
+| `x-*` extension keys                                                      | tolerated (x-portless and x-tags are read, others pass through)                                                               |
 
 Unknown keys warn by name in normal mode and fail in strict mode. Every cut or
 deferred feature still parses and produces a precise warning naming the
