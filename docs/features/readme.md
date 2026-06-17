@@ -6,6 +6,7 @@ keys see the [config schema](../config-schema.md).
 
 - [Service tags](service-tags.md) — group services and start/stop a whole tag at once
 - [Config sync](sync-config.md) — edit services at scale in `~/.config/outrider.yml`
+- [Container processes](containers.md) — run Docker/Podman containers as services
 - [Standalone services](standalone-services.md) — registry-native services with no backing file
 - [Stacks and import](stacks-and-import.md) — run existing `process-compose.yaml` files unedited
 - [portless routing](portless-routing.md) — hostnames instead of memorised ports
