@@ -19,6 +19,22 @@ import { RegistryError } from './registry-error'
 
 export { RegistryError } from './registry-error'
 
+const TAG_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i
+
+/** Trim, lowercase, drop blanks, and dedupe; `undefined` means "leave as is". */
+const normalizeTags = (tags?: string[]): string[] | undefined => {
+  if (tags === undefined) return undefined
+  const cleaned = [...new Set(tags.map((t) => t.trim().toLowerCase()).filter(Boolean))]
+  return cleaned.length > 0 ? cleaned : undefined
+}
+
+/** Coerce an `x-tags` compose value (a list or a comma-separated string) to tags. */
+const toTagList = (value: unknown): string[] | undefined => {
+  if (Array.isArray(value)) return value.map(String)
+  if (typeof value === 'string') return value.split(',')
+  return undefined
+}
+
 /**
  * The desired model: services, stacks, routes, and autostart flags. Every
  * mutation persists atomically through the store and announces itself on
@@ -62,9 +78,14 @@ export class Registry {
         ids.add(name)
         continue
       }
-      const members = this.list().filter((s) => s.stack === name || s.namespace === name)
+      const members = this.list().filter(
+        (s) => s.stack === name || s.namespace === name || s.tags?.includes(name),
+      )
       if (members.length === 0)
-        throw new RegistryError('not-found', `no service, stack, or namespace named "${name}"`)
+        throw new RegistryError(
+          'not-found',
+          `no service, stack, namespace, or tag named "${name}"`,
+        )
       for (const member of members) ids.add(member.id)
     }
     return [...ids]
@@ -109,6 +130,7 @@ export class Registry {
         dir,
         shell: config.shell,
         route: proc['x-portless'],
+        tags: normalizeTags(toTagList(proc['x-tags'])),
       }
       this.assertRouteFree(entry, name)
       services[id] = entry
@@ -168,6 +190,7 @@ export class Registry {
       namespace: def.namespace ?? previous?.namespace,
       desired: previous?.desired ?? 'down',
       autostart: def.autostart ?? previous?.autostart ?? false,
+      tags: def.tags === undefined ? previous?.tags : normalizeTags(def.tags),
       config,
       dir: previous?.dir ?? (def.workingDir ? resolve(def.workingDir) : homedir()),
       shell: previous?.shell,
@@ -202,6 +225,13 @@ export class Registry {
       if (!def.route?.trim()) throw new RegistryError('invalid', 'an alias port requires a route')
       if (!Number.isInteger(def.aliasPort) || def.aliasPort < 1 || def.aliasPort > 65535)
         throw new RegistryError('invalid', 'alias port must be an integer between 1 and 65535')
+    }
+    for (const tag of def.tags ?? []) {
+      if (tag.trim() !== '' && !TAG_PATTERN.test(tag.trim()))
+        throw new RegistryError(
+          'invalid',
+          `invalid tag "${tag}"; use letters, digits, and dashes`,
+        )
     }
     const existing = editOf === undefined ? undefined : this.model.services[editOf]
     if (existing !== undefined) {

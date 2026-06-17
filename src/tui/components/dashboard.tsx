@@ -59,7 +59,13 @@ export const Dashboard = ({ daemon, rows, width, frame, active, onOpen, onQuit }
     if (stackFilter !== undefined) {
       list = list.filter((s) => (s.entry.stack ?? '(standalone)') === stackFilter)
     }
-    if (search !== '') list = list.filter((s) => fuzzyMatch(search, s.entry.id))
+    if (search !== '') {
+      list = list.filter(
+        (s) =>
+          fuzzyMatch(search, s.entry.id) ||
+          (s.entry.tags ?? []).some((tag) => fuzzyMatch(search, tag)),
+      )
+    }
     const sort = SORTS[sortIndex % SORTS.length] ?? 'name'
     return [...list].sort((a, b) => {
       switch (sort) {
