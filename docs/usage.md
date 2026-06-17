@@ -1,7 +1,10 @@
 # Day-to-day usage
 
-The whole public surface is three commands: `outrider`, `outrider on`,
-`outrider off`. Everything else happens inside the dashboard.
+The core surface is `outrider`, `outrider on`, and `outrider off`. A few
+targeted commands round it out — `outrider start`/`stop` for acting on services
+or [tags](features/service-tags.md) from a script, and `outrider sync` for
+[bulk edits](features/sync-config.md) — but day to day, everything happens
+inside the dashboard.
 
 ## The dashboard
 
@@ -98,6 +101,16 @@ Every service carries a desired state (up or down) and an autostart flag.
 `outrider off` stops processes but leaves desired state untouched; at the next
 `on` (or reboot), services with `autostart` _and_ desired `up` come back.
 Restart counters persist across daemon restarts.
+
+## Editing services at scale
+
+Standalone services are mirrored to `~/.config/outrider.yml`, which the daemon
+rewrites whenever you add, edit, or remove one. To change many at once, edit
+that file directly and run `outrider sync`: it diffs the file against the
+registry and shows the create/update/delete operations as a checklist, applying
+only the rows you keep checked (`--yes` applies them all non-interactively). The
+registry stays the source of truth; the file is a convenience for bulk edits.
+Full details in [config sync](features/sync-config.md).
 
 ## Scripting against the daemon
 
