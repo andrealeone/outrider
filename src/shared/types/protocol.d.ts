@@ -71,9 +71,20 @@ export interface ImportReport {
   dryRun: boolean
 }
 
+/** Container process specification (alternative to command). */
+export interface ContainerSpec {
+  image: string
+  containerPort: number
+  hostPort?: number
+  runtime?: 'docker' | 'podman'
+  env?: Record<string, string>
+  args?: string[]
+}
+
 export interface ServiceDefinition {
   name: string
-  command: string
+  command?: string
+  container?: ContainerSpec
   workingDir?: string
   env?: Record<string, string>
   route?: string
@@ -86,6 +97,11 @@ export interface ServiceDefinition {
   restart?: 'no' | 'on_failure' | 'always'
   autostart?: boolean
   namespace?: string
+  /**
+   * Grouping labels. `undefined` leaves an existing service's tags untouched
+   * on edit; an array (including `[]`) replaces them.
+   */
+  tags?: string[]
 }
 
 export interface ApiError {

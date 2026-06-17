@@ -17,24 +17,45 @@ interface Props {
 }
 
 const RESTART_OPTIONS = ['no', 'on_failure', 'always'] as const
+const KIND_OPTIONS = ['service', 'container'] as const
 
-const FIELDS = [
+const FIELDS_SERVICE = [
   'name',
+  'kind',
   'command',
   'workingDir',
   'route',
   'aliasPort',
+  'tags',
   'restart',
   'autostart',
   'submit',
 ] as const
 
-type Field = (typeof FIELDS)[number]
+const FIELDS_CONTAINER = [
+  'name',
+  'kind',
+  'image',
+  'containerPort',
+  'hostPort',
+  'route',
+  'tags',
+  'autostart',
+  'submit',
+] as const
+
+type FieldService = (typeof FIELDS_SERVICE)[number]
+type FieldContainer = (typeof FIELDS_CONTAINER)[number]
+
+type Field = FieldService | FieldContainer
 
 /** Form wizard for a standalone service, validated live against the daemon. */
 export const AddService = ({ daemon, active, edit, onDone }: Props) => {
   const editing = edit !== undefined
-  const [field, setField] = useState<Field>(editing ? 'command' : 'name')
+  const isContainer = edit?.container !== undefined
+  const FIELDS = isContainer ? FIELDS_CONTAINER : FIELDS_SERVICE
+  const [field, setField] = useState<Field>(editing ? (isContainer ? 'image' : 'command') : 'name')
+  const [kindIndex, setKindIndex] = useState(isContainer ? 1 : 0)
   const [name, setName] = useState(edit?.name ?? '')
   const [command, setCommand] = useState(edit?.config.command ?? '')
   const [workingDir, setWorkingDir] = useState(edit?.config.working_dir ?? '')
@@ -46,18 +67,39 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
     Math.max(0, RESTART_OPTIONS.indexOf((edit?.config.availability?.restart ?? 'no') as never)),
   )
   const [autostart, setAutostart] = useState(edit?.autostart ?? false)
+  const [tags, setTags] = useState(edit?.tags?.join(', ') ?? '')
+  const [image, setImage] = useState(edit?.container?.image ?? '')
+  const [containerPort, setContainerPort] = useState(String(edit?.container?.containerPort ?? ''))
+  const [hostPort, setHostPort] = useState(String(edit?.container?.hostPort ?? ''))
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  const definition = (): ServiceDefinition => ({
-    name: name.trim(),
-    command: command.trim(),
-    workingDir: workingDir.trim() === '' ? undefined : workingDir.trim(),
-    route: route.trim() === '' ? undefined : route.trim(),
-    aliasPort: aliasPort.trim() === '' ? undefined : Number(aliasPort.trim()),
-    restart: RESTART_OPTIONS[restartIndex % RESTART_OPTIONS.length],
-    autostart,
-  })
+  const definition = (): ServiceDefinition => {
+    const kind = KIND_OPTIONS[kindIndex % KIND_OPTIONS.length]
+    const def: ServiceDefinition = {
+      name: name.trim(),
+      workingDir: workingDir.trim() === '' ? undefined : workingDir.trim(),
+      autostart,
+      tags: tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    }
+    if (kind === 'container') {
+      def.container = {
+        image: image.trim(),
+        containerPort: Number(containerPort.trim()) || 0,
+        hostPort: hostPort.trim() === '' ? undefined : Number(hostPort.trim()),
+      }
+      if (route.trim()) def.route = route.trim()
+    } else {
+      def.command = command.trim()
+      def.route = route.trim() === '' ? undefined : route.trim()
+      def.aliasPort = aliasPort.trim() === '' ? undefined : Number(aliasPort.trim())
+      def.restart = RESTART_OPTIONS[restartIndex % RESTART_OPTIONS.length]
+    }
+    return def
+  }
 
   // Live validation against the daemon as the form changes.
   useEffect(() => {
@@ -70,11 +112,12 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
     return () => {
       clearTimeout(timer)
     }
-  }, [name, command, workingDir, route, aliasPort])
+  }, [name, command, workingDir, route, aliasPort, tags, image, containerPort, hostPort])
 
   const move = (delta: number): void => {
     // The name field is locked while editing, so navigation starts at 1.
     const min = editing ? 1 : 0
+    // @ts-ignore field is always in the current FIELDS array
     const index = FIELDS.indexOf(field)
     setField(FIELDS[Math.max(min, Math.min(FIELDS.length - 1, index + delta))] as Field)
   }
@@ -94,7 +137,9 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
       if (key.escape) onDone()
       else if (key.tab && key.shift) move(-1)
       else if (key.tab || (key.return && field !== 'submit')) move(1)
-      else if (field === 'restart' && (input === ' ' || key.leftArrow || key.rightArrow)) {
+      else if (field === 'kind' && (input === ' ' || key.leftArrow || key.rightArrow)) {
+        setKindIndex((i) => i + 1)
+      } else if (field === 'restart' && (input === ' ' || key.leftArrow || key.rightArrow)) {
         setRestartIndex((i) => i + 1)
       } else if (field === 'autostart' && input === ' ') setAutostart((a) => !a)
       else if (field === 'submit' && key.return) void submit()
@@ -106,7 +151,7 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
     label: string,
     value: string,
     onChange: (v: string) => void,
-    own: Field,
+    own: string,
     placeholder: string,
   ) => (
     <Box>
@@ -145,7 +190,23 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
         ) : (
           textField('name', name, setName, 'name', 'api')
         )}
-        {textField('command', command, setCommand, 'command', 'bun run server.ts')}
+        <Box>
+          <Box width={14}>
+            <Text color={field === 'kind' ? theme.accent : theme.dim}>
+              {field === 'kind' ? '› ' : '  '}kind
+            </Text>
+          </Box>
+          <Text>{KIND_OPTIONS[kindIndex % KIND_OPTIONS.length]}</Text>
+        </Box>
+        {(kindIndex % 2 === 1) ? (
+          <>
+            {textField('image', image, setImage, 'image', 'redis:latest')}
+            {textField('container port', containerPort, setContainerPort, 'containerPort', '6379')}
+            {textField('host port', hostPort, setHostPort, 'hostPort', '(none — let daemon pick)')}
+          </>
+        ) : (
+          textField('command', command, setCommand, 'command', 'bun run server.ts')
+        )}
         {textField('working dir', workingDir, setWorkingDir, 'workingDir', '(home)')}
         {textField('route', route, setRoute, 'route', '(none — e.g. api → api.localhost)')}
         {textField(
@@ -155,6 +216,7 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
           'aliasPort',
           '(none — fixed port for external tools, e.g. 10020)',
         )}
+        {textField('tags', tags, setTags, 'tags', '(none — comma-separated, e.g. web, db)')}
         <Box>
           <Box width={14}>
             <Text color={field === 'restart' ? theme.accent : theme.dim}>

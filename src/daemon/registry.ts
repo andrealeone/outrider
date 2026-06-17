@@ -13,7 +13,11 @@ import type {
 import type { EventBus } from './event-bus'
 import type { StateStore } from './state-store'
 
+import type { PortlessExtension } from '../shared/types/process-compose'
+
 import { nowIso } from '../shared/utils/time'
+import { isValidTag, normalizeTags, toTagList } from '../shared/utils/tags'
+import { entryFromContainer } from './container'
 import { hashProject, stackNameFor } from './config/load'
 import { RegistryError } from './registry-error'
 
@@ -62,9 +66,14 @@ export class Registry {
         ids.add(name)
         continue
       }
-      const members = this.list().filter((s) => s.stack === name || s.namespace === name)
+      const members = this.list().filter(
+        (s) => s.stack === name || s.namespace === name || s.tags?.includes(name),
+      )
       if (members.length === 0)
-        throw new RegistryError('not-found', `no service, stack, or namespace named "${name}"`)
+        throw new RegistryError(
+          'not-found',
+          `no service, stack, namespace, or tag named "${name}"`,
+        )
       for (const member of members) ids.add(member.id)
     }
     return [...ids]
@@ -109,6 +118,7 @@ export class Registry {
         dir,
         shell: config.shell,
         route: proc['x-portless'],
+        tags: normalizeTags(toTagList(proc['x-tags'])),
       }
       this.assertRouteFree(entry, name)
       services[id] = entry
@@ -136,25 +146,36 @@ export class Registry {
   }
 
   private entryFromDefinition(def: ServiceDefinition, previous?: ServiceEntry): ServiceEntry {
-    // An alias port marks an externally managed route (a fixed port the
-    // command owns); clearing it reverts to a normal daemon-managed route.
-    const route = def.route
-      ? {
-          ...previous?.route,
-          route: def.route,
-          alias: def.aliasPort !== undefined,
-          port: def.aliasPort ?? previous?.route?.port,
-        }
-      : undefined
-    const config: ProcessConfig = {
-      ...(previous?.config ?? {}),
-      'command': def.command,
-      'working_dir': def.workingDir,
-      'availability': def.restart
-        ? { ...(previous?.config.availability ?? {}), restart: def.restart }
-        : previous?.config.availability,
-      'x-portless': route,
+    let config: ProcessConfig
+    let route: PortlessExtension | undefined
+    let container: import('../shared/types/protocol').ContainerSpec | undefined
+
+    if (def.container) {
+      const { config: synthConfig, route: synthRoute } = entryFromContainer(def.name, def.container)
+      config = { ...synthConfig }
+      route = synthRoute
+      container = def.container
+    } else {
+      const userRoute = def.route
+        ? {
+            ...previous?.route,
+            route: def.route,
+            alias: def.aliasPort !== undefined,
+            port: def.aliasPort ?? previous?.route?.port,
+          }
+        : undefined
+      config = {
+        ...(previous?.config ?? {}),
+        'command': def.command,
+        'working_dir': def.workingDir,
+        'availability': def.restart
+          ? { ...(previous?.config.availability ?? {}), restart: def.restart }
+          : previous?.config.availability,
+        'x-portless': userRoute,
+      }
+      route = userRoute
     }
+
     if (def.env !== undefined) {
       config.environment = Object.entries(def.env).map(([k, v]) => `${k}=${v}`)
     } else if (previous === undefined) {
@@ -168,6 +189,8 @@ export class Registry {
       namespace: def.namespace ?? previous?.namespace,
       desired: previous?.desired ?? 'down',
       autostart: def.autostart ?? previous?.autostart ?? false,
+      tags: def.tags === undefined ? previous?.tags : normalizeTags(def.tags),
+      container,
       config,
       dir: previous?.dir ?? (def.workingDir ? resolve(def.workingDir) : homedir()),
       shell: previous?.shell,
@@ -203,12 +226,23 @@ export class Registry {
       if (!Number.isInteger(def.aliasPort) || def.aliasPort < 1 || def.aliasPort > 65535)
         throw new RegistryError('invalid', 'alias port must be an integer between 1 and 65535')
     }
+    for (const tag of def.tags ?? []) {
+      if (tag.trim() !== '' && !isValidTag(tag.trim()))
+        throw new RegistryError(
+          'invalid',
+          `invalid tag "${tag}"; use letters, digits, and dashes`,
+        )
+    }
     const existing = editOf === undefined ? undefined : this.model.services[editOf]
     if (existing !== undefined) {
       if (def.name !== existing.name) {
         throw new RegistryError('invalid', 'renaming is not supported; delete and recreate instead')
       }
-      if (!def.command?.trim()) throw new RegistryError('invalid', 'command is required')
+      const hasCommand = def.command?.trim()
+      const hasContainer = def.container !== undefined
+      if (!hasCommand && !hasContainer) {
+        throw new RegistryError('invalid', 'either command or container is required')
+      }
       return
     }
 

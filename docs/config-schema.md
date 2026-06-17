@@ -49,7 +49,7 @@ are supported natively.
 | `vars`, `is_template_disabled`                                            | supported                                                                                                                     |
 | `is_tty`, `is_foreground`                                                 | parsed, deferred with a named warning                                                                                         |
 | `is_elevated`                                                             | parsed, cut with a named warning — write `sudo` in the command                                                                |
-| `x-*` extension keys                                                      | tolerated (x-portless is read, others pass through)                                                                           |
+| `x-*` extension keys                                                      | tolerated (x-portless and x-tags are read, others pass through)                                                              |
 
 Unknown keys warn by name in normal mode and fail in strict mode. Every cut or
 deferred feature still parses and produces a precise warning naming the
@@ -128,3 +128,22 @@ registers a static portless alias (pid 0) pointing straight at the fixed
 (an alias has no ephemeral port to fall back on). portless never prunes pid-0
 aliases, so the daemon clears its own on boot and shutdown to avoid dangling
 routes after a crash.
+
+## The x-tags extension
+
+```yaml
+processes:
+  api:
+    command: bun run api.ts
+    x-tags: [web, edge] # a list…
+  db:
+    command: postgres
+    x-tags: infra, data # …or a comma-separated string
+```
+
+Tags are grouping labels. `outrider start <tag>` / `outrider stop <tag>` act on
+every service carrying the tag, and the daemon's `up`/`down` `names` resolve a
+tag after ids, stacks, and namespaces. Tags are normalised on load (trimmed,
+lowercased, de-duplicated) and must be letters, digits, and dashes. Standalone
+services set tags in the dashboard add/edit form instead. See
+[service tags](features/service-tags.md).
