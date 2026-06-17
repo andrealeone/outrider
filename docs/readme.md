@@ -9,6 +9,7 @@ manage them, and portless integration so services answer on hostnames like
 
 - [Setup and installation](setup.md)
 - [Day-to-day usage](usage.md)
+- [Features](features/readme.md)
 - [CLI reference](cli-reference.md)
 - [Config schema and compatibility](config-schema.md)
 - [Compatibility report vs process-compose](compatibility-report.md)
