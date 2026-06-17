@@ -138,8 +138,18 @@ const coerceService = (name: string, raw: unknown): SyncService => {
   }
   const svc: SyncService = { command: r.command }
   if (r.working_dir !== undefined) svc.working_dir = String(r.working_dir)
-  if (r.autostart !== undefined) svc.autostart = Boolean(r.autostart)
-  if (r.restart !== undefined) svc.restart = String(r.restart) as SyncService['restart']
+  if (r.autostart !== undefined) {
+    if (typeof r.autostart !== 'boolean')
+      throw new SyncError(`service "${name}": autostart must be true or false`)
+    svc.autostart = r.autostart
+  }
+  if (r.restart !== undefined) {
+    const restart = String(r.restart)
+    if (restart !== 'no' && restart !== 'on_failure' && restart !== 'always') {
+      throw new SyncError(`service "${name}": restart must be one of no, on_failure, always`)
+    }
+    svc.restart = restart as SyncService['restart']
+  }
   if (r.tags !== undefined) svc.tags = coerceTags(name, r.tags)
   if (r.route !== undefined) svc.route = String(r.route)
   if (r.alias_port !== undefined) svc.alias_port = Number(r.alias_port)
