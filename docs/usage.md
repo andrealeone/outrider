@@ -55,9 +55,14 @@ a guarantee.
 ## Adding a service
 
 `a` opens a form: name, command, working directory, optional route, optional
-alias port, restart policy, autostart. The form validates live against the
-daemon before saving. Standalone services live in the registry with no backing
-file.
+alias port, optional tags, restart policy, autostart. The form validates live
+against the daemon before saving. Standalone services live in the registry with
+no backing file.
+
+**Tags** are comma-separated grouping labels (e.g. `web, db`). `outrider start
+<tag>` and `outrider stop <tag>` act on every service carrying the tag — see
+[service tags](features/service-tags.md). Dashboard search (`/`) matches tags
+as well as ids.
 
 Leave **alias port** blank for a normal daemon-managed route, where the daemon
 picks the port and injects `PORT`. Set it to a fixed port (e.g. `10020`) when

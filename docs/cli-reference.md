@@ -7,6 +7,8 @@
 | `outrider`                      | Opens the dashboard TUI. With the daemon off it opens in offline mode, showing the persisted registry and a prompt to switch the daemon on. With no TTY it degrades to a JSON state dump.                    |
 | `outrider on`                   | Starts the daemon: installs the launchd agent (macOS) or systemd user unit (Linux) pointing back at this binary, waits for the socket, reconciles autostart services, prints a one-line summary. Idempotent. |
 | `outrider off`                  | Stops the daemon: removes the service unit (so nothing resurrects it), shuts services down through the signal ladder in reverse dependency order, persists state, removes the socket. Idempotent.            |
+| `outrider start <name…>`        | Sets the named targets desired up and starts them (dependencies included). Each name is a service id, stack, namespace, or [tag](features/service-tags.md). Requires the daemon to be running.                |
+| `outrider stop <name…>`         | Sets the named targets desired down and stops them. Same name resolution as `start`. Requires the daemon to be running.                                                                                       |
 | `outrider --help` / `--version` | The usual.                                                                                                                                                                                                   |
 
 ## Hidden commands
@@ -56,13 +58,14 @@ shape: `{ "error": { "code", "message" } }`. Clients handshake via `GET
 | `WS /v1/events`                                   | event stream: snapshots, state changes, log lines, probe transitions |
 
 `names` accepts service ids (`stack/proc` or standalone names), stack names,
-and namespaces.
+namespaces, and [tags](features/service-tags.md), resolved in that order.
 
 ## Planned scripting surface
 
-`up/down/import/run/start/stop/restart/scale/logs/list/state/routes/validate`
-keep their process-compose-shaped specification as the target for a later
-iteration; in v1 their actions live in the TUI and the socket API above. When
+`start` and `stop` have landed (see above); the rest —
+`up/down/import/run/restart/scale/logs/list/state/routes/validate` — keep their
+process-compose-shaped specification as the target for a later iteration; in v1
+their actions live in the TUI and the socket API above. When
 `outrider run NAME` arrives it executes inside the daemon: the CLI attaches,
 streams output, mirrors the exit code, and the daemon garbage-collects the
 ephemeral entry. The `exit_on_end` / `exit_on_failure` / `exit_on_skipped`
