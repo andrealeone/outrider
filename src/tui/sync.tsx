@@ -67,7 +67,12 @@ export const runSync = async (opts: { yes?: boolean } = {}): Promise<void> => {
   }
 
   const apply = applyAll(client)
-  if (opts.yes || !process.stdout.isTTY) {
+  if (!process.stdout.isTTY && !opts.yes) {
+    console.error('refusing to apply sync operations without a TTY; re-run with --yes to apply non-interactively')
+    process.exitCode = 1
+    return
+  }
+  if (opts.yes) {
     const results = await apply(ops)
     for (const r of results) {
       console.log(`${r.ok ? '✓' : '✗'} ${r.op.kind} ${r.op.name}${r.error ? ` — ${r.error}` : ''}`)
