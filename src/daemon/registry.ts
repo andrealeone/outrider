@@ -13,8 +13,11 @@ import type {
 import type { EventBus } from './event-bus'
 import type { StateStore } from './state-store'
 
+import type { PortlessExtension } from '../shared/types/process-compose'
+
 import { nowIso } from '../shared/utils/time'
 import { isValidTag, normalizeTags, toTagList } from '../shared/utils/tags'
+import { entryFromContainer } from './container'
 import { hashProject, stackNameFor } from './config/load'
 import { RegistryError } from './registry-error'
 
@@ -143,25 +146,36 @@ export class Registry {
   }
 
   private entryFromDefinition(def: ServiceDefinition, previous?: ServiceEntry): ServiceEntry {
-    // An alias port marks an externally managed route (a fixed port the
-    // command owns); clearing it reverts to a normal daemon-managed route.
-    const route = def.route
-      ? {
-          ...previous?.route,
-          route: def.route,
-          alias: def.aliasPort !== undefined,
-          port: def.aliasPort ?? previous?.route?.port,
-        }
-      : undefined
-    const config: ProcessConfig = {
-      ...(previous?.config ?? {}),
-      'command': def.command,
-      'working_dir': def.workingDir,
-      'availability': def.restart
-        ? { ...(previous?.config.availability ?? {}), restart: def.restart }
-        : previous?.config.availability,
-      'x-portless': route,
+    let config: ProcessConfig
+    let route: PortlessExtension | undefined
+    let container: import('../shared/types/protocol').ContainerSpec | undefined
+
+    if (def.container) {
+      const { config: synthConfig, route: synthRoute } = entryFromContainer(def.name, def.container)
+      config = { ...synthConfig }
+      route = synthRoute
+      container = def.container
+    } else {
+      const userRoute = def.route
+        ? {
+            ...previous?.route,
+            route: def.route,
+            alias: def.aliasPort !== undefined,
+            port: def.aliasPort ?? previous?.route?.port,
+          }
+        : undefined
+      config = {
+        ...(previous?.config ?? {}),
+        'command': def.command,
+        'working_dir': def.workingDir,
+        'availability': def.restart
+          ? { ...(previous?.config.availability ?? {}), restart: def.restart }
+          : previous?.config.availability,
+        'x-portless': userRoute,
+      }
+      route = userRoute
     }
+
     if (def.env !== undefined) {
       config.environment = Object.entries(def.env).map(([k, v]) => `${k}=${v}`)
     } else if (previous === undefined) {
@@ -176,6 +190,7 @@ export class Registry {
       desired: previous?.desired ?? 'down',
       autostart: def.autostart ?? previous?.autostart ?? false,
       tags: def.tags === undefined ? previous?.tags : normalizeTags(def.tags),
+      container,
       config,
       dir: previous?.dir ?? (def.workingDir ? resolve(def.workingDir) : homedir()),
       shell: previous?.shell,
@@ -223,7 +238,11 @@ export class Registry {
       if (def.name !== existing.name) {
         throw new RegistryError('invalid', 'renaming is not supported; delete and recreate instead')
       }
-      if (!def.command?.trim()) throw new RegistryError('invalid', 'command is required')
+      const hasCommand = def.command?.trim()
+      const hasContainer = def.container !== undefined
+      if (!hasCommand && !hasContainer) {
+        throw new RegistryError('invalid', 'either command or container is required')
+      }
       return
     }
 

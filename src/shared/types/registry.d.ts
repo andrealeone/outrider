@@ -28,6 +28,8 @@ export interface ServiceEntry {
   autostart: boolean
   /** Free-form labels for grouping; `outrider start/stop <tag>` acts on all members. */
   tags?: string[]
+  /** Container spec when the service runs a container instead of a command. */
+  container?: import('./protocol').ContainerSpec
   /** Fully merged and templated process configuration. */
   config: ProcessConfig
   /** Directory .env, env_file, and working_dir resolve against. */
