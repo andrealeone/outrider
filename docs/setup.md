@@ -50,7 +50,7 @@ daemon (`outrider off && outrider on`) so the freshly built binary takes over.
 
 ```bash
 bun test                      # unit + integration tests
-bun run check                 # fallow: types, lint, and health thresholds
+bun run check                 # follow: types, lint, and health thresholds
 bun run format                # oxfmt
 ```
 
