@@ -101,6 +101,7 @@ export const DetailView = ({ state, rows, active, onBack }: Props) => {
       <Row label="exit code">{state.exitCode === undefined ? '—' : String(state.exitCode)}</Row>
       <Row label="route">{state.routeUrl ?? entry.route?.route ?? '—'}</Row>
       <Row label="namespace">{entry.namespace ?? '—'}</Row>
+      <Row label="tags">{entry.tags?.length ? entry.tags.join(', ') : '—'}</Row>
       <Row label="restart policy">{restartPolicyLine(entry)}</Row>
       <Row label="probes">{probesLine(entry)}</Row>
       {entry.config.depends_on ? <Row label="depends on">{dependsLine(entry)}</Row> : null}

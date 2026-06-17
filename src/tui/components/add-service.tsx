@@ -24,6 +24,7 @@ const FIELDS = [
   'workingDir',
   'route',
   'aliasPort',
+  'tags',
   'restart',
   'autostart',
   'submit',
@@ -46,6 +47,7 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
     Math.max(0, RESTART_OPTIONS.indexOf((edit?.config.availability?.restart ?? 'no') as never)),
   )
   const [autostart, setAutostart] = useState(edit?.autostart ?? false)
+  const [tags, setTags] = useState(edit?.tags?.join(', ') ?? '')
   const [errors, setErrors] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
@@ -57,6 +59,10 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
     aliasPort: aliasPort.trim() === '' ? undefined : Number(aliasPort.trim()),
     restart: RESTART_OPTIONS[restartIndex % RESTART_OPTIONS.length],
     autostart,
+    tags: tags
+      .split(',')
+      .map((t) => t.trim())
+      .filter(Boolean),
   })
 
   // Live validation against the daemon as the form changes.
@@ -70,7 +76,7 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
     return () => {
       clearTimeout(timer)
     }
-  }, [name, command, workingDir, route, aliasPort])
+  }, [name, command, workingDir, route, aliasPort, tags])
 
   const move = (delta: number): void => {
     // The name field is locked while editing, so navigation starts at 1.
@@ -155,6 +161,7 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
           'aliasPort',
           '(none — fixed port for external tools, e.g. 10020)',
         )}
+        {textField('tags', tags, setTags, 'tags', '(none — comma-separated, e.g. web, db)')}
         <Box>
           <Box width={14}>
             <Text color={field === 'restart' ? theme.accent : theme.dim}>
