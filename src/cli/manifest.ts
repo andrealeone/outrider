@@ -7,12 +7,16 @@ import * as root from './commands/index'
 import * as daemon_run from './commands/daemon/run'
 import * as off from './commands/off'
 import * as on from './commands/on'
+import * as start from './commands/start'
 import * as state from './commands/state'
+import * as stop from './commands/stop'
 
 export const commands: Record<string, CommandModule> = {
   '': root,
   'daemon run': daemon_run,
   'off': off,
   'on': on,
+  'start': start,
   'state': state,
+  'stop': stop,
 }

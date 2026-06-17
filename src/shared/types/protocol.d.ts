@@ -86,6 +86,11 @@ export interface ServiceDefinition {
   restart?: 'no' | 'on_failure' | 'always'
   autostart?: boolean
   namespace?: string
+  /**
+   * Grouping labels. `undefined` leaves an existing service's tags untouched
+   * on edit; an array (including `[]`) replaces them.
+   */
+  tags?: string[]
 }
 
 export interface ApiError {
