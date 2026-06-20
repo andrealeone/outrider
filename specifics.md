@@ -390,61 +390,85 @@ architecture component documented, an exhaustive per-key config schema, a
 candid compatibility report, and a `test-coverage.md` that names its own gaps
 (rare and excellent). What's missing or wrong:
 
-- [ ] **Troubleshooting / FAQ doc is absent.** The highest-value gap. Cover:
-      portless not on PATH, port 443 / sudo elevation on first proxy start,
-      stale socket / "daemon already running", route conflicts, daemon won't
-      start, where `daemon.log` lives and how to read it.
-- [ ] **No uninstall path.** `setup.md` installs but never says how to remove
-      (`outrider off`, delete the binary, the `~/.local/share/outrider` and
-      `~/.config/outrider*` paths). Add an "Uninstalling" section to `setup.md`.
-- [ ] **Demo is inaccurate.** `docs/demos/readme.md` claims the web-stack
-      exercises "an `x-portless` route", but `web-stack/process-compose.yaml`
-      has no `x-portless` block. Either add a real route to the demo (it
-      degrades gracefully without the portless CLI) or drop the claim.
-- [ ] **Bun version is stated three ways.** `readme.md` says "Pinned: Bun
-      1.3.14", `setup.md` says "1.3.10+", `package.json` `engines.bun` is
-      `>=1.3.10`. Reconcile the wording (floor vs. pinned `.bun-version`) so the
-      three agree.
+- [x] **Bun version stated inconsistently — reconciled.** Per-version mentions
+      stripped everywhere except the single base requirement in `setup.md`
+      ("Bun 1.3.10+ for building from source"); `readme.md`'s pin line and the
+      build-guard's redundant `(currently >=1.3.10)` are gone.
+- [x] **Demo inaccuracy fixed.** `docs/demos/readme.md` no longer claims an
+      `x-portless` route; since every demo process is a plain shell loop with no
+      HTTP server, a route would point at a dead port. Replaced with a pointer
+      to the routed-service guide.
+- [x] **Contributing page added** (`docs/contributing.md`) — vision intro,
+      first-timer path, returning-dev references, change checklist, and
+      issues-for-bugs/features. (Per decision: **no LICENSE for now.**)
+- [ ] **Uninstall path** — added an "Uninstalling" section to `setup.md`
+      (`outrider off`, remove binary, remove `~/.local/share/outrider` and
+      `~/.config/outrider*`). _Done this round._
 - [ ] **No security note.** The socket's user-only-permissions trust model and
       the secret-masking heuristic caveat are mentioned in passing; a short
-      `security.md` (or section) would consolidate them for a production audience.
-- [ ] **No top-level LICENSE / CONTRIBUTING.** Not under `/docs`, but expected
-      at production level; flag for the repo root.
+      `security.md` would consolidate them for a production audience. _Backlog._
 
 **2. Aesthetic & readability — 8/10.** Strong, consistent prose voice; tables
 used well; the ASCII architecture diagram reads cleanly. Fixes:
 
-- [ ] **Add a TUI screenshot or GIF to `readme.md`.** This is a terminal
-      dashboard — the single highest-leverage appeal improvement is showing it.
-      Currently zero visuals of the actual product.
-- [ ] **De-duplicate the `docs/readme.md` index.** It lists the architecture
-      components twice (the "Capabilities" block and again under "Architecture")
-      and the feature set twice. Collapse to one authoritative list per topic.
-- [ ] **Consider badges in `readme.md`** (Bun version, license, CI) once those
-      exist — minor.
+- [x] **De-duplicated the `docs/readme.md` index.** Collapsed to one
+      authoritative list per topic (Getting started · Features · Reference ·
+      Architecture · Contributing); the doubled component and feature lists are
+      gone. Layered docs at different altitudes (feature vs. guide vs. reference)
+      are intentional and were left intact. Root `readme.md` left as-is per
+      instruction.
+- [~] **TUI screenshot / GIF** — deferred per instruction (visuals skipped for
+      now). Still the highest-leverage appeal improvement when revisited.
+- [ ] **Badges in `readme.md`** — minor; revisit once CI exists.
 
 **3. Structure & architecture of `/docs` — 7/10.** Sensible skeleton:
 `setup` · `usage` · reference (`cli-reference`, `config-schema`,
-`compatibility-report`, `test-coverage`) · `architecture/` · `features/` ·
-`guides/` · `demos/`. Holds it back:
+`compatibility-report`, `test-coverage`, `glossary`) · `architecture/` ·
+`features/` · `guides/` · `demos/`. Status:
 
-- [ ] **Guides are thin (3).** Add: a **troubleshooting** guide (see above), a
-      **scripting against the socket API** guide (consolidate the `curl`
-      snippets now scattered across `usage.md`/`cli-reference.md`/the import
-      guide into one endpoint-driven walkthrough), and optionally a 60-second
-      **quickstart** (on → import demo → up → open the route).
-- [ ] **Demos folder is underdeveloped (one demo, partly inaccurate).** Decide
-      its role: either grow it into a small gallery — keep `web-stack`
-      (deps/probes/replicas), add a **routed** demo with a real `x-portless`
-      block, and a **tags + standalone** example — or keep it minimal but make
-      every claim true. Recommendation: grow to 2–3 accurate demos; they're the
-      best onboarding surface.
-- [ ] **Add a short glossary** (desired state, reconciler, stack vs. standalone,
-      route alias, namespace, tag) — newcomers meet these terms cold.
-- [ ] **Add a brief TOC to the long docs** (`config-schema.md`, the sync guide,
-      `usage.md`) so they're scannable; short docs are fine as-is.
+- [x] **Glossary added** (`docs/glossary.md`) — written as a grouped narrative
+      (the big idea → what you manage → grouping → routing → health/lifecycle →
+      storage → access), not a flat table, and linked from the index.
+- [ ] **Grow the demos folder.** One accurate demo today (`web-stack`:
+      deps/probes/replicas/override). Add a **routed** demo with a real
+      `x-portless` block backed by a tiny HTTP server, and a **tags +
+      standalone** example. _Backlog._
+- [ ] **Brief TOC for the long docs** (`config-schema.md`, the sync guide) —
+      GitHub auto-generates one, so low priority. _Backlog._
 
-**Suggested order:** (1) fix the demo inaccuracy + Bun version mismatch (quick,
-correctness); (2) troubleshooting guide + uninstall section (highest user
-value); (3) de-dupe the docs index + add a TUI screenshot; (4) socket-API
-guide + glossary; (5) grow demos; (6) repo-root LICENSE/CONTRIBUTING/security.
+### Guide ideas (backlog)
+
+Existing guides: import a stack · add a routed service · sync at scale. Candidate
+additions, ordered roughly by value:
+
+- [ ] **Troubleshooting / FAQ** (highest value). portless not on PATH; port 443 /
+      sudo on first proxy start; "daemon already running" / stale socket; route
+      conflicts naming both claimants; daemon won't start; reading
+      `~/.local/share/outrider/daemon.log`; why a routed service started without
+      a hostname.
+- [ ] **Quickstart (60 seconds)** — `on` → import the demo → bring it up → open
+      the route. The shortest path from zero to "it works", linkable from the
+      root readme.
+- [ ] **Scripting against the socket API** — consolidate the scattered `curl`
+      snippets into one endpoint-driven walkthrough: handshake via `/v1/info`,
+      drive `up`/`down`, import with `dryRun`, tail logs, subscribe to the event
+      stream. Pairs with the daemon-as-headless-backend (devenv) use case.
+- [ ] **Migrating from process-compose** — drop-in import, what changes
+      (lifetime, ports → routes, Ctrl+E → re-import), and how to read the
+      compatibility warnings. Converts the most likely incoming audience.
+- [ ] **Tag a repository's services** — the "tag once, `outrider start my-repo`"
+      workflow end to end, including `x-tags` in a compose file vs. the dashboard.
+- [ ] **Health checks and start order** — author readiness/liveness probes and
+      `depends_on` conditions, read the import report's resolved start order, and
+      debug a service stuck `pending` on a gate.
+- [ ] **Run a service at boot** — the desired-state + autostart mental model as a
+      task: pick what should survive reboots, set it, verify after `off`/`on`.
+- [ ] **Routing recipes** — fixed-port services, static aliases for
+      `kubectl port-forward` / `tsh proxy`, the `framework` quirk hints, and
+      sharing beyond localhost via portless's own LAN/Tailscale/ngrok pass-through.
+
+**Applied this round:** Bun-version cleanup, demo fix, `docs/readme.md` index
+de-dup, `contributing.md`, `glossary.md`, `setup.md` uninstall section.
+**Deferred:** security note, growing demos, TOCs, and the guide backlog above
+(per the "guide ideas, not built yet" instruction); LICENSE and visuals are out
+of scope for now by decision.
