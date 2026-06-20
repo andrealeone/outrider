@@ -3,12 +3,12 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { LoadedProject } from '../shared/types/process-compose'
-import type { ServiceDefinition } from '../shared/types/protocol'
+import type { LoadedProject } from '../../src/shared/types/process-compose'
+import type { ServiceDefinition } from '../../src/shared/types/protocol'
 
-import { EventBus } from './event-bus'
-import { Registry, RegistryError } from './registry'
-import { StateStore } from './state-store'
+import { EventBus } from '../../src/daemon/event-bus'
+import { Registry, RegistryError } from '../../src/daemon/registry'
+import { StateStore } from '../../src/daemon/state-store'
 
 const tmp = mkdtempSync(join(tmpdir(), 'outrider-registry-'))
 let registry: Registry
@@ -80,61 +80,35 @@ describe('service tags', () => {
   })
 })
 
-describe('resolveIds resolution order', () => {
-  test('stops at exact id match before checking stack/namespace/tag', () => {
-    // Create a service that could match multiple categories
+describe('resolveIds union resolution', () => {
+  const stack = (name: string, procs: string[]): LoadedProject => ({
+    sources: [join(tmp, name, 'process-compose.yaml')],
+    warnings: [],
+    config: { name, processes: Object.fromEntries(procs.map((p) => [p, { command: `echo ${p}` }])) },
+  })
+
+  test('an exact id wins outright over a same-named tag', () => {
     registry.addStandalone(def({ name: 'api', tags: ['api'] }))
-    // Only the exact id should be returned, not the tag
+    registry.addStandalone(def({ name: 'worker', tags: ['api'] }))
     expect(registry.resolveIds(['api'])).toEqual(['api'])
   })
 
-  test('stops at stack match before checking namespace/tag', () => {
-    const project: LoadedProject = {
-      sources: [join(tmp, 'stack', 'process-compose.yaml')],
-      warnings: [],
-      config: {
-        name: 'mystack',
-        processes: {
-          api: { 'command': 'echo api', 'x-tags': 'mystack' }, // tagged with stack name
-        },
-      },
-    }
-    registry.importProject(project)
-    // Should resolve to stack members only, not services tagged 'mystack'
-    expect(registry.resolveIds(['mystack'])).toEqual(['mystack/api'])
+  test('a name resolves to the union of stack, namespace, and tag', () => {
+    registry.addStandalone(def({ name: 'a', namespace: 'infra' }))
+    registry.addStandalone(def({ name: 'b', tags: ['infra'] }))
+    registry.importProject(stack('infra', ['svc']))
+    expect(registry.resolveIds(['infra']).sort()).toEqual(['a', 'b', 'infra/svc'])
   })
 
-  test('stops at namespace match before checking tag', () => {
-    registry.addStandalone(def({ name: 'api', namespace: 'infra', tags: ['infra'] }))
-    registry.addStandalone(def({ name: 'worker', tags: ['infra'] }))
-    // Should resolve to namespace members only, not tagged services
-    expect(registry.resolveIds(['infra'])).toEqual(['api'])
+  test('a service matched through multiple categories appears once', () => {
+    registry.addStandalone(def({ name: 'a', namespace: 'x', tags: ['x'] }))
+    expect(registry.resolveIds(['x'])).toEqual(['a'])
   })
 
-  test('resolves to tag only when no higher-priority match exists', () => {
-    registry.addStandalone(def({ name: 'api', tags: ['mytag'] }))
-    registry.addStandalone(def({ name: 'worker', tags: ['mytag'] }))
-    expect(registry.resolveIds(['mytag']).sort()).toEqual(['api', 'worker'])
-  })
-
-  test('handles multiple names with mixed resolution categories', () => {
-    registry.addStandalone(def({ name: 'cache', tags: ['web'] }))
-    const project: LoadedProject = {
-      sources: [join(tmp, 'stack', 'process-compose.yaml')],
-      warnings: [],
-      config: {
-        name: 'backend',
-        processes: {
-          api: { 'command': 'echo api' },
-        },
-      },
-    }
-    registry.importProject(project)
-    // 'cache' resolves to exact id, 'backend' to stack, 'web' to tag (cache)
-    // Set deduplicates, so 'cache' appears once despite being resolved twice
-    expect(registry.resolveIds(['cache', 'backend', 'web']).sort()).toEqual([
-      'backend/api',
-      'cache',
-    ])
+  test('no names resolves to every service', () => {
+    registry.addStandalone(def({ name: 'a' }))
+    registry.addStandalone(def({ name: 'b' }))
+    expect(registry.resolveIds().sort()).toEqual(['a', 'b'])
+    expect(registry.resolveIds([]).sort()).toEqual(['a', 'b'])
   })
 })

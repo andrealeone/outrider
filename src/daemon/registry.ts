@@ -14,29 +14,20 @@ import type { EventBus } from './event-bus'
 import type { StateStore } from './state-store'
 
 import { nowIso } from '../shared/utils/time'
+import { isValidTag, normalizeTags as normalize, toTagList } from '../shared/utils/tags'
 import { hashProject, stackNameFor } from './config/load'
 import { RegistryError } from './registry-error'
 
 export { RegistryError } from './registry-error'
 
-const TAG_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i
-
-/** Trim, lowercase, drop blanks, and dedupe; `undefined` means "leave as is". */
+/** Normalize tags and reject any malformed one, as the registry stores them. */
 const normalizeTags = (tags?: string[]): string[] | undefined => {
-  if (tags === undefined) return undefined
-  const cleaned = [...new Set(tags.map((t) => t.trim().toLowerCase()).filter(Boolean))]
-  for (const tag of cleaned) {
-    if (!TAG_PATTERN.test(tag))
+  const cleaned = normalize(tags)
+  for (const tag of cleaned ?? []) {
+    if (!isValidTag(tag))
       throw new RegistryError('invalid', `invalid tag "${tag}"; use letters, digits, and dashes`)
   }
-  return cleaned.length > 0 ? cleaned : undefined
-}
-
-/** Coerce an `x-tags` compose value (a list or a comma-separated string) to tags. */
-const toTagList = (value: unknown): string[] | undefined => {
-  if (Array.isArray(value)) return value.map(String)
-  if (typeof value === 'string') return value.split(',')
-  return undefined
+  return cleaned
 }
 
 /**
@@ -71,8 +62,9 @@ export class Registry {
   }
 
   /**
-   * Resolve user-facing names to service ids: exact id, stack name, or
-   * namespace, in that order. No names means everything.
+   * Resolve user-facing names to service ids. An exact id wins outright;
+   * otherwise a name resolves to the union of every stack, namespace, and tag
+   * that bears it. No names means everything.
    */
   resolveIds(names?: string[]): string[] {
     if (!names || names.length === 0) return Object.keys(this.model.services)
@@ -85,29 +77,12 @@ export class Registry {
         ids.add(name)
         continue
       }
-
-      // 2. Stack match
-      const stackMembers = this.list().filter((s) => s.stack === name)
-      if (stackMembers.length > 0) {
-        for (const member of stackMembers) ids.add(member.id)
-        continue
-      }
-
-      // 3. Namespace match
-      const nsMembers = this.list().filter((s) => s.namespace === name)
-      if (nsMembers.length > 0) {
-        for (const member of nsMembers) ids.add(member.id)
-        continue
-      }
-
-      // 4. Tag match
-      const tagMembers = this.list().filter((s) => s.tags?.includes(name))
-      if (tagMembers.length > 0) {
-        for (const member of tagMembers) ids.add(member.id)
-        continue
-      }
-
-      throw new RegistryError('not-found', `no service, stack, namespace, or tag named "${name}"`)
+      const members = this.list().filter(
+        (s) => s.stack === name || s.namespace === name || s.tags?.includes(name),
+      )
+      if (members.length === 0)
+        throw new RegistryError('not-found', `no service, stack, namespace, or tag named "${name}"`)
+      for (const member of members) ids.add(member.id)
     }
 
     return [...ids]
@@ -249,7 +224,7 @@ export class Registry {
         throw new RegistryError('invalid', 'alias port must be an integer between 1 and 65535')
     }
     for (const tag of def.tags ?? []) {
-      if (tag.trim() !== '' && !TAG_PATTERN.test(tag.trim()))
+      if (tag.trim() !== '' && !isValidTag(tag.trim()))
         throw new RegistryError('invalid', `invalid tag "${tag}"; use letters, digits, and dashes`)
     }
     const existing = editOf === undefined ? undefined : this.model.services[editOf]

@@ -10,6 +10,7 @@ import * as on from './commands/on'
 import * as start from './commands/start'
 import * as state from './commands/state'
 import * as stop from './commands/stop'
+import * as sync from './commands/sync'
 
 export const commands: Record<string, CommandModule> = {
   '': root,
@@ -19,4 +20,5 @@ export const commands: Record<string, CommandModule> = {
   'start': start,
   'state': state,
   'stop': stop,
+  'sync': sync,
 }

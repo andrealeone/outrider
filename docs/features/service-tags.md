@@ -10,10 +10,12 @@ outrider start web      # start every service tagged "web"
 outrider stop web       # stop them again
 ```
 
-The argument to `start`/`stop` is resolved in this order: an exact service id,
-then a stack name, then a namespace, then a tag. The first kind that matches
-wins, and a tag matches every service that carries it. Unknown names fail
-loudly rather than silently doing nothing. You can pass several at once:
+The argument to `start`/`stop` resolves an exact service id first; that wins
+outright. Otherwise the name resolves to the **union** of every stack,
+namespace, and tag that bears it — so a name shared by, say, a namespace and a
+tag acts on the members of both. A tag matches every service that carries it.
+Unknown names fail loudly rather than silently doing nothing. You can pass
+several at once:
 
 ```bash
 outrider start api db cache       # any mix of ids, stacks, namespaces, tags

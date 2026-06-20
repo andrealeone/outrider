@@ -7,12 +7,22 @@ manage them, and portless integration so services answer on hostnames like
 
 ## Getting started
 
-- [Setup and installation](setup.md): build from source, configure the environment, first run
-- [Day-to-day usage](usage.md): dashboard navigation, adding services, logs and details
+- [Setup and installation](setup.md)
+- [Day-to-day usage](usage.md)
+- [Features](features/readme.md)
+- [CLI reference](cli-reference.md)
+- [Config schema and compatibility](config-schema.md)
+- [Compatibility report vs process-compose](compatibility-report.md)
 
 ## Capabilities
 
-Learn what outrider does, one feature at a time:
+- [Overview](architecture/overview.md)
+- [Daemon](architecture/daemon.md) · [Registry](architecture/registry.md) ·
+  [Reconciler](architecture/reconciler.md) · [Supervisor](architecture/supervisor.md) ·
+  [Scheduler](architecture/scheduler.md) · [Prober](architecture/prober.md) ·
+  [Logger](architecture/logger.md) · [Router](architecture/router.md) ·
+  [TUI](architecture/tui.md)
+- [Feature parity with process-compose](architecture/feature-parity.md)
 
 - [Service tags](features/service-tags.md): group services and control them as a unit
 - [Standalone services](features/standalone-services.md): registry-native services with no backing file
@@ -28,6 +38,7 @@ See [features overview](features/readme.md) for the full list and broader contex
 - [CLI reference](cli-reference.md): command line interface and socket API endpoints
 - [Config schema](config-schema.md): `process-compose.yaml` keys, outrider extensions, and upstream compatibility
 - [Compatibility report](compatibility-report.md): detailed process-compose feature coverage
+- [Test coverage](test-coverage.md): what the test suite exercises and where the gaps are
 
 ## Architecture
 
@@ -49,4 +60,5 @@ How outrider works under the hood:
 - [Guides](guides/): step-by-step walkthroughs
   - [Import a stack](guides/import-a-stack.md): load a `process-compose.yaml`
   - [Add a routed service](guides/add-a-routed-service.md): create a service with networking
+  - [Sync services at scale](guides/sync-services-at-scale.md): bulk-edit services via `~/.config/outrider.yml`
 - [Demos](demos/readme.md): runnable example configurations

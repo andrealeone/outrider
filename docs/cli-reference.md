@@ -2,14 +2,15 @@
 
 ## v1 commands
 
-| Command                         | Behaviour                                                                                                                                                                                                    |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `outrider`                      | Opens the dashboard TUI. With the daemon off it opens in offline mode, showing the persisted registry and a prompt to switch the daemon on. With no TTY it degrades to a JSON state dump.                    |
-| `outrider on`                   | Starts the daemon: installs the launchd agent (macOS) or systemd user unit (Linux) pointing back at this binary, waits for the socket, reconciles autostart services, prints a one-line summary. Idempotent. |
-| `outrider off`                  | Stops the daemon: removes the service unit (so nothing resurrects it), shuts services down through the signal ladder in reverse dependency order, persists state, removes the socket. Idempotent.            |
-| `outrider start <name…>`        | Sets the named targets desired up and starts them (dependencies included). Each name is a service id, stack, namespace, or [tag](features/service-tags.md). Requires the daemon to be running.               |
-| `outrider stop <name…>`         | Sets the named targets desired down and stops them. Same name resolution as `start`. Requires the daemon to be running.                                                                                      |
-| `outrider --help` / `--version` | The usual.                                                                                                                                                                                                   |
+| Command                         | Behaviour                                                                                                                                                                                                      |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `outrider`                      | Opens the dashboard TUI. With the daemon off it opens in offline mode, showing the persisted registry and a prompt to switch the daemon on. With no TTY it degrades to a JSON state dump.                      |
+| `outrider on`                   | Starts the daemon: installs the launchd agent (macOS) or systemd user unit (Linux) pointing back at this binary, waits for the socket, reconciles autostart services, prints a one-line summary. Idempotent.   |
+| `outrider off`                  | Stops the daemon: removes the service unit (so nothing resurrects it), shuts services down through the signal ladder in reverse dependency order, persists state, removes the socket. Idempotent.              |
+| `outrider start <name…>`        | Sets the named targets desired up and starts them (dependencies included). Each name is a service id, stack, namespace, or [tag](features/service-tags.md). Requires the daemon to be running.                 |
+| `outrider stop <name…>`         | Sets the named targets desired down and stops them. Same name resolution as `start`. Requires the daemon to be running.                                                                                        |
+| `outrider sync [--yes]`         | Reconciles `~/.config/outrider.yml` into the registry. Seeds the file on first run; otherwise shows the diff as a checklist (or applies it directly with `--yes`). See [config sync](features/sync-config.md). |
+| `outrider --help` / `--version` | The usual.                                                                                                                                                                                                     |
 
 ## Hidden commands
 
