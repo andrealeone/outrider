@@ -114,8 +114,9 @@ Full details in [config sync](features/sync-config.md).
 
 ## Scripting against the daemon
 
-The socket speaks plain JSON; until the scripting commands land you can drive
-it directly (see the [CLI reference](cli-reference.md) for the endpoint list):
+Beyond `start`/`stop`/`sync`, the socket speaks plain JSON, so you can drive the
+daemon directly (see the [CLI reference](cli-reference.md) for the endpoint
+list):
 
 ```bash
 curl -s --unix-socket "$XDG_RUNTIME_DIR/outrider.sock" \

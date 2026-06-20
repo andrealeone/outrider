@@ -128,6 +128,13 @@ const coerceEnv = (name: string, value: unknown): Record<string, string> => {
   return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([k, v]) => [k, String(v)]))
 }
 
+/** Coerce a scalar field to a string, rejecting objects and arrays by name. */
+const coerceScalar = (name: string, field: string, value: unknown): string => {
+  if (typeof value === 'object' && value !== null)
+    throw new SyncError(`service "${name}": ${field} must be a string`)
+  return String(value)
+}
+
 const coerceService = (name: string, raw: unknown): SyncService => {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
     throw new SyncError(`service "${name}" must be a mapping`)
@@ -137,23 +144,23 @@ const coerceService = (name: string, raw: unknown): SyncService => {
     throw new SyncError(`service "${name}" needs a command`)
   }
   const svc: SyncService = { command: r.command }
-  if (r.working_dir !== undefined) svc.working_dir = String(r.working_dir)
+  if (r.working_dir !== undefined) svc.working_dir = coerceScalar(name, 'working_dir', r.working_dir)
   if (r.autostart !== undefined) {
     if (typeof r.autostart !== 'boolean')
       throw new SyncError(`service "${name}": autostart must be true or false`)
     svc.autostart = r.autostart
   }
   if (r.restart !== undefined) {
-    const restart = String(r.restart)
+    const restart = coerceScalar(name, 'restart', r.restart)
     if (restart !== 'no' && restart !== 'on_failure' && restart !== 'always') {
       throw new SyncError(`service "${name}": restart must be one of no, on_failure, always`)
     }
     svc.restart = restart as SyncService['restart']
   }
   if (r.tags !== undefined) svc.tags = coerceTags(name, r.tags)
-  if (r.route !== undefined) svc.route = String(r.route)
+  if (r.route !== undefined) svc.route = coerceScalar(name, 'route', r.route)
   if (r.alias_port !== undefined) svc.alias_port = Number(r.alias_port)
-  if (r.namespace !== undefined) svc.namespace = String(r.namespace)
+  if (r.namespace !== undefined) svc.namespace = coerceScalar(name, 'namespace', r.namespace)
   if (r.env !== undefined) svc.env = coerceEnv(name, r.env)
   return svc
 }

@@ -29,3 +29,9 @@ service (live-validated form), import stack (dry-run report before anything
 registers). A fixed vim-style keymap in v1; the config file reserves a keymap
 key for later. Keyboard-first throughout — no mouse, per the cuts discussion.
 Theme tokens ship one dark and one light pair (`OUTRIDER_THEME=light`).
+
+`outrider sync` renders outside the dashboard: a standalone checklist view
+(`components/sync-view.tsx`) for reviewing and applying the diff between
+`~/.config/outrider.yml` and the registry, sharing the reusable `Alert`
+component (`components/alert.tsx`) used for its first-run, no-op, and error
+messages. See [config sync](../features/sync-config.md).

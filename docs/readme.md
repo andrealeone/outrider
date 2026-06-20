@@ -38,6 +38,7 @@ See [features overview](features/readme.md) for the full list and broader contex
 - [CLI reference](cli-reference.md): command line interface and socket API endpoints
 - [Config schema](config-schema.md): `process-compose.yaml` keys, outrider extensions, and upstream compatibility
 - [Compatibility report](compatibility-report.md): detailed process-compose feature coverage
+- [Test coverage](test-coverage.md): what the test suite exercises and where the gaps are
 
 ## Architecture
 
@@ -59,4 +60,5 @@ How outrider works under the hood:
 - [Guides](guides/): step-by-step walkthroughs
   - [Import a stack](guides/import-a-stack.md): load a `process-compose.yaml`
   - [Add a routed service](guides/add-a-routed-service.md): create a service with networking
+  - [Sync services at scale](guides/sync-services-at-scale.md): bulk-edit services via `~/.config/outrider.yml`
 - [Demos](demos/readme.md): runnable example configurations

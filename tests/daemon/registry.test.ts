@@ -3,12 +3,12 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { LoadedProject } from '../shared/types/process-compose'
-import type { ServiceDefinition } from '../shared/types/protocol'
+import type { LoadedProject } from '../../src/shared/types/process-compose'
+import type { ServiceDefinition } from '../../src/shared/types/protocol'
 
-import { EventBus } from './event-bus'
-import { Registry, RegistryError } from './registry'
-import { StateStore } from './state-store'
+import { EventBus } from '../../src/daemon/event-bus'
+import { Registry, RegistryError } from '../../src/daemon/registry'
+import { StateStore } from '../../src/daemon/state-store'
 
 const tmp = mkdtempSync(join(tmpdir(), 'outrider-registry-'))
 let registry: Registry
@@ -77,5 +77,38 @@ describe('service tags', () => {
     registry.importProject(project)
     expect(registry.get('demo/api')?.tags).toEqual(['web', 'edge'])
     expect(registry.get('demo/db')?.tags).toEqual(['infra', 'data'])
+  })
+})
+
+describe('resolveIds union resolution', () => {
+  const stack = (name: string, procs: string[]): LoadedProject => ({
+    sources: [join(tmp, name, 'process-compose.yaml')],
+    warnings: [],
+    config: { name, processes: Object.fromEntries(procs.map((p) => [p, { command: `echo ${p}` }])) },
+  })
+
+  test('an exact id wins outright over a same-named tag', () => {
+    registry.addStandalone(def({ name: 'api', tags: ['api'] }))
+    registry.addStandalone(def({ name: 'worker', tags: ['api'] }))
+    expect(registry.resolveIds(['api'])).toEqual(['api'])
+  })
+
+  test('a name resolves to the union of stack, namespace, and tag', () => {
+    registry.addStandalone(def({ name: 'a', namespace: 'infra' }))
+    registry.addStandalone(def({ name: 'b', tags: ['infra'] }))
+    registry.importProject(stack('infra', ['svc']))
+    expect(registry.resolveIds(['infra']).sort()).toEqual(['a', 'b', 'infra/svc'])
+  })
+
+  test('a service matched through multiple categories appears once', () => {
+    registry.addStandalone(def({ name: 'a', namespace: 'x', tags: ['x'] }))
+    expect(registry.resolveIds(['x'])).toEqual(['a'])
+  })
+
+  test('no names resolves to every service', () => {
+    registry.addStandalone(def({ name: 'a' }))
+    registry.addStandalone(def({ name: 'b' }))
+    expect(registry.resolveIds().sort()).toEqual(['a', 'b'])
+    expect(registry.resolveIds([]).sort()).toEqual(['a', 'b'])
   })
 })

@@ -14,30 +14,20 @@ import type { EventBus } from './event-bus'
 import type { StateStore } from './state-store'
 
 import { nowIso } from '../shared/utils/time'
-import { isValidTag, normalizeTags, toTagList } from '../shared/utils/tags'
+import { isValidTag, normalizeTags as normalize, toTagList } from '../shared/utils/tags'
 import { hashProject, stackNameFor } from './config/load'
 import { RegistryError } from './registry-error'
 
 export { RegistryError } from './registry-error'
 
-const TAG_PATTERN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i
-
-/** Trim, lowercase, drop blanks, and dedupe; `undefined` means "leave as is". */
+/** Normalize tags and reject any malformed one, as the registry stores them. */
 const normalizeTags = (tags?: string[]): string[] | undefined => {
-  if (tags === undefined) return undefined
-  const cleaned = [...new Set(tags.map((t) => t.trim().toLowerCase()).filter(Boolean))]
-  for (const tag of cleaned) {
-    if (!TAG_PATTERN.test(tag))
+  const cleaned = normalize(tags)
+  for (const tag of cleaned ?? []) {
+    if (!isValidTag(tag))
       throw new RegistryError('invalid', `invalid tag "${tag}"; use letters, digits, and dashes`)
   }
-  return cleaned.length > 0 ? cleaned : undefined
-}
-
-/** Coerce an `x-tags` compose value (a list or a comma-separated string) to tags. */
-const toTagList = (value: unknown): string[] | undefined => {
-  if (Array.isArray(value)) return value.map(String)
-  if (typeof value === 'string') return value.split(',')
-  return undefined
+  return cleaned
 }
 
 /**
@@ -72,8 +62,9 @@ export class Registry {
   }
 
   /**
-   * Resolve user-facing names to service ids: exact id, stack name, or
-   * namespace, in that order. No names means everything.
+   * Resolve user-facing names to service ids. An exact id wins outright;
+   * otherwise a name resolves to the union of every stack, namespace, and tag
+   * that bears it. No names means everything.
    */
   resolveIds(names?: string[]): string[] {
     if (!names || names.length === 0) return Object.keys(this.model.services)

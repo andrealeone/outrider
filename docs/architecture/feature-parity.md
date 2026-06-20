@@ -16,7 +16,7 @@ Both tools provide the core capabilities needed to manage local development serv
 | **Logging** | ✓ (per-process and global) | ✓ (per-process and global) |
 | **Health checks** | ✓ (liveness and readiness) | ✓ (liveness and readiness) |
 | **Terminal UI** | ✓ (Ink-based dashboard) | ✓ (TUI mode) |
-| **CLI interface** | ✓ (three commands) | ✓ (comprehensive CLI) |
+| **CLI interface** | ✓ (core + scripting commands) | ✓ (comprehensive CLI) |
 | **Configuration merging** | ✓ | ✓ |
 | **Namespace support** | ✓ | ✓ |
 | **Process replicas** | ✓ | ✓ |

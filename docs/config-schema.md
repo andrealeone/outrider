@@ -142,8 +142,9 @@ processes:
 ```
 
 Tags are grouping labels. `outrider start <tag>` / `outrider stop <tag>` act on
-every service carrying the tag, and the daemon's `up`/`down` `names` resolve a
-tag after ids, stacks, and namespaces. Tags are normalised on load (trimmed,
+every service carrying the tag. In the daemon's `up`/`down` `names`, an exact id
+wins outright; otherwise a name resolves to the union of every stack, namespace,
+and tag that bears it. Tags are normalised on load (trimmed,
 lowercased, de-duplicated) and must be letters, digits, and dashes. Standalone
 services set tags in the dashboard add/edit form instead. See
 [service tags](features/service-tags.md).

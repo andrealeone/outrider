@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { RingBuffer } from './ring-buffer'
+import { RingBuffer } from '../../../src/shared/utils/ring-buffer'
 
 describe('RingBuffer', () => {
   test('keeps insertion order below capacity', () => {

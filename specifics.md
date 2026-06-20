@@ -276,3 +276,175 @@ The parity inventory is deliberately exhaustive, while a minimal tool ships defa
 **Keep despite the temptation.** Multi-file merge stays, devenv and real projects depend on it. Probes and dependency conditions stay, they are the moat per the field notes. Replicas stay because cutting them breaks real configs, though a simple fan-out implementation is enough. Namespaces stay, one string label and a filter is nearly free. Persisted restart counters stay, since surviving restarts is the daemon's whole premise.
 
 **The rule that makes cuts safe.** Every cut feature must still parse. An unsupported-but-recognised key produces a precise warning naming the feature and its status, never a silent ignore and never a crash. That turns each cut into a roadmap item instead of a compatibility break.
+
+---
+
+### Implementation status
+
+Tracked against the source tree, not the docs. `[x]` is implemented and shipping; `[ ]` is not built. Items the cuts discussion deliberately drops or defers are marked **(cut)** / **(deferred)** so an empty box reads as a roadmap entry, not an oversight.
+
+**Architecture components** — all present under `src/daemon/`.
+
+- [x] Daemon lifecycle, lock file, version handshake (`daemon.ts`)
+- [x] Registry: desired model, standalone + stack entries, name resolution (`registry.ts`)
+- [x] Reconciler: desired-vs-observed loop (`reconciler.ts`)
+- [x] Supervisor: `Bun.spawn` process groups, replica fan-out, signal ladder, state machine (`supervisor.ts`)
+- [x] Scheduler: dependency DAG, start gating, reverse-order shutdown (`scheduler.ts`, `config/dag.ts`)
+- [x] Prober: exec + http probes, probe-over-route (`prober.ts`)
+- [x] Logger: rotating file sink + in-memory ring buffer (`logger.ts`, `utils/ring-buffer.ts`)
+- [x] Router: portless integration behind an interface (`router.ts`)
+- [x] State store: atomic `registry.json` + append-only journal (`state-store.ts`)
+- [x] Control plane: `Bun.serve` over a unix socket, `/v1` JSON endpoints + event stream (`api.ts`, `event-bus.ts`)
+
+**Config schema and compatibility** — see `config-schema.md` and `compatibility-report.md`.
+
+- [x] Multi-file discovery, deep merge, override detection, strict mode (`config/discover.ts`, `merge.ts`, `validate.ts`)
+- [x] Process keys: command, entrypoint, working_dir, description, namespace, disabled, is_daemon, replicas
+- [x] Environment: `environment`, `env_file`, `.env` auto-load, `is_dotenv_disabled`, layered precedence, injected `PC_*`/`OUTRIDER_*` vars
+- [x] envsubst: `$VAR`, `${VAR}`, `$$`; exotic function forms recognised and warned (`utils/env.ts`)
+- [x] Templating: simple double-brace vars; richer expressions hard-error (`config/template.ts`)
+- [x] Dependencies: all five `depends_on` conditions, cycle detection at import
+- [x] Probes: readiness + liveness, exec + http_get, upstream defaults
+- [x] Restart policy: no / on_failure / always, backoff, max_restarts, persisted counters
+- [x] Shutdown: command, signal, timeout, parent_only; SIGTERM→wait→SIGKILL
+- [x] `x-portless` and `x-tags` extension keys
+- [x] Framework quirk table (`--port` injection) (`framework-quirks.ts`)
+- [ ] `env_cmds` dynamic variables — **(deferred)**, parsed + warned
+- [ ] `is_tty`, `is_foreground` — **(deferred)**, parsed + warned
+- [ ] `is_elevated` / TUI password flow — **(cut)**, write `sudo` in the command
+- [ ] Per-instance replica dependency overrides (`name-N`) — **(deferred)**, depend on the group
+- [ ] `exit_on_end` / `exit_on_skipped` / `exit_on_failure` in persistent mode — parsed + warned by design; apply only to ephemeral runs (not yet built)
+
+**Portless routing**
+
+- [x] Per-process opt-in routes, ephemeral port allocation, env injection (`PORT`, `PORTLESS_URL`, `OUTRIDER_URL`)
+- [x] Static aliases (`alias: true` + fixed `port`), pid-0 cleanup on boot/shutdown
+- [x] System-wide route uniqueness + reserved-name rejection at import
+
+**CLI surface**
+
+- [x] `outrider` (dashboard), `outrider on`, `outrider off`
+- [x] `outrider start` / `outrider stop` (ids, stacks, namespaces, tags)
+- [x] `outrider sync` (config mirror reconcile, `--yes`)
+- [x] `outrider daemon run` (hidden), `outrider state` (hidden JSON dump)
+- [ ] `outrider import FILE` — TUI-only (import-stack flow)
+- [ ] `outrider run NAME` (ephemeral) — **(deferred)**
+- [ ] `outrider restart` / `scale` / `logs` / `list` / `routes` / `validate` — TUI / socket only for now
+- [ ] `outrider open` / `doctor`, shell completions — **(deferred)**, value additions
+
+**TUI (Ink)**
+
+- [x] Dashboard: virtualised table, per-row toggles, transition animations, header counts, daemon master switch, offline mode
+- [x] Filters, fuzzy search, sort cycling
+- [x] Logs view: follow, regex search, wrap, scrollback, per-service log deletion
+- [x] Detail view: config snapshot, instances, masked environment, route status, tags
+- [x] Add/edit-service form with live validation
+- [x] Import-stack dry-run report
+- [x] Sync checklist view + reusable `Alert` component
+- [x] One vim-style keymap; dark + light theme pair (`OUTRIDER_THEME`)
+- [x] Shared frame clock for spinners/animations (`frame-clock.ts`)
+- [ ] Configurable keymap file — **(deferred)**, key reserved in config
+- [ ] Mouse support — **(cut)**
+- [ ] Command palette — **(deferred)**
+
+**System-wide model & sync**
+
+- [x] Standalone (file-less) services and stack entries linked by path + content hash
+- [x] Hierarchical naming, namespaces as a filter dimension, desired state + autostart
+- [x] Service tags as a grouping handle for `start`/`stop`, search, and the API
+- [x] Config sync: `~/.config/outrider.yml` mirror, automatic registry→file export, `sync` file→registry reconcile
+
+**Build & packaging**
+
+- [x] Single-executable build via `bun build --compile` (`scripts/build.ts`)
+- [x] launchd / systemd unit installation through `on`/`off`
+- [x] XDG path layout everywhere
+
+**Value additions / beyond parity**
+
+- [ ] MCP agent control plane — **(deferred)**
+- [ ] Procfile import — **(deferred)**
+- [ ] Scheduled services (cron / interval) — **(deferred)**, schema parsed later
+- [ ] `open` / `doctor` / completions — **(deferred)**
+
+**Test coverage** — gaps to close. These source files have no dedicated tests and no (or near-zero) automated coverage; partially-covered modules are tracked in [test coverage](docs/test-coverage.md). The CLI and TUI layers are thin socket clients, so the daemon integration test exercises their behaviour indirectly, but the wiring and components themselves are untested.
+
+- [ ] Prober: exec + http_get probe logic, thresholds, liveness restart, probe-over-route (`daemon/prober.ts` — only constructed by the integration test, ~2% line coverage). Highest-value gap, since probes are the moat.
+- [ ] Router: the portless bridge contract (`daemon/router.ts` — the integration test substitutes a fake router, so the real one is never run).
+- [ ] Daemon bootstrap: lock file, socket lifecycle, version-mismatch refusal, the registry→sync-file mirror hook (`daemon/daemon.ts`).
+- [ ] Service-unit templating for launchd / systemd (`shared/service-unit.ts`) — pure and install-critical, so cheap to cover.
+- [ ] Secret-masking and formatting helpers (`shared/utils/format.ts`).
+- [ ] CLI dispatch: command resolution, hidden-command filtering, usage output, unknown-command handling (`cli/dispatch.ts`, `cli/manifest.ts`).
+- [ ] CLI commands: `on`, `off`, `start`/`stop` (`cli/updown.ts`), `sync`, `state`, `daemon/run` (`cli/commands/*`) — arg parsing and output, not just the name resolution and sync codec they call.
+- [ ] TUI Ink layer: `app.tsx`, every component (`dashboard`, `logs-view`, `detail-view`, `add-service`, `import-stack`, `service-table`, `status-badge`, `header`, `text-input`, `sync-view`, `alert`), `sync.tsx`, `use-daemon.ts`, `frame-clock.ts`, `theme.ts` — no automated coverage.
+- [ ] Entry-point wiring (`main.ts`).
+
+### Documentation polish (pre-production)
+
+Review of `/docs` + `readme.md` ahead of a production-level release. Content was
+already updated and is accurate; this is a punch-list of completeness, polish,
+and structural gaps. Scores out of 10.
+
+**1. Content completeness — 8/10.** Genuinely thorough and honest: every
+architecture component documented, an exhaustive per-key config schema, a
+candid compatibility report, and a `test-coverage.md` that names its own gaps
+(rare and excellent). What's missing or wrong:
+
+- [ ] **Troubleshooting / FAQ doc is absent.** The highest-value gap. Cover:
+      portless not on PATH, port 443 / sudo elevation on first proxy start,
+      stale socket / "daemon already running", route conflicts, daemon won't
+      start, where `daemon.log` lives and how to read it.
+- [ ] **No uninstall path.** `setup.md` installs but never says how to remove
+      (`outrider off`, delete the binary, the `~/.local/share/outrider` and
+      `~/.config/outrider*` paths). Add an "Uninstalling" section to `setup.md`.
+- [ ] **Demo is inaccurate.** `docs/demos/readme.md` claims the web-stack
+      exercises "an `x-portless` route", but `web-stack/process-compose.yaml`
+      has no `x-portless` block. Either add a real route to the demo (it
+      degrades gracefully without the portless CLI) or drop the claim.
+- [ ] **Bun version is stated three ways.** `readme.md` says "Pinned: Bun
+      1.3.14", `setup.md` says "1.3.10+", `package.json` `engines.bun` is
+      `>=1.3.10`. Reconcile the wording (floor vs. pinned `.bun-version`) so the
+      three agree.
+- [ ] **No security note.** The socket's user-only-permissions trust model and
+      the secret-masking heuristic caveat are mentioned in passing; a short
+      `security.md` (or section) would consolidate them for a production audience.
+- [ ] **No top-level LICENSE / CONTRIBUTING.** Not under `/docs`, but expected
+      at production level; flag for the repo root.
+
+**2. Aesthetic & readability — 8/10.** Strong, consistent prose voice; tables
+used well; the ASCII architecture diagram reads cleanly. Fixes:
+
+- [ ] **Add a TUI screenshot or GIF to `readme.md`.** This is a terminal
+      dashboard — the single highest-leverage appeal improvement is showing it.
+      Currently zero visuals of the actual product.
+- [ ] **De-duplicate the `docs/readme.md` index.** It lists the architecture
+      components twice (the "Capabilities" block and again under "Architecture")
+      and the feature set twice. Collapse to one authoritative list per topic.
+- [ ] **Consider badges in `readme.md`** (Bun version, license, CI) once those
+      exist — minor.
+
+**3. Structure & architecture of `/docs` — 7/10.** Sensible skeleton:
+`setup` · `usage` · reference (`cli-reference`, `config-schema`,
+`compatibility-report`, `test-coverage`) · `architecture/` · `features/` ·
+`guides/` · `demos/`. Holds it back:
+
+- [ ] **Guides are thin (3).** Add: a **troubleshooting** guide (see above), a
+      **scripting against the socket API** guide (consolidate the `curl`
+      snippets now scattered across `usage.md`/`cli-reference.md`/the import
+      guide into one endpoint-driven walkthrough), and optionally a 60-second
+      **quickstart** (on → import demo → up → open the route).
+- [ ] **Demos folder is underdeveloped (one demo, partly inaccurate).** Decide
+      its role: either grow it into a small gallery — keep `web-stack`
+      (deps/probes/replicas), add a **routed** demo with a real `x-portless`
+      block, and a **tags + standalone** example — or keep it minimal but make
+      every claim true. Recommendation: grow to 2–3 accurate demos; they're the
+      best onboarding surface.
+- [ ] **Add a short glossary** (desired state, reconciler, stack vs. standalone,
+      route alias, namespace, tag) — newcomers meet these terms cold.
+- [ ] **Add a brief TOC to the long docs** (`config-schema.md`, the sync guide,
+      `usage.md`) so they're scannable; short docs are fine as-is.
+
+**Suggested order:** (1) fix the demo inaccuracy + Bun version mismatch (quick,
+correctness); (2) troubleshooting guide + uninstall section (highest user
+value); (3) de-dupe the docs index + add a TUI screenshot; (4) socket-API
+guide + glossary; (5) grow demos; (6) repo-root LICENSE/CONTRIBUTING/security.
