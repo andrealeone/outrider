@@ -51,6 +51,6 @@ bun scripts/generate-manifest.ts  # after adding a CLI command file
 
 ---
 
-Pinned: Bun 1.3.14 (`.bun-version`), portless 0.14.0. Runtime dependencies
-are ink, react, and portless — anything beyond that needs a written
-justification in the change that introduces it.
+Pinned: portless 0.14.0. Runtime dependencies are ink, react, and portless —
+anything beyond that needs a written justification in the change that
+introduces it.

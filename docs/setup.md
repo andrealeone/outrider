@@ -26,8 +26,8 @@ binary is only as new as the Bun that built it. The daemon's live event stream
 rides a unix-socket WebSocket on the `ws+unix://` scheme, which older runtimes
 reject with *"Wrong url scheme for WebSocket"*. To stop a stale runtime from
 shipping in a binary that can't talk to its own daemon, `scripts/build.ts`
-refuses to compile on a Bun below the floor in `package.json`'s `engines.bun`
-(currently `>=1.3.10`); run `bun upgrade` if the guard trips.
+refuses to compile on a Bun below the floor declared in `package.json`'s
+`engines.bun`; run `bun upgrade` if the guard trips.
 
 Cross-compile all four release targets with `bun scripts/build.ts --all`
 (`dist/outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64`).
@@ -89,3 +89,19 @@ portless's own service unit; exactly one component must own proxy startup.
 Hostname policy: `.localhost` by default (browsers resolve it natively),
 `.test` as the supported alternative. `.local` (mDNS collision) and `.dev`
 (HSTS-forced) are refused and fall back to `.localhost`.
+
+## Uninstalling
+
+```bash
+outrider off                              # stops services, removes the service unit and socket
+rm ~/.local/bin/outrider                  # remove the binary
+rm -rf ~/.local/share/outrider            # registry, journal, logs (your desired state)
+rm -rf ~/.config/outrider ~/.config/outrider.yml   # daemon config + sync mirror, if present
+```
+
+`outrider off` must run first: it removes the launchd agent / systemd user unit
+(so nothing resurrects the daemon) and shuts services down cleanly. The
+`~/.local/share/outrider` removal is what erases your registered services —
+skip it to keep your desired state for a later reinstall. outrider does not
+touch portless's own state or the CA it installed; remove those with portless's
+own tooling if you no longer want it.

@@ -5,9 +5,10 @@ open the dashboard, press `m`, and point it at the directory.
 
 - [`web-stack/`](web-stack/) — a four-process stack exercising dependencies
   (all the way to `process_healthy`), an exec readiness probe, a
-  `ready_log_line`, replicas, restart policies, an override file, and an
-  `x-portless` route. Every process is a plain shell loop, so it runs
-  anywhere bash runs.
+  `ready_log_line`, replicas, restart policies, and an override file. Every
+  process is a plain shell loop, so it runs anywhere bash runs (no real
+  HTTP server, so it stays routing-free; for a routed walkthrough see
+  [add a routed service](../guides/add-a-routed-service.md)).
 
 ```bash
 outrider on
