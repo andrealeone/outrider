@@ -30,6 +30,6 @@ export const dispatch = async (argv: string[]): Promise<void> => {
     }
   }
 
-  console.error(`unknown command: ${argv.join(' ')}\n\n${usage()}`)
+  console.error(`Unknown command: ${argv.join(' ')}\n\n${usage()}`)
   process.exit(1)
 }

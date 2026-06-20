@@ -14,6 +14,7 @@ import type { EventBus } from './event-bus'
 import type { StateStore } from './state-store'
 
 import { nowIso } from '../shared/utils/time'
+import { isValidTag, normalizeTags, toTagList } from '../shared/utils/tags'
 import { hashProject, stackNameFor } from './config/load'
 import { RegistryError } from './registry-error'
 
@@ -85,29 +86,12 @@ export class Registry {
         ids.add(name)
         continue
       }
-
-      // 2. Stack match
-      const stackMembers = this.list().filter((s) => s.stack === name)
-      if (stackMembers.length > 0) {
-        for (const member of stackMembers) ids.add(member.id)
-        continue
-      }
-
-      // 3. Namespace match
-      const nsMembers = this.list().filter((s) => s.namespace === name)
-      if (nsMembers.length > 0) {
-        for (const member of nsMembers) ids.add(member.id)
-        continue
-      }
-
-      // 4. Tag match
-      const tagMembers = this.list().filter((s) => s.tags?.includes(name))
-      if (tagMembers.length > 0) {
-        for (const member of tagMembers) ids.add(member.id)
-        continue
-      }
-
-      throw new RegistryError('not-found', `no service, stack, namespace, or tag named "${name}"`)
+      const members = this.list().filter(
+        (s) => s.stack === name || s.namespace === name || s.tags?.includes(name),
+      )
+      if (members.length === 0)
+        throw new RegistryError('not-found', `no service, stack, namespace, or tag named "${name}"`)
+      for (const member of members) ids.add(member.id)
     }
 
     return [...ids]
@@ -249,7 +233,7 @@ export class Registry {
         throw new RegistryError('invalid', 'alias port must be an integer between 1 and 65535')
     }
     for (const tag of def.tags ?? []) {
-      if (tag.trim() !== '' && !TAG_PATTERN.test(tag.trim()))
+      if (tag.trim() !== '' && !isValidTag(tag.trim()))
         throw new RegistryError('invalid', `invalid tag "${tag}"; use letters, digits, and dashes`)
     }
     const existing = editOf === undefined ? undefined : this.model.services[editOf]

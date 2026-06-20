@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import type { DaemonInfo } from '../shared/types/protocol'
 
 import { Client } from '../shared/client'
+import { writeSyncFile } from '../shared/sync/sync-file'
 import { lockPath, runtimeDir, socketPath } from '../shared/utils/paths'
 import { nowIso } from '../shared/utils/time'
 import { APP_VERSION, PROTOCOL_VERSION } from '../shared/version'
@@ -31,7 +32,7 @@ const removeIfExists = (path: string): void => {
  */
 export const runDaemon = async (): Promise<void> => {
   if (await new Client().ping().catch(() => true)) {
-    console.error('another outrider daemon is already running (or speaks a newer protocol)')
+    console.error('Another outrider daemon is already running (or speaks a newer protocol)')
     process.exit(1)
   }
   mkdirSync(runtimeDir, { recursive: true })
@@ -83,6 +84,18 @@ export const runDaemon = async (): Promise<void> => {
     removeIfExists(lockPath)
     process.exit(0)
   }
+
+  // Mirror every registry change to the plaintext config so `outrider sync`
+  // always diffs against an up-to-date file. Best-effort: a failed write must
+  // never take the daemon down.
+  bus.on((event) => {
+    if (event.type !== 'registry') return
+    try {
+      writeSyncFile(event.registry)
+    } catch (err) {
+      log(`failed to write sync file: ${(err as Error).message}`)
+    }
+  })
 
   process.on('SIGTERM', () => void shutdown('SIGTERM'))
   process.on('SIGINT', () => void shutdown('SIGINT'))
