@@ -2,8 +2,7 @@
 
 outrider borrows most of its vocabulary from process-compose and adds a few
 words of its own. This page collects them in plain language, grouped by the idea
-they belong to rather than alphabetically — read it top to bottom once and the
-rest of the docs will read faster.
+they belong to rather than alphabetically.
 
 ## The big idea
 

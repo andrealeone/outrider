@@ -54,4 +54,5 @@ How outrider works under the hood:
 
 ## Contributing
 
-- [Contributing guide](contributing.md): how to get set up, where to start, and how to send changes
+- [Contributing guide](contributing.md): where to start, and how to send changes
+- [Developing outrider](develop.md): environment, codebase, scripts, and common tasks

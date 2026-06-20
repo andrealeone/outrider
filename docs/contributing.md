@@ -9,12 +9,10 @@ clean dashboard manages it, and your services answer on names like
 `process-compose.yaml` files just work, unedited, so nobody has to throw away
 what they already have to try it.
 
-That ambition only gets realised if the tool stays small and sharp. outrider is
-deliberately lean — a tiny runtime dependency surface, less code over more, and
-every cut feature documented as a roadmap entry rather than a silent gap. If
-that philosophy resonates with you, we'd love your help, and just as much your
-opinion: tell us where it gets in your way, what feels off, what you wish it
-did. Thoughtful feedback shapes this project as much as code does.
+That ambition only holds if the tool stays small and sharp: a tiny runtime
+dependency surface, less code over more, and every cut feature documented as a
+roadmap entry rather than a silent gap. If that resonates, we'd welcome your
+help — and just as much your opinion on where it gets in your way.
 
 ## First time here?
 
@@ -41,8 +39,11 @@ whether something is a bug or intended — see below.
 
 ## Coming back to build something bigger?
 
-For real features, the deeper references are where the work actually happens:
+For real features, these are the references the work runs on:
 
+- **[Developing outrider](develop.md)** — the dev guide: environment setup,
+  running from source, the `package.json` scripts, codebase layout, and recipes
+  for adding a CLI command, daemon component, or TUI feature. Start here.
 - **[Architecture notes, per component](architecture/overview.md)** — daemon,
   registry, reconciler, supervisor, scheduler, prober, logger, router, and TUI
   each have their own page; read the one you're about to touch.
@@ -85,5 +86,4 @@ what you expected, and what happened (and the daemon log if it's relevant —
 `~/.local/share/outrider/daemon.log`). For features, a short description of the
 problem you're trying to solve is more useful than a proposed implementation —
 it lets us weigh it against the [cuts discussion](../specifics.md) and find the
-smallest thing that helps. Either way, an issue is the right first step before a
-large pull request, so we can agree on the shape together.
+smallest thing that helps. Either way, open an issue before a large pull request.
