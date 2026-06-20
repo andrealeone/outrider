@@ -119,20 +119,16 @@ export const containerConfig = (
 export const entryFromContainer = (
   id: string,
   spec: ContainerSpecProto,
+  routeName?: string,
 ): { config: ProcessConfig; route?: PortlessExtension } => {
   let route: PortlessExtension | undefined
 
-  if (spec.hostPort !== undefined) {
-    route = {
-      route: id,
-      alias: true,
-      port: spec.hostPort,
-    }
-  } else {
-    route = {
-      route: id,
-      alias: false,
-    }
+  const name = routeName?.trim()
+  if (name) {
+    route =
+      spec.hostPort !== undefined
+        ? { route: name, alias: true, port: spec.hostPort }
+        : { route: name, alias: false }
   }
 
   const config = containerConfig(id, spec, route)
