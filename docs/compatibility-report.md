@@ -32,7 +32,7 @@ Target: process-compose **v1.110.0** (verified May 2026) and portless
 | TUI                                             | tview, themes, mouse                                | Ink, one light/dark pair, vim keymap, keyboard-only                 | cuts discussion in the brief                                                                                                  |
 | Env expansion of command strings                | at load                                             | at import (frozen into the registry; re-import refreshes)           | system-wide model imports once                                                                                                |
 | `success_threshold`                             | placeholder, not evaluated                          | same, documented                                                    | honesty over invented semantics                                                                                               |
-| Liveness failure                                | restart behaviour mirrors upstream per restart mode | always restarts the instance (counts toward max_restarts)           | **assumption** — upstream behaviour must still be verified against the real binary per the open questions; revisit before 1.0 |
+| Liveness failure                                | restart behaviour mirrors upstream per restart mode | always restarts the instance (counts toward max_restarts)           | **assumption**: upstream behaviour must still be verified against the real binary per the open questions; revisit before 1.0 |
 
 ## Cut features (parse + named warning, never a crash)
 
@@ -47,7 +47,7 @@ contract replaces it), remote TCP control, Windows.
 Interactive/foreground processes (`is_tty`, `is_foreground`), `env_cmds`,
 exotic envsubst function forms, Go-template constructs beyond dotted lookups,
 per-instance replica dependency conditions, scheduled processes (cron and
-interval — schema fields parse today, execution later), the MCP control
+interval; schema fields parse today, execution later), the MCP control
 plane (planned as the first value addition).
 
 ## portless integration surface (pinned at 0.14.0)
@@ -56,5 +56,5 @@ Programmatic: `RouteStore` (file-locked route table; routes registered under
 the daemon's pid so they self-prune if the daemon dies), `parseHostname`,
 `formatUrl`, and the `X-Portless` health header. CLI (shelled out, optional):
 `portless proxy start`. Portless is explicitly pre-1.0 and warns its state
-format may change between releases — every call lives behind the `Router`
+format may change between releases, so every call lives behind the `Router`
 interface in `src/daemon/router.ts`, so a break stays local to one file.

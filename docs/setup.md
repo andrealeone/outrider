@@ -34,7 +34,7 @@ Cross-compile all four release targets with `bun scripts/build.ts --all`
 
 ### Iterating locally
 
-Run straight from source — no compile step — for the fast inner loop; the same
+Run straight from source (no compile step) for the fast inner loop; the same
 entrypoint serves every surface:
 
 ```bash
@@ -68,7 +68,7 @@ start until the next `on`.
 
 ## Filesystem layout
 
-XDG conventions apply on macOS as well — one convention everywhere:
+XDG conventions apply on macOS as well, one convention everywhere:
 
 ```
 ~/.config/outrider/config.yaml           daemon defaults (reserved)
@@ -83,7 +83,7 @@ $XDG_RUNTIME_DIR/outrider.sock           control socket (fallback: ~/.cache/outr
 
 On first proxy start portless generates a local CA, adds it to the system
 trust store, and binds port 443 (sudo auto-elevation). The outrider daemon
-checks, starts, and repairs the proxy itself — do **not** also install
+checks, starts, and repairs the proxy itself; do **not** also install
 portless's own service unit; exactly one component must own proxy startup.
 
 Hostname policy: `.localhost` by default (browsers resolve it natively),
@@ -101,7 +101,7 @@ rm -rf ~/.config/outrider ~/.config/outrider.yml   # daemon config + sync mirror
 
 `outrider off` must run first: it removes the launchd agent / systemd user unit
 (so nothing resurrects the daemon) and shuts services down cleanly. The
-`~/.local/share/outrider` removal is what erases your registered services —
+`~/.local/share/outrider` removal is what erases your registered services;
 skip it to keep your desired state for a later reinstall. outrider does not
 touch portless's own state or the CA it installed; remove those with portless's
 own tooling if you no longer want it.

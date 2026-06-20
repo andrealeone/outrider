@@ -3,7 +3,7 @@
 Runnable configs for poking at outrider. Each directory imports directly:
 open the dashboard, press `m`, and point it at the directory.
 
-- [`web-stack/`](web-stack/) — a four-process stack exercising dependencies
+- [`web-stack/`](web-stack/): a four-process stack exercising dependencies
   (all the way to `process_healthy`), an exec readiness probe, a
   `ready_log_line`, replicas, restart policies, and an override file. Every
   process is a plain shell loop, so it runs anywhere bash runs (no real

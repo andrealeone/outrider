@@ -48,12 +48,12 @@ are supported natively.
 | `log_location`, `log_configuration` / `loggerConfig`                      | supported (rotation by size/backups/age, compression, no_color, add_timestamp)                                                |
 | `vars`, `is_template_disabled`                                            | supported                                                                                                                     |
 | `is_tty`, `is_foreground`                                                 | parsed, deferred with a named warning                                                                                         |
-| `is_elevated`                                                             | parsed, cut with a named warning — write `sudo` in the command                                                                |
+| `is_elevated`                                                             | parsed, cut with a named warning; write `sudo` in the command                                                                |
 | `x-*` extension keys                                                      | tolerated (x-portless and x-tags are read, others pass through)                                                               |
 
 Unknown keys warn by name in normal mode and fail in strict mode. Every cut or
 deferred feature still parses and produces a precise warning naming the
-feature and its status — never a silent ignore, never a crash.
+feature and its status, never a silent ignore, never a crash.
 
 ## Dependencies
 
@@ -68,10 +68,10 @@ are deferred: depend on the group instead (warned by name).
 
 Defaults mirror upstream: `period_seconds: 10`, `timeout_seconds: 1`,
 `failure_threshold: 3`, `initial_delay_seconds: 0`. `success_threshold` is a
-placeholder upstream and is not evaluated — documented here rather than
+placeholder upstream and is not evaluated, documented here rather than
 invented. `http_get` supports `host`, `path`, `scheme`, `port`, `headers`,
 and `status_code`; exec probes accept their own `working_dir`. For routed
-services, http probes resolve through the portless route — the exact path a
+services, http probes resolve through the portless route, the exact path a
 user would hit. Liveness failure restarts the instance.
 
 ## Environment
@@ -93,8 +93,8 @@ about by name. `disable_env_expansion` (project or process) opts out.
 
 ## Templating
 
-Double-brace vars render simple dotted lookups — `{{.VERSION}}`,
-`{{ .app.port }}` — from merged project + process `vars`. Anything richer
+Double-brace vars render simple dotted lookups (`{{.VERSION}}`,
+`{{ .app.port }}`) from merged project + process `vars`. Anything richer
 (pipes, conditionals, ranges) hard-errors at import naming the expression and
 its location, since real configs rarely go past simple substitution. Values
 that _start_ with `{{` must be quoted, as in upstream YAML.
@@ -106,10 +106,10 @@ processes:
   api:
     command: bun run api.ts
     x-portless:
-      route: api # required — the hostname label → api.localhost
-      framework: auto # optional — auto | none | vite | astro | expo | …
-      port: 8080 # optional — fixed port for PORT-deaf services
-      alias: false # optional — see Static aliases below; requires port
+      route: api # required, the hostname label maps to api.localhost
+      framework: auto # optional: auto | none | vite | astro | expo | …
+      port: 8080 # optional: fixed port for PORT-deaf services
+      alias: false # optional: see Static aliases below; requires port
 ```
 
 Routing is opt-in per process. Configs that hard-code ports keep working
@@ -123,7 +123,7 @@ Expo, React Router, Angular).
 points at the daemon-injected `PORT` and is registered under the daemon's pid,
 so portless prunes it when the daemon dies. Setting `alias: true` instead
 registers a static portless alias (pid 0) pointing straight at the fixed
-`port` — for external tools that bind their own port and ignore the injected
+`port`, for external tools that bind their own port and ignore the injected
 `PORT` (e.g. `kubectl port-forward`, `tsh proxy`). `alias` requires `port`
 (an alias has no ephemeral port to fall back on). portless never prunes pid-0
 aliases, so the daemon clears its own on boot and shutdown to avoid dangling

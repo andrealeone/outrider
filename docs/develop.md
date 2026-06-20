@@ -2,9 +2,9 @@
 
 This is the guide for working *on* outrider rather than *with* it: getting the
 codebase running, finding your way around it, and keeping your changes healthy.
-It leans on the user-facing docs rather than repeating them — [setup](setup.md)
-for installing and building, [contributing](contributing.md) for opening issues
-and sending pull requests.
+It leans on the user-facing docs rather than repeating them: [setup](setup.md)
+for installing and building, and [contributing](contributing.md) for opening
+issues and sending pull requests.
 
 ## Getting set up
 
@@ -17,7 +17,7 @@ bun install
 bun run check        # verify the toolchain is happy
 ```
 
-That's it — there's no build step for development. You run outrider straight
+That's it: there's no build step for development. You run outrider straight
 from source, so your changes take effect the moment you save them.
 
 ### Running from source
@@ -43,7 +43,7 @@ outrider is deliberately built to be approachable. A few principles run through
 every part of it, and they double as the spirit behind the harder rules in the
 [implementation brief](../specifics.md):
 
-**Single responsibility.** Each module does one job — the registry holds state,
+**Single responsibility.** Each module does one job: the registry holds state,
 the reconciler enforces desired state, the supervisor manages processes. When
 you go looking for something, there's usually one obvious place it lives.
 
@@ -51,9 +51,9 @@ you go looking for something, there's usually one obvious place it lives.
 ceremony but because a type signature tells you what a function takes, returns,
 and can fail on before you read a line of its body.
 
-**No hidden layers.** Code paths are direct — no magic middleware, no implicit
-conventions waiting to trip you. If you want to know how something works, follow
-the call stack and it will tell you.
+**No hidden layers.** Code paths are direct, with no magic middleware and no
+implicit conventions waiting to trip you. If you want to know how something
+works, follow the call stack and it will tell you.
 
 **Naming for humans first.** `reconcileDesiredState` beats `rec`; `ServiceEntry`
 beats `Svc`. Readable names help people and AI assistants alike.
@@ -67,7 +67,7 @@ there.
 ```
 src/
 ├── cli/                    # one-shot commands (outrider start, outrider stop, …)
-├── tui/                    # Ink dashboard — React on the terminal
+├── tui/                    # Ink dashboard (React on the terminal)
 ├── daemon/                 # control plane: registry, reconciler, supervisor, router
 ├── shared/                 # types and socket client shared by all three
 └── main.ts                 # entry router: CLI, TUI, or daemon, by arguments
@@ -81,7 +81,7 @@ running system; the docs tree itself is laid out in the
 
 The one boundary worth internalising early: **CLI and TUI never import daemon
 internals.** Both speak only the [shared protocol](cli-reference.md#socket-api-the-contract-behind-every-command)
-over a unix socket. It's load-bearing — it's why the TUI can render an offline
+over a unix socket. It's load-bearing: it's why the TUI can render an offline
 snapshot with no daemon running, and why you can script the daemon over the API
 without a dashboard. If you catch yourself reaching across that line, pause and
 ask whether the thing you need belongs in the shared protocol instead. The
@@ -121,11 +121,11 @@ bun run check
 It runs [fallow](https://github.com/getfallback/fallow), a health checker for
 TypeScript projects, which bundles several standards into one pass:
 
-- **Type checking** — full strict-mode type safety, catching errors before they
+- **Type checking**: full strict-mode type safety, catching errors before they
   ship.
-- **Linting** with [Oxlint](https://oxc-project.github.io/) — fast, actionable
+- **Linting** with [Oxlint](https://oxc-project.github.io/): fast, actionable
   reports on unused variables, unreachable code, and logic mistakes.
-- **Health thresholds** — minimum test coverage, no stray `console.log()` in the
+- **Health thresholds**: minimum test coverage, no stray `console.log()` in the
   daemon (logging belongs in the logger), and similar guards against regressions.
 
 Read any failure carefully; the output is written to point you straight at the
@@ -136,7 +136,7 @@ fix.
 Many of the issues `check` finds have an unambiguous fix:
 
 ```bash
-bun run fix          # fallow fix — apply automatic resolutions
+bun run fix          # fallow fix, applies automatic resolutions
 ```
 
 Run `bun run check` again afterwards to confirm everything's clean.
@@ -151,7 +151,7 @@ bun test --watch               # watch mode during active development
 
 outrider uses [Bun's native test runner](https://bun.sh/docs/test/overview).
 Tests live under `tests/` at the repository root, in a tree that mirrors `src/`
-so a module and its test are easy to pair up — see [test coverage](test-coverage.md)
+so a module and its test are easy to pair up; see [test coverage](test-coverage.md)
 for the full map of what's exercised and where the gaps are. Both unit and
 integration suites run here; add tests when you add behaviour, and cover the
 edge cases, not just the happy path.
@@ -174,7 +174,7 @@ bun run lint                   # show lint issues only
 bun run lint:fix               # apply lint fixes
 ```
 
-These are the lower-level tools `bun run check` already invokes — handy when you
+These are the lower-level tools `bun run check` already invokes, handy when you
 want to focus purely on lint without the rest of the health pass.
 
 ### `bun run compile`
@@ -192,7 +192,7 @@ the installed-binary experience. The build itself is covered in
 [setup](setup.md#building-from-source).
 
 A note on strict mode while you're in here: TypeScript runs stricter than its
-defaults — every value has a known type, functions declare their returns,
+defaults, so every value has a known type, functions declare their returns,
 optionals must be checked before use, and exhaustiveness is enforced. `bun run
 check` is what surfaces all of it.
 
@@ -200,11 +200,11 @@ check` is what surfaces all of it.
 
 ### Adding a CLI command
 
-Commands are file routes under `src/cli/commands/` — the file path *is* the
+Commands are file routes under `src/cli/commands/`, where the file path *is* the
 command path:
 
-1. Create the file: `commands/start.ts` → `outrider start`,
-   `commands/daemon/run.ts` → `outrider daemon run`.
+1. Create the file: `commands/start.ts` becomes `outrider start`,
+   `commands/daemon/run.ts` becomes `outrider daemon run`.
 2. Export a `description` string and a `run(args: string[]): Promise<void>`.
 3. Regenerate the manifest: `bun scripts/generate-manifest.ts` (required so
    `bun build --compile` can find the command).
@@ -222,28 +222,28 @@ To add a component to the daemon:
    component is instantiated and connected.
 4. Add its test under `tests/daemon/` (the tree mirrors `src/`), e.g.
    `tests/daemon/newfeature.test.ts`.
-5. Write a short architecture note at `docs/architecture/newfeature.md` — it's
+5. Write a short architecture note at `docs/architecture/newfeature.md`; it's
    how the next person (and future you) understands the design.
 
 ### Adding a TUI feature
 
 TUI features are React components built on [Ink](https://github.com/vadimdemedes/ink),
-living in `src/tui/components/`. The code is event-driven — components react to
+living in `src/tui/components/`. The code is event-driven: components react to
 user input and to daemon events over the socket. Read a couple of existing
 components first; the patterns are consistent, so follow them.
 
 ### Updating documentation
 
-Docs ship with the code — a feature without docs isn't finished. Each kind of
+Docs ship with the code, so a feature without docs isn't finished. Each kind of
 doc has a home:
 
-- [`setup.md`](setup.md) — installing, building, first run
-- [`usage.md`](usage.md) — day-to-day workflows
-- [`features/`](features/readme.md) — capability deep-dives for end users
-- [`architecture/`](architecture/overview.md) — how components work, for contributors
-- [`guides/`](guides/) — step-by-step walkthroughs
-- [`glossary.md`](glossary.md) — the project's vocabulary
-- `develop.md` — this guide
+- [`setup.md`](setup.md): installing, building, first run
+- [`usage.md`](usage.md): day-to-day workflows
+- [`features/`](features/readme.md): capability deep-dives for end users
+- [`architecture/`](architecture/overview.md): how components work, for contributors
+- [`guides/`](guides/): step-by-step walkthroughs
+- [`glossary.md`](glossary.md): the project's vocabulary
+- `develop.md`: this guide
 
 Write for a reader who's sharp but new to the code: explain the concept, show an
 example, link onwards. Prose is British English, code is American English
@@ -252,8 +252,8 @@ follow the same kebab-case rule as the source.
 
 ## Sending a change
 
-The mechanics of opening issues and pull requests — and the etiquette around
-review — live in the [contributing guide](contributing.md). The local loop
+The mechanics of opening issues and pull requests, and the etiquette around
+review, live in the [contributing guide](contributing.md). The local loop
 before you get there is short:
 
 1. Branch with a descriptive name: `fix/daemon-restart-race`, not `update`.
@@ -275,7 +275,7 @@ A few things that come up often:
   (`outrider off && outrider on`); reopen the dashboard after TUI edits.
 - **A test fails.** The test name and output almost always point at the cause;
   if not, open the test and trace it.
-- **A type error.** `bun run check` shows it — terse but precise, pointing at the
+- **A type error.** `bun run check` shows it: terse but precise, pointing at the
   exact line.
 
 ## Getting help
@@ -283,7 +283,7 @@ A few things that come up often:
 Stuck? In rough order of speed:
 
 - **Read the [architecture notes](architecture/overview.md)** for the big picture.
-- **Search the codebase** for a similar pattern — someone has likely solved a
+- **Search the codebase** for a similar pattern; someone has likely solved a
   near-identical problem already.
 - **Ask Claude** to explain a confusing path or suggest an approach.
 - **Open an issue** describing what you're trying to do and where you got stuck.

@@ -7,13 +7,13 @@ manage them, and portless integration so services answer on hostnames like
 
 ## Getting started
 
-- [Setup and installation](setup.md) — requirements, building from source, first run
-- [Day-to-day usage](usage.md) — the dashboard, logs, adding services, desired state
-- [Guides](guides/) — step-by-step walkthroughs
+- [Setup and installation](setup.md): requirements, building from source, first run
+- [Day-to-day usage](usage.md): the dashboard, logs, adding services, desired state
+- [Guides](guides/): step-by-step walkthroughs
   - [Import a stack](guides/import-a-stack.md): load a `process-compose.yaml`
   - [Add a routed service](guides/add-a-routed-service.md): create a service with networking
   - [Sync services at scale](guides/sync-services-at-scale.md): bulk-edit services via `~/.config/outrider.yml`
-- [Demos](demos/readme.md) — runnable example configurations
+- [Demos](demos/readme.md): runnable example configurations
 
 ## Features
 

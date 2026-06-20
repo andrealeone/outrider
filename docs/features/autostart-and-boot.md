@@ -9,8 +9,8 @@ restarts or the machine reboots.
 - Autostart marks a service to be resumed at daemon boot.
 
 `outrider off` stops processes but leaves desired state untouched. At the next
-`outrider on` — or after a reboot, since `on` installs a launchd agent (macOS)
-or systemd user unit (Linux) that starts the daemon — every service that is
+`outrider on` (or after a reboot, since `on` installs a launchd agent (macOS)
+or systemd user unit (Linux) that starts the daemon), every service that is
 both `autostart` _and_ desired `up` is brought back, in dependency order.
 
 So a service starts at boot only when both are true: it was wanted up, and it

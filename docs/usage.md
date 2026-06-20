@@ -1,9 +1,9 @@
 # Day-to-day usage
 
 The core surface is `outrider`, `outrider on`, and `outrider off`. A few
-targeted commands round it out — `outrider start`/`stop` for acting on services
+targeted commands round it out: `outrider start`/`stop` for acting on services
 or [tags](features/service-tags.md) from a script, and `outrider sync` for
-[bulk edits](features/sync-config.md) — but day to day, everything happens
+[bulk edits](features/sync-config.md). But day to day, everything happens
 inside the dashboard.
 
 ## The dashboard
@@ -63,14 +63,14 @@ against the daemon before saving. Standalone services live in the registry with
 no backing file.
 
 **Tags** are comma-separated grouping labels (e.g. `web, db`). `outrider start
-<tag>` and `outrider stop <tag>` act on every service carrying the tag — see
+<tag>` and `outrider stop <tag>` act on every service carrying the tag; see
 [service tags](features/service-tags.md). Dashboard search (`/`) matches tags
 as well as ids.
 
 Leave **alias port** blank for a normal daemon-managed route, where the daemon
 picks the port and injects `PORT`. Set it to a fixed port (e.g. `10020`) when
-the command owns that port itself and ignores the injected one — `kubectl
-port-forward`, `tsh proxy`, and the like. The route then becomes a static
+the command owns that port itself and ignores the injected one (`kubectl
+port-forward`, `tsh proxy`, and the like). The route then becomes a static
 portless alias pointing at that port; it requires a route to be set. (See the
 [config schema](config-schema.md) for the `x-portless.alias` equivalent.)
 
@@ -79,7 +79,7 @@ portless alias pointing at that port; it requires a route to be set. (See the
 `e` reopens the same form prefilled for the selected service. The name is
 fixed (delete and recreate to rename); saving persists the new definition and
 restarts the service if it is running, so the change takes effect
-immediately. Stack members cannot be edited in place — their compose file is
+immediately. Stack members cannot be edited in place; their compose file is
 the source of truth, so edit the file and re-import.
 
 `x` deletes the selected service after one confirmation: it is stopped,

@@ -86,7 +86,7 @@ them directly.
 | `shared/utils/ring-buffer.ts` | 80 / 86 | |
 | `shared/utils/time.ts` | 83 / 62 | |
 | `shared/utils/net.ts` | 50 / 100 | |
-| `daemon/prober.ts` | 25 / 2 | **Effectively untested** — constructed by the integration test but its probe logic never runs. The most valuable daemon gap to close. |
+| `daemon/prober.ts` | 25 / 2 | **Effectively untested**: constructed by the integration test but its probe logic never runs. The most valuable daemon gap to close. |
 
 ## Gaps: no automated coverage
 
@@ -96,14 +96,14 @@ integration test exercises the behaviour behind them indirectly, but the command
 wiring and React components themselves have no tests.
 
 - **CLI** (`src/cli/`): `dispatch.ts`, `manifest.ts`, `updown.ts`, and every command (`on`, `off`, `start`, `stop`, `sync`, `state`, `daemon/run`, the root). Name resolution and the sync codec they call are tested; the argument parsing and output are not.
-- **TUI** (`src/tui/`): the whole Ink layer — `app.tsx`, every component (`dashboard`, `logs-view`, `detail-view`, `add-service`, `import-stack`, `service-table`, `status-badge`, `header`, `text-input`, `sync-view`, `alert`), `sync.tsx`, `use-daemon.ts`, `frame-clock.ts`, `theme.ts`, `devtools-stub.ts`.
-- **Daemon bootstrap & routing**: `daemon/daemon.ts` (process lifecycle, lock file, the sync-file mirror hook) and `daemon/router.ts` (the real portless bridge — the integration test substitutes a fake router).
+- **TUI** (`src/tui/`): the whole Ink layer: `app.tsx`, every component (`dashboard`, `logs-view`, `detail-view`, `add-service`, `import-stack`, `service-table`, `status-badge`, `header`, `text-input`, `sync-view`, `alert`), `sync.tsx`, `use-daemon.ts`, `frame-clock.ts`, `theme.ts`, `devtools-stub.ts`.
+- **Daemon bootstrap & routing**: `daemon/daemon.ts` (process lifecycle, lock file, the sync-file mirror hook) and `daemon/router.ts` (the real portless bridge; the integration test substitutes a fake router).
 - **Shared**: `shared/service-unit.ts` (launchd/systemd unit templating) and `shared/utils/format.ts`.
 - **Entry point**: `src/main.ts`.
 
 ## Suggested priorities
 
-1. **`daemon/prober.ts`** — exec and http probe logic is core (dependencies and the moat) yet essentially unexercised.
-2. **`daemon/router.ts`** — the portless boundary is currently only ever a fake in tests; a contract test against the real interface would catch drift.
-3. **`shared/service-unit.ts`** — unit-file generation is install-critical and pure, so cheap to test.
-4. **CLI dispatch** — `dispatch.ts`/`manifest.ts` resolution and unknown-command handling are pure and easy to cover.
+1. **`daemon/prober.ts`**: exec and http probe logic is core (dependencies and the moat) yet essentially unexercised.
+2. **`daemon/router.ts`**: the portless boundary is currently only ever a fake in tests; a contract test against the real interface would catch drift.
+3. **`shared/service-unit.ts`**: unit-file generation is install-critical and pure, so cheap to test.
+4. **CLI dispatch**: `dispatch.ts`/`manifest.ts` resolution and unknown-command handling are pure and easy to cover.
