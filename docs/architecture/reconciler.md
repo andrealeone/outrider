@@ -5,7 +5,7 @@ desired state against observed supervisor state and issues actions. A CLI
 command, a TUI toggle, and a cold daemon boot all flow through the same path.
 
 It keeps a `pendingUp` set of services that should come up once their gates
-open. A tick — debounced on state/probe events, plus a 1s heartbeat — asks
+open. A tick (debounced on state/probe events, plus a 1s heartbeat) asks
 the scheduler to evaluate each pending service's `depends_on` gates against
 live state: `go` starts it (allocating the route first for routed services),
 `wait` keeps it pending, `never` (a dependency failed or was skipped) marks

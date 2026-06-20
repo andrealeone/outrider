@@ -1,8 +1,8 @@
 # Service tags
 
 Tags are free-form labels on a service. They cut across stacks and namespaces,
-so you can group whatever belongs together — everything a single repository
-needs, every database, every background worker — and act on the group as a
+so you can group whatever belongs together (everything a single repository
+needs, every database, every background worker) and act on the group as a
 unit.
 
 ```bash
@@ -12,7 +12,7 @@ outrider stop web       # stop them again
 
 The argument to `start`/`stop` resolves an exact service id first; that wins
 outright. Otherwise the name resolves to the **union** of every stack,
-namespace, and tag that bears it — so a name shared by, say, a namespace and a
+namespace, and tag that bears it, so a name shared by, say, a namespace and a
 tag acts on the members of both. A tag matches every service that carries it.
 Unknown names fail loudly rather than silently doing nothing. You can pass
 several at once:
@@ -40,7 +40,7 @@ without remembering which services belong to it.
 ## Assigning tags
 
 **In the dashboard.** The add/edit form (`a` to add, `e` to edit) has a
-**tags** field — comma-separated, e.g. `web, db`. Tags are normalised on save:
+**tags** field, comma-separated, e.g. `web, db`. Tags are normalised on save:
 trimmed, lowercased, de-duplicated, blanks dropped. On edit, leaving the field
 empty clears the service's tags.
 
@@ -69,5 +69,5 @@ tags.
 ## Rules
 
 A tag is letters, digits, and dashes (e.g. `web`, `api-v2`); anything else is
-rejected at save time. Tags carry no behaviour of their own — they are purely
+rejected at save time. Tags carry no behaviour of their own; they are purely
 a grouping handle for `start`/`stop`, search, and the API's `names` field.

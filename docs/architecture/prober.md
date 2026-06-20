@@ -4,7 +4,7 @@
 probes spawn through the shell with their own `working_dir` and a hard
 timeout; http probes use `fetch` with `headers`, an expected `status_code`
 (default: any 2xx), and a timeout signal. For routed services the http probe
-targets the portless route URL — exercising the exact path a user would hit —
+targets the portless route URL (exercising the exact path a user would hit),
 falling back to `host:port` otherwise (the injected `PORT` serves as the
 default port).
 

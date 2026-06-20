@@ -1,6 +1,6 @@
 # Guide: import a stack
 
-Any existing `process-compose.yaml` imports as-is — that's the compatibility
+Any existing `process-compose.yaml` imports as-is; that's the compatibility
 contract.
 
 1. `outrider` to open the dashboard, then `m`.
@@ -12,7 +12,7 @@ contract.
    unknown keys, persistent-mode notes). Nothing has been registered yet.
 4. Press `y` to import. The stack's services appear in the dashboard with
    desired state `down`.
-5. Select services and press `space` to bring them up — dependencies come up
+5. Select services and press `space` to bring them up, and dependencies come up
    with them, gated on their `depends_on` conditions. Press `A` on the ones
    that should start at boot.
 

@@ -12,6 +12,6 @@ Lines are tagged with their instance and stream (`stdout`, `stderr`, or
 `system` for supervisor messages like spawn failures and restart notices).
 The logger also hosts the `ready_log_line` watchers: a regex (or literal
 fallback) per instance that flips readiness the moment the line appears.
-Log persistence is best-effort by design — a full disk must never take a
+Log persistence is best-effort by design: a full disk must never take a
 service down. The journal (`journal.jsonl`) rotates the same way, and restart
 counters are rebuilt from it at boot.

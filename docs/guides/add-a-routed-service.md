@@ -18,7 +18,7 @@ processes:
       route: api
     readiness_probe:
       http_get:
-        path: /healthz # probed through the route — the user path
+        path: /healthz # probed through the route (the user path)
 ```
 
 Import the stack and toggle `api` up. At start the daemon allocates an
@@ -27,15 +27,15 @@ the route, and the dashboard shows the URL in the ROUTE column.
 
 ## The x-portless fields
 
-- `route` (required) — the hostname label. Must be a lowercase DNS label,
+- `route` (required): the hostname label. Must be a lowercase DNS label,
   unique system-wide, and not a reserved portless subcommand name.
-- `framework` (default `auto`) — quirk-table hint for tools that ignore
+- `framework` (default `auto`): quirk-table hint for tools that ignore
   `PORT`: Vite, Astro, Expo, React Router, and Angular get `--port` appended
   automatically (`auto` sniffs the command; `none` disables).
-- `port` — a fixed port for services that cannot honour an injected `PORT`,
+- `port`: a fixed port for services that cannot honour an injected `PORT`,
   used in place of an ephemeral allocation. The route is still daemon-managed:
   registered under the daemon's pid and pruned when it dies.
-- `alias` (requires `port`) — register a static portless alias (pid 0) at
+- `alias` (requires `port`): register a static portless alias (pid 0) at
   `port` instead, for external tools that own their port and ignore the
   injected `PORT` (`kubectl port-forward`, `tsh proxy`). The daemon clears
   these on boot and shutdown since portless never prunes them.

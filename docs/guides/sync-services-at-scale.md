@@ -14,14 +14,14 @@ The **registry is the source of truth.** `~/.config/outrider.yml` is a plaintext
 mirror of it, and the relationship is a one-file, two-direction loop:
 
 - **Registry → file (automatic).** Whenever you add, edit, or remove a service
-  — in the dashboard, over the socket, or via an earlier `sync` — the daemon
+  (in the dashboard, over the socket, or via an earlier `sync`), the daemon
   rewrites the file. You never hand-edit it to keep it current; it tracks
   reality on its own.
 - **File → registry (on demand).** You edit the file, then run `outrider sync`
   to reconcile your edits back into the registry.
 
 Only **standalone** services live in the file. Stack members are owned by their
-`process-compose.yaml` and are refreshed by re-importing — `sync` never creates,
+`process-compose.yaml` and are refreshed by re-importing; `sync` never creates,
 updates, or deletes them, and they never appear in the file.
 
 The file path honours `XDG_CONFIG_HOME`; with that unset it is
@@ -29,7 +29,7 @@ The file path honours `XDG_CONFIG_HOME`; with that unset it is
 
 ## Prerequisite
 
-The daemon must be running — `sync` applies its changes through the socket API.
+The daemon must be running; `sync` applies its changes through the socket API.
 If it is down, `sync` stops with a message telling you to start it:
 
 ```bash
@@ -60,9 +60,9 @@ services:
     working_dir: ~/code/api # optional
     autostart: true # optional, default false
     restart: on_failure # optional: no | on_failure | always
-    tags: [web, edge] # optional — list or comma-separated string
-    route: api # optional — portless hostname label
-    alias_port: 10020 # optional — fixed-port (alias) route
+    tags: [web, edge] # optional: list or comma-separated string
+    route: api # optional: portless hostname label
+    alias_port: 10020 # optional: fixed-port (alias) route
     namespace: backend # optional
     env: # optional, a KEY: value mapping
       LOG_LEVEL: debug
@@ -70,7 +70,7 @@ services:
 
 `command` is the only required field; every other key is optional and falls
 back to its default when omitted. The service **id is the map key** under
-`services:` — that key is the identity. To add a service, add a block; to remove
+`services:`; that key is the identity. To add a service, add a block; to remove
 one, delete its block; to change one, edit its fields.
 
 A few semantics worth knowing before you edit:
@@ -93,9 +93,9 @@ A few semantics worth knowing before you edit:
 Run `sync` again with no arguments. It parses the file, diffs it against the
 live registry, and resolves each difference into one operation:
 
-- **create** — a service in the file the registry doesn't have
-- **update** — a service whose fields differ (the changed fields are listed)
-- **delete** — a standalone service in the registry that's absent from the file
+- **create**: a service in the file the registry doesn't have
+- **update**: a service whose fields differ (the changed fields are listed)
+- **delete**: a standalone service in the registry that's absent from the file
 
 On a terminal this opens an interactive checklist:
 
@@ -120,7 +120,7 @@ Every row is checked by default. Drive it with:
 | `q` / `esc`        | cancel without applying anything    |
 
 Each operation is applied independently and reported with a ✓ or ✗, so one
-rejected change — an invalid command, a route conflict — doesn't block the rest.
+rejected change (an invalid command, a route conflict) doesn't block the rest.
 Press `q` on the results screen to close.
 
 ## Applying non-interactively
@@ -134,7 +134,7 @@ outrider sync --yes   # or -y
 It prints a per-operation summary and exits non-zero if any operation failed.
 
 Without a TTY (a pipe, a CI step) and without `--yes`, `sync` refuses to apply
-anything and exits non-zero — the prompt-or-`--yes` rule keeps an unattended run
+anything and exits non-zero; the prompt-or-`--yes` rule keeps an unattended run
 from making changes you never saw. So in automation, always pass `--yes`.
 
 ## What counts as a change
@@ -154,12 +154,12 @@ immediately after applying is a no-op (`Registry already in sync`).
 
 ## When something is off
 
-- **Daemon not running** — `sync` tells you to `outrider on` and exits non-zero;
+- **Daemon not running**: `sync` tells you to `outrider on` and exits non-zero;
   nothing is read or changed.
-- **Malformed file** — a YAML syntax error, a missing `command`, a bad `restart`
+- **Malformed file**: a YAML syntax error, a missing `command`, a bad `restart`
   value, or `env`/`tags` of the wrong shape stops `sync` before any operation
   runs, naming the offending service and field. Fix the file and re-run.
-- **A single operation fails** — the others still apply; the failed row shows ✗
+- **A single operation fails**: the others still apply; the failed row shows ✗
   with the daemon's reason, and the run exits non-zero.
 
 ## Recipes
@@ -176,13 +176,13 @@ block to the file and `outrider sync --yes`. The daemon will then keep the file
 in sync as the service's runtime state evolves.
 
 Audit what would change before committing to it: run `outrider sync` and read
-the checklist — pressing `q` applies nothing.
+the checklist; pressing `q` applies nothing.
 
 ## See also
 
-- [Config sync reference](../features/sync-config.md) — the file format and
+- [Config sync reference](../features/sync-config.md): the file format and
   lifecycle in reference form.
-- [Standalone services](../features/standalone-services.md) — what lives in the
+- [Standalone services](../features/standalone-services.md): what lives in the
   file and what doesn't.
-- [Config schema](../config-schema.md) — the full field reference, including the
+- [Config schema](../config-schema.md): the full field reference, including the
   stack-file equivalents.

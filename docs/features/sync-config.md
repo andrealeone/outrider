@@ -9,14 +9,14 @@ you can read your services at a glance and edit a whole set at once.
 It is a one-file, two-direction loop:
 
 - **Registry → file (automatic).** Every time you add, edit, or remove a
-  service through the dashboard — anything that changes the registry — the
+  service through the dashboard (anything that changes the registry), the
   daemon rewrites the file. You never edit it to keep it current; it just
   tracks reality.
 - **File → registry (on demand).** Edit the file directly to define or change
   many services at once, then run `outrider sync` to apply your edits.
 
 Only **standalone** services appear in the file. Stack members are owned by
-their `process-compose.yaml` and are managed by re-importing — `sync` never
+their `process-compose.yaml` and are managed by re-importing; `sync` never
 touches them.
 
 ## `outrider sync`
@@ -29,9 +29,9 @@ outrider sync --yes    # apply every change without prompting (scripts, CI)
 `sync` diffs the file against the live registry and resolves each difference to
 one operation:
 
-- **create** — a service in the file that the registry doesn't have
-- **update** — a service whose fields differ (the changed fields are listed)
-- **delete** — a standalone service in the registry that's absent from the file
+- **create**: a service in the file that the registry doesn't have
+- **update**: a service whose fields differ (the changed fields are listed)
+- **delete**: a standalone service in the registry that's absent from the file
 
 On a terminal it opens a checklist: every change is checked by default; move
 with `j`/`k`, toggle a row with `space`, toggle all with `a`, and press `enter`
@@ -39,8 +39,8 @@ to apply **only the checked rows**. Each result is reported with a ✓ or ✗, s
 single rejected change (an invalid command, a route conflict) doesn't block the
 rest. `esc`/`q` cancels without applying anything.
 
-Comparison is normalised — tag case and order, key order, and fields left at
-their defaults don't count as changes — so a freshly exported file diffs clean,
+Comparison is normalised (tag case and order, key order, and fields left at
+their defaults don't count as changes), so a freshly exported file diffs clean,
 and re-running `sync` right after applying is a no-op.
 
 ## First run
@@ -59,8 +59,8 @@ services:
     autostart: true # optional, default false
     restart: on_failure # optional: no | on_failure | always
     tags: [web, edge] # optional
-    route: api # optional — see portless routing
-    alias_port: 10020 # optional — fixed-port (alias) route
+    route: api # optional: see portless routing
+    alias_port: 10020 # optional: fixed-port (alias) route
     namespace: backend # optional
     env: # optional
       LOG_LEVEL: debug

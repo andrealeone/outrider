@@ -2,9 +2,9 @@
 
 `src/daemon/supervisor.ts` is a thin layer over `Bun.spawn` owning process
 groups, replica fan-out, restart backoff, exit-code capture, and the
-SIGTERM-wait-SIGKILL ladder. It owns the canonical state machine — `pending`,
+SIGTERM-wait-SIGKILL ladder. It owns the canonical state machine: `pending`,
 `launching`, `running`, `completed`, `skipped`, `error`, `terminating`,
-`restarting`, mirroring upstream — so dependency conditions, the TUI, and the
+`restarting`, mirroring upstream, so dependency conditions, the TUI, and the
 API all read one enum.
 
 **Spawning.** Commands run through the configured shell (default `bash -c`);

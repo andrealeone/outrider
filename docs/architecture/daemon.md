@@ -20,5 +20,5 @@ down while a crash restarts and re-reconciles.
 **Service units.** `outrider on` writes the launchd agent (macOS) or systemd
 user unit (Linux) pointing at this binary with `daemon run`, then starts it;
 with no service manager available it falls back to a detached spawn.
-`outrider off` removes the unit first — so nothing resurrects the daemon —
+`outrider off` removes the unit first (so nothing resurrects the daemon),
 then lets the unit teardown's SIGTERM run the graceful path.

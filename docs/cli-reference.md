@@ -63,8 +63,8 @@ namespaces, and [tags](features/service-tags.md), resolved in that order.
 
 ## Planned scripting surface
 
-`start` and `stop` have landed (see above); the rest —
-`up/down/import/run/restart/scale/logs/list/state/routes/validate` — keep their
+`start` and `stop` have landed (see above); the rest
+(`up/down/import/run/restart/scale/logs/list/state/routes/validate`) keep their
 process-compose-shaped specification as the target for a later iteration; in v1
 their actions live in the TUI and the socket API above. When
 `outrider run NAME` arrives it executes inside the daemon: the CLI attaches,
