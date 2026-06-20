@@ -19,6 +19,15 @@ The whole public surface is those three commands; everything else — importing
 stacks, adding/editing/deleting services, logs, routes, scaling — happens in
 the dashboard or over the JSON socket API.
 
+## Why outrider?
+
+outrider is a brand new project heavily inspired by [process-compose](https://github.com/F1bonacc1/process-compose),
+reimagined for a system-wide model. Where process-compose runs per-directory and answers HTTP requests,
+outrider runs as a persistent daemon that owns your services' desired state across your entire development environment.
+This means you get hostname-based routing instead of port juggling, a single dashboard for all your projects,
+and configuration that survives reboots and terminal sessions. See the [feature parity document](docs/architecture/feature-parity.md)
+for a detailed comparison.
+
 Documentation lives in [docs/](docs/readme.md): setup, usage, the CLI and
 socket reference, per-component architecture notes, the config schema with
 its process-compose compatibility report, guides, and runnable demos.

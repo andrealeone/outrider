@@ -6,12 +6,13 @@
     "outrider": "src/main.ts"
   },
   "scripts": {
-    "check": "fallow",
-    "fix": "fallow fix",
+    "cli": "bun src/main.ts",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
+    "check": "fallow",
+    "fix": "fallow fix",
     "compile": "bun scripts/build.ts && rm ~/.local/bin/outrider && cp dist/outrider ~/.local/bin/outrider && outrider off && outrider on"
   },
   "devDependencies": {

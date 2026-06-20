@@ -22,6 +22,7 @@ manage them, and portless integration so services answer on hostnames like
   [Scheduler](architecture/scheduler.md) · [Prober](architecture/prober.md) ·
   [Logger](architecture/logger.md) · [Router](architecture/router.md) ·
   [TUI](architecture/tui.md)
+- [Feature parity with process-compose](architecture/feature-parity.md)
 
 ### Guides
 

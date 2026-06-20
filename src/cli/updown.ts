@@ -4,12 +4,12 @@ import { plural } from '../shared/utils/format'
 /** Shared body of the `start` and `stop` commands: resolve names and toggle. */
 export const runUpDown = async (direction: 'start' | 'stop', args: string[]): Promise<void> => {
   if (args.length === 0) {
-    console.error(`usage: outrider ${direction} <name|stack|namespace|tag>…`)
+    console.error(`Usage: outrider ${direction} <name|stack|namespace|tag>…`)
     process.exit(1)
   }
   const client = new Client()
   if (!(await client.ping().catch(() => false))) {
-    console.error('outrider daemon is not running; start it with "outrider on"')
+    console.error('Outrider daemon is not running; start it with "outrider on"')
     process.exit(1)
   }
   try {

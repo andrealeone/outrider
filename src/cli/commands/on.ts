@@ -10,12 +10,12 @@ export const run = async (): Promise<void> => {
   const client = new Client()
   try {
     if (await client.ping()) {
-      console.log(`outrider daemon already running (socket: ${socketPath})`)
+      console.log(`Outrider daemon already running (socket: ${socketPath})`)
       return
     }
   } catch (err) {
     if (err instanceof ProtocolMismatchError) {
-      console.error(`a stale daemon is running: ${err.message}`)
+      console.error(`A stale daemon is running: ${err.message}`)
       process.exit(1)
     }
     throw err
@@ -26,12 +26,12 @@ export const run = async (): Promise<void> => {
 
   const up = await waitFor(() => client.ping().catch(() => false), 10_000, 200)
   if (!up) {
-    console.error('daemon did not come up within 10s; check the daemon log')
+    console.error('Daemon did not come up within 10s; check the daemon log')
     process.exit(1)
   }
   const { services } = await client.state()
   const resumed = services.filter((s) => s.entry.desired === 'up' && s.entry.autostart).length
   console.log(
-    `outrider daemon on — ${plural(services.length, 'service')} registered, ${resumed} autostarting`,
+    `Outrider daemon on — ${plural(services.length, 'service')} registered, ${resumed} autostarting`,
   )
 }

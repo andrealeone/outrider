@@ -32,7 +32,7 @@ const removeIfExists = (path: string): void => {
  */
 export const runDaemon = async (): Promise<void> => {
   if (await new Client().ping().catch(() => true)) {
-    console.error('another outrider daemon is already running (or speaks a newer protocol)')
+    console.error('Another outrider daemon is already running (or speaks a newer protocol)')
     process.exit(1)
   }
   mkdirSync(runtimeDir, { recursive: true })

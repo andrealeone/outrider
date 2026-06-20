@@ -24,5 +24,5 @@ export const run = async (): Promise<void> => {
     15_000,
     200,
   )
-  console.log(gone ? 'outrider daemon off' : 'daemon is taking long to stop; check the daemon log')
+  console.log(gone ? 'Outrider daemon off' : 'Daemon is taking long to stop; check the daemon log')
 }
