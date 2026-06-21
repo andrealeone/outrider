@@ -3,20 +3,20 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { ProcessStatus, ServiceState } from '../../src/shared/types/protocol'
-import type { RouteBinding, Router, RouterStatus } from '../../src/shared/types/router'
+import type { ProcessStatus, ServiceState } from '../../../src/shared/types/protocol'
+import type { RouteBinding, Router, RouterStatus } from '../../../src/shared/types/router'
 
-import { Client } from '../../src/shared/client'
-import { waitFor } from '../../src/shared/utils/time'
-import { APP_VERSION, PROTOCOL_VERSION } from '../../src/shared/version'
-import { Api } from '../../src/daemon/api'
-import { EventBus } from '../../src/daemon/event-bus'
-import { Logger } from '../../src/daemon/logger'
-import { Prober } from '../../src/daemon/prober'
-import { Reconciler } from '../../src/daemon/reconciler'
-import { Registry } from '../../src/daemon/registry'
-import { StateStore } from '../../src/daemon/state-store'
-import { Supervisor } from '../../src/daemon/supervisor'
+import { Client } from '../../../src/shared/client'
+import { waitFor } from '../../../src/shared/utils/time'
+import { APP_VERSION, PROTOCOL_VERSION } from '../../../src/shared/version'
+import { Api } from '../../../src/daemon/api'
+import { EventBus } from '../../../src/daemon/event-bus'
+import { Logger } from '../../../src/daemon/logger'
+import { Prober } from '../../../src/daemon/prober'
+import { Reconciler } from '../../../src/daemon/reconciler'
+import { Registry } from '../../../src/daemon/registry'
+import { StateStore } from '../../../src/daemon/state-store'
+import { Supervisor } from '../../../src/daemon/supervisor'
 
 const tmp = mkdtempSync(join(tmpdir(), 'outrider-test-'))
 const socket = join(tmp, 'test.sock')
@@ -57,7 +57,7 @@ const client = new Client(socket)
 
 const stateOf = async (id: string): Promise<ServiceState | undefined> => {
   const snapshot = await client.state()
-  return snapshot.services.find((s) => s.entry.id === id)
+  return snapshot.services.find((s: ServiceState) => s.entry.id === id)
 }
 
 const waitForStatus = async (
@@ -448,7 +448,7 @@ describe('daemon without portless', () => {
     )
     // Should fail due to duplicate route
     expect(result.ok).toBe(false)
-    expect(result.errors).toContain(expect.stringMatching(/duplicate.*route/i))
+    expect(result.errors.some((error) => /duplicate.*route/i.test(error))).toBe(true)
 
     // Clean up
     await clientNoPortless.removeService('dup-route-1')

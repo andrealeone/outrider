@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 
-import type { ProjectConfig } from '../../../src/shared/types/process-compose'
+import type { ProjectConfig } from '../../../../src/shared/types/process-compose'
 
-import { startOrder } from '../../../src/daemon/config/dag'
-import { expandEnv } from '../../../src/daemon/config/expand'
-import { ConfigLoadError, hashProject, loadProject, stackNameFor } from '../../../src/daemon/config/load'
-import { deepMerge } from '../../../src/daemon/config/merge'
-import { renderTemplate, TemplateError } from '../../../src/daemon/config/template'
-import { validateProject } from '../../../src/daemon/config/validate'
+import { startOrder } from '../../../../src/daemon/config/dag'
+import { expandEnv } from '../../../../src/daemon/config/expand'
+import { ConfigLoadError, hashProject, loadProject, stackNameFor } from '../../../../src/daemon/config/load'
+import { deepMerge } from '../../../../src/daemon/config/merge'
+import { renderTemplate, TemplateError } from '../../../../src/daemon/config/template'
+import { validateProject } from '../../../../src/daemon/config/validate'
 
 const fixture = (name: string): string => join(import.meta.dir, 'fixtures', name)
 

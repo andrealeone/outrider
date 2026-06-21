@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { parseDotenv, parseEnvList } from '../../../src/shared/utils/env'
+import { parseDotenv, parseEnvList } from '../../../../src/shared/utils/env'
 
 describe('parseEnvList', () => {
   test('splits on the first equals sign only', () => {
