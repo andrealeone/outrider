@@ -73,12 +73,15 @@ export const ServiceTable = ({
             ? formatUptime(state.startedAt)
             : '—'
         const cells = [fit(state.entry.name, nameWidth), fit(state.entry.stack ?? '·', stackWidth)]
+        const routeDisplay = state.routePending
+          ? 'route pending — portless not installed'
+          : state.routeUrl ?? ''
         const trailing = [
           fit(state.health === 'unknown' ? '—' : state.health, 9),
           fit(uptime, 8),
           fit(String(state.restarts || '·'), 3),
           fit(state.entry.autostart ? '✓' : '·', 12),
-          fit(state.routeUrl ?? '', routeWidth).trimEnd(),
+          fit(routeDisplay, routeWidth).trimEnd(),
         ]
         return (
           <Box key={state.entry.id}>
@@ -97,7 +100,15 @@ export const ServiceTable = ({
             )}
             <Text color={rowColor} bold={isSelected} dimColor={!online && !isSelected}>
               {'  '}
-              {trailing.join('  ')}
+              {trailing.slice(0, -1).join('  ')}
+              {'  '}
+            </Text>
+            <Text
+              color={state.routePending ? theme.dim : rowColor}
+              bold={isSelected && !state.routePending}
+              dimColor={!online && !isSelected}
+            >
+              {trailing[trailing.length - 1]}
             </Text>
           </Box>
         )

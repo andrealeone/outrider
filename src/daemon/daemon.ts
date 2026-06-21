@@ -4,6 +4,7 @@ import type { DaemonInfo } from '../shared/types/protocol'
 
 import { Client } from '../shared/client'
 import { writeSyncFile } from '../shared/sync/sync-file'
+import { hasPortless } from '../shared/utils/portless'
 import { lockPath, runtimeDir, socketPath } from '../shared/utils/paths'
 import { nowIso } from '../shared/utils/time'
 import { APP_VERSION, PROTOCOL_VERSION } from '../shared/version'
@@ -13,7 +14,7 @@ import { Logger } from './logger'
 import { Prober } from './prober'
 import { Reconciler } from './reconciler'
 import { Registry } from './registry'
-import { PortlessRouter } from './router'
+import { createRouter } from './router'
 import { StateStore } from './state-store'
 import { Supervisor } from './supervisor'
 
@@ -43,6 +44,7 @@ export const runDaemon = async (): Promise<void> => {
     protocol: PROTOCOL_VERSION,
     pid: process.pid,
     startedAt: nowIso(),
+    portless: hasPortless(),
   }
 
   const store = new StateStore()
@@ -59,7 +61,7 @@ export const runDaemon = async (): Promise<void> => {
     store.loadRestartCounters(),
   )
   const registry = new Registry(store, bus)
-  const router = new PortlessRouter(log)
+  const router = createRouter(log)
   const reconciler = new Reconciler(registry, supervisor, router, bus, logger)
   const api = new Api({
     info,

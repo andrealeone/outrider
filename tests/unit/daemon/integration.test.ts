@@ -81,7 +81,7 @@ beforeAll(() => {
   const registry = new Registry(store, bus)
   reconciler = new Reconciler(registry, supervisor, fakeRouter, bus, logger)
   api = new Api({
-    info: { version: APP_VERSION, protocol: PROTOCOL_VERSION, pid: process.pid, startedAt: 'now' },
+    info: { version: APP_VERSION, protocol: PROTOCOL_VERSION, pid: process.pid, startedAt: 'now', portless: true },
     registry,
     reconciler,
     logger,
@@ -315,5 +315,143 @@ describe('daemon over the socket', () => {
     const body = (await res.json()) as { error: { code: string; message: string } }
     expect(body.error.code).toBe('not-found')
     expect(body.error.message).toContain('ghost')
+  })
+})
+
+// eslint-disable-next-line max-classes-per-file
+class NoopFakeRouter implements Router {
+  registered = new Map<string, number>()
+  aliased = new Set<string>()
+
+  ensureProxy(): Promise<boolean> {
+    return Promise.resolve(false)
+  }
+
+  register(route: string, port: number, alias = false): Promise<RouteBinding> {
+    this.registered.set(route, port)
+    if (alias) this.aliased.add(route)
+    return Promise.resolve({
+      route,
+      hostname: `${route}.localhost`,
+      port,
+      url: `http://${route}.localhost:80`,
+    })
+  }
+
+  unregister(route: string): Promise<void> {
+    this.registered.delete(route)
+    this.aliased.delete(route)
+    return Promise.resolve()
+  }
+
+  urlFor(route: string): string {
+    return `http://${route}.localhost:80`
+  }
+
+  status(): Promise<RouterStatus> {
+    return Promise.resolve({ available: false, proxyRunning: false, routes: [] })
+  }
+}
+
+describe('daemon without portless', () => {
+  const tmpNoPortless = mkdtempSync(join(tmpdir(), 'outrider-test-noop-'))
+  const socketNoPortless = join(tmpNoPortless, 'test.sock')
+  let apiNoPortless: Api
+  let reconcilerNoPortless: Reconciler
+  const clientNoPortless = new Client(socketNoPortless)
+
+  beforeAll(() => {
+    const store = new StateStore(
+      join(tmpNoPortless, 'registry.json'),
+      join(tmpNoPortless, 'journal.jsonl'),
+    )
+    const bus = new EventBus()
+    const logger = new Logger(bus)
+    const supervisor = new Supervisor(logger, new Prober(), bus, (r) => {
+      store.appendJournal(r)
+    })
+    const registry = new Registry(store, bus)
+    const noopRouter = new NoopFakeRouter()
+    reconcilerNoPortless = new Reconciler(registry, supervisor, noopRouter, bus, logger)
+    apiNoPortless = new Api({
+      info: { version: APP_VERSION, protocol: PROTOCOL_VERSION, pid: process.pid, startedAt: 'now', portless: false },
+      registry,
+      reconciler: reconcilerNoPortless,
+      logger,
+      router: noopRouter,
+      bus,
+      onShutdown: () => {},
+    })
+    apiNoPortless.listen(socketNoPortless)
+    reconcilerNoPortless.start()
+  })
+
+  afterAll(async () => {
+    await reconcilerNoPortless.shutdownAll()
+    apiNoPortless.stop()
+    rmSync(tmpNoPortless, { recursive: true, force: true })
+  })
+
+  const stateOfNoPortless = async (id: string): Promise<ServiceState | undefined> => {
+    const snapshot = await clientNoPortless.state()
+    return snapshot.services.find((s) => s.entry.id === id)
+  }
+
+  const waitForStatusNoPortless = async (
+    id: string,
+    status: ProcessStatus,
+    timeout = 8000,
+  ): Promise<ServiceState> => {
+    const ok = await waitFor(async () => (await stateOfNoPortless(id))?.status === status, timeout, 60)
+    const state = await stateOfNoPortless(id)
+    if (!ok) throw new Error(`"${id}" never reached ${status}; last: ${state?.status}`)
+    return state as ServiceState
+  }
+
+  test('handshake reports portless as unavailable', async () => {
+    const info = await clientNoPortless.info()
+    expect(info.portless).toBe(false)
+  })
+
+  test('routed service marks route as pending and only injects PORT', async () => {
+    await clientNoPortless.addService({
+      name: 'pending-route',
+      command: 'echo "port=$PORT url=$OUTRIDER_URL" && sleep 60',
+      route: 'pending',
+    })
+    await clientNoPortless.start('pending-route')
+    const state = await waitForStatusNoPortless('pending-route', 'running')
+
+    expect(state.routePending).toBe(true)
+    expect(state.routeUrl).toContain('pending.localhost')
+
+    await waitFor(async () => (await clientNoPortless.logs('pending-route')).length > 0, 3000)
+    const logs = await clientNoPortless.logs('pending-route')
+    const logLine = logs.find((l) => l.line.includes('port='))?.line ?? ''
+
+    // PORT should be present; OUTRIDER_URL should not (it was never set in env)
+    expect(/port=\d+/.test(logLine)).toBe(true)
+    expect(logLine).not.toContain('url=http://')
+    expect(logLine).toContain('url=')
+
+    await clientNoPortless.stop('pending-route')
+    await waitForStatusNoPortless('pending-route', 'completed')
+  })
+
+  test('route config validates uniqueness even without portless', async () => {
+    await clientNoPortless.addService({ name: 'dup-route-1', command: 'sleep 60', route: 'dup' })
+    await clientNoPortless.addService({ name: 'dup-route-2', command: 'sleep 60', route: 'dup' })
+
+    const result = await clientNoPortless.validateService(
+      { name: 'test', command: 'echo', route: 'dup' },
+      undefined,
+    )
+    // Should fail due to duplicate route
+    expect(result.ok).toBe(false)
+    expect(result.errors).toContain(expect.stringMatching(/duplicate.*route/i))
+
+    // Clean up
+    await clientNoPortless.removeService('dup-route-1')
+    await clientNoPortless.removeService('dup-route-2')
   })
 })
