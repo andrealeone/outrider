@@ -1,11 +1,11 @@
 import { Box, Text, useInput } from 'ink'
 import React, { useEffect, useState } from 'react'
 
-import type { ServiceDefinition } from '../../shared/types/protocol'
-import type { ServiceEntry } from '../../shared/types/registry'
-import type { DaemonHook } from '../use-daemon'
+import type { ServiceDefinition } from '@/shared/types/protocol'
+import type { ServiceEntry } from '@/shared/types/registry'
+import type { DaemonHook } from '@/tui/use-daemon'
 
-import { theme } from '../theme'
+import { theme } from '@/tui/theme'
 import { TextInput } from './text-input'
 
 interface Props {

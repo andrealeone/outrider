@@ -1,5 +1,5 @@
-import { Client } from '../shared/client'
-import { plural } from '../shared/utils/format'
+import { Client } from '@/shared/client'
+import { plural } from '@/shared/utils/format'
 
 /** Shared body of the `start` and `stop` commands: resolve names and toggle. */
 export const runUpDown = async (direction: 'start' | 'stop', args: string[]): Promise<void> => {

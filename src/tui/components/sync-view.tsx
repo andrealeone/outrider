@@ -1,9 +1,9 @@
 import { Box, Text, useApp, useInput } from 'ink'
 import React, { useState } from 'react'
 
-import type { SyncOp } from '../../shared/sync/sync-diff'
+import type { SyncOp } from '@/shared/sync/sync-diff'
 
-import { theme } from '../theme'
+import { theme } from '@/tui/theme'
 
 export interface ApplyResult {
   op: SyncOp

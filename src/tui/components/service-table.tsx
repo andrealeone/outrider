@@ -1,11 +1,11 @@
 import { Box, Text } from 'ink'
 import React from 'react'
 
-import type { ServiceState } from '../../shared/types/protocol'
+import type { ServiceState } from '@/shared/types/protocol'
 
-import { fit } from '../../shared/utils/format'
-import { formatUptime } from '../../shared/utils/time'
-import { theme } from '../theme'
+import { fit } from '@/shared/utils/format'
+import { formatUptime } from '@/shared/utils/time'
+import { theme } from '@/tui/theme'
 import { StatusBadge } from './status-badge'
 
 interface Props {

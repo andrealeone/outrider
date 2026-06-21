@@ -1,10 +1,10 @@
 import { Box, Text, useInput } from 'ink'
 import React, { useEffect, useRef, useState } from 'react'
 
-import type { LogLine } from '../../shared/types/protocol'
-import type { DaemonHook } from '../use-daemon'
+import type { LogLine } from '@/shared/types/protocol'
+import type { DaemonHook } from '@/tui/use-daemon'
 
-import { theme } from '../theme'
+import { theme } from '@/tui/theme'
 import { TextInput } from './text-input'
 
 interface Props {

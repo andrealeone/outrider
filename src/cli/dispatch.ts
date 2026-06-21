@@ -1,4 +1,4 @@
-import { APP_VERSION } from '../shared/version'
+import { APP_VERSION } from '@/shared/version'
 import { commands } from './manifest'
 
 const usage = (): string => {

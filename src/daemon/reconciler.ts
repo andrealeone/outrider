@@ -1,14 +1,14 @@
-import type { ServiceState } from '../shared/types/protocol'
-import type { ServiceEntry } from '../shared/types/registry'
-import type { Router } from '../shared/types/router'
+import type { ServiceState } from '@/shared/types/protocol'
+import type { ServiceEntry } from '@/shared/types/registry'
+import type { Router } from '@/shared/types/router'
 
 import type { EventBus } from './event-bus'
 import type { Logger } from './logger'
 import type { Registry } from './registry'
 import type { Supervisor } from './supervisor'
 
-import { hasPortless } from '../shared/utils/portless'
-import { freePort } from '../shared/utils/net'
+import { hasPortless } from '@/shared/utils/portless'
+import { freePort } from '@/shared/utils/net'
 import { evaluateGate, shutdownLevels, withDependencies } from './scheduler'
 
 const TICK_INTERVAL_MS = 1000

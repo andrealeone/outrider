@@ -1,10 +1,10 @@
 import { Box, Text } from 'ink'
 import React from 'react'
 
-import type { ServiceState } from '../../shared/types/protocol'
-import type { Connection } from '../use-daemon'
+import type { ServiceState } from '@/shared/types/protocol'
+import type { Connection } from '@/tui/use-daemon'
 
-import { theme } from '../theme'
+import { theme } from '@/tui/theme'
 
 interface Props {
   connection: Connection

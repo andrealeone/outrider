@@ -3,6 +3,7 @@
   // stub that tsconfig "paths" substitutes for react-devtools-core (fallow
   // cannot see paths-based references).
   "entry": ["scripts/*.ts", "src/tui/devtools-stub.ts"],
+  "ignorePatterns": ["tests/**", "**/*.d.ts"],
   "rules": {
     // CLI commands are file routes: every module intentionally exports the
     // same { description, run, hidden } shape, keyed by file path.

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { hasPortless, resetPortlessCache } from '../../../../src/shared/utils/portless'
+import { hasPortless, resetPortlessCache } from '@/shared/utils/portless'
 
 describe('hasPortless', () => {
   test('returns false when OUTRIDER_NO_PORTLESS is set to 1', () => {

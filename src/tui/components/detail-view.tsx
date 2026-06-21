@@ -1,13 +1,13 @@
 import { Box, Text, useInput } from 'ink'
 import React from 'react'
 
-import type { ServiceState } from '../../shared/types/protocol'
-import type { InstanceState } from '../../shared/types/protocol'
-import type { ServiceEntry } from '../../shared/types/registry'
+import type { ServiceState } from '@/shared/types/protocol'
+import type { InstanceState } from '@/shared/types/protocol'
+import type { ServiceEntry } from '@/shared/types/registry'
 
-import { maskSecret } from '../../shared/utils/format'
-import { formatUptime } from '../../shared/utils/time'
-import { theme } from '../theme'
+import { maskSecret } from '@/shared/utils/format'
+import { formatUptime } from '@/shared/utils/time'
+import { theme } from '@/tui/theme'
 
 interface Props {
   state: ServiceState | undefined

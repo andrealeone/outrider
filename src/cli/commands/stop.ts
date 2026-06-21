@@ -1,4 +1,4 @@
-import { runUpDown } from '../updown'
+import { runUpDown } from '@/cli/updown'
 
 export const description = 'stop services by name, stack, namespace, or tag'
 

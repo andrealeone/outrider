@@ -1,8 +1,8 @@
-import { Client, ProtocolMismatchError } from '../../shared/client'
-import { plural } from '../../shared/utils/format'
-import { socketPath } from '../../shared/utils/paths'
-import { waitFor } from '../../shared/utils/time'
-import { installUnit, startUnit } from '../../shared/service-unit'
+import { Client, ProtocolMismatchError } from '@/shared/client'
+import { plural } from '@/shared/utils/format'
+import { socketPath } from '@/shared/utils/paths'
+import { waitFor } from '@/shared/utils/time'
+import { installUnit, startUnit } from '@/shared/service-unit'
 
 export const description = 'start the daemon and enable it at boot'
 

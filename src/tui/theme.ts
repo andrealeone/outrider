@@ -1,4 +1,4 @@
-import type { ProcessStatus } from '../shared/types/protocol'
+import type { ProcessStatus } from '@/shared/types/protocol'
 
 export interface Theme {
   /** Pastel green: titles, the running state. */

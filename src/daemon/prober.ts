@@ -1,4 +1,4 @@
-import type { ProbeConfig } from '../shared/types/process-compose'
+import type { ProbeConfig } from '@/shared/types/process-compose'
 
 // Upstream probe defaults.
 const DEFAULT_PERIOD_SECONDS = 10

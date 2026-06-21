@@ -1,9 +1,9 @@
 import { existsSync } from 'node:fs'
 
-import { Client } from '../../shared/client'
-import { socketPath } from '../../shared/utils/paths'
-import { waitFor } from '../../shared/utils/time'
-import { uninstallUnit } from '../../shared/service-unit'
+import { Client } from '@/shared/client'
+import { socketPath } from '@/shared/utils/paths'
+import { waitFor } from '@/shared/utils/time'
+import { uninstallUnit } from '@/shared/service-unit'
 
 export const description = 'stop all services and the daemon, disable start at boot'
 

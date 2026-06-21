@@ -3,22 +3,22 @@ import { homedir, userInfo } from 'node:os'
 import { basename, delimiter, join, resolve } from 'node:path'
 
 import type { Subprocess } from 'bun'
-import type { AvailabilityConfig } from '../shared/types/process-compose'
+import type { AvailabilityConfig } from '@/shared/types/process-compose'
 import type {
   InstanceState,
   ProbeHealth,
   ProcessStatus,
   ServiceState,
-} from '../shared/types/protocol'
-import type { JournalRecord, ServiceEntry } from '../shared/types/registry'
+} from '@/shared/types/protocol'
+import type { JournalRecord, ServiceEntry } from '@/shared/types/registry'
 
 import type { EventBus } from './event-bus'
 import type { Logger } from './logger'
 import type { Prober } from './prober'
 
-import { parseDotenv, parseEnvList } from '../shared/utils/env'
-import { streamLines } from '../shared/utils/stream-lines'
-import { nowIso } from '../shared/utils/time'
+import { parseDotenv, parseEnvList } from '@/shared/utils/env'
+import { streamLines } from '@/shared/utils/stream-lines'
+import { nowIso } from '@/shared/utils/time'
 import { applyFrameworkQuirks } from './framework-quirks'
 
 const DEFAULT_BACKOFF_SECONDS = 1

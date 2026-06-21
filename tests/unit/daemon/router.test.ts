@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { Router } from '../../../src/shared/types/router'
+import type { Router } from '@/shared/types/router'
 
-import { resetPortlessCache } from '../../../src/shared/utils/portless'
-import { createRouter } from '../../../src/daemon/router'
+import { resetPortlessCache } from '@/shared/utils/portless'
+import { createRouter } from '@/daemon/router'
 
 const noop = () => {}
 

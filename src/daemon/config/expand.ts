@@ -1,4 +1,4 @@
-import type { ConfigWarning } from '../../shared/types/process-compose'
+import type { ConfigWarning } from '@/shared/types/process-compose'
 
 // envsubst-style expansion. Supported: $$ (literal $), ${VAR}, $VAR.
 // The exotic envsubst function forms (defaults, case conversion, pattern

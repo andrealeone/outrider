@@ -6,9 +6,9 @@ import type {
   LoadedProject,
   ProcessConfig,
   ProjectConfig,
-} from '../../shared/types/process-compose'
+} from '@/shared/types/process-compose'
 
-import { parseDotenv, parseEnvList } from '../../shared/utils/env'
+import { parseDotenv, parseEnvList } from '@/shared/utils/env'
 import { discoverComposeFile, discoverOverrideFile } from './discover'
 import { expandEnv } from './expand'
 import { mergeAll } from './merge'

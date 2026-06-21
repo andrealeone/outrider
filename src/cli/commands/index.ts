@@ -1,4 +1,4 @@
-import { runTui } from '../../tui/app'
+import { runTui } from '@/tui/app'
 
 export const description = 'open the dashboard (default)'
 

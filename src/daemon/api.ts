@@ -4,8 +4,8 @@ import type {
   ImportReport,
   ServiceDefinition,
   UpDownBody,
-} from '../shared/types/protocol'
-import type { Router } from '../shared/types/router'
+} from '@/shared/types/protocol'
+import type { Router } from '@/shared/types/router'
 
 import type { EventBus } from './event-bus'
 import type { Logger } from './logger'

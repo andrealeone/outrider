@@ -4,10 +4,10 @@ import { join } from 'node:path'
 
 import { formatUrl, parseHostname, PORTLESS_HEADER, RouteStore } from 'portless'
 
-import type { RouteBinding, Router, RouterStatus } from '../shared/types/router'
+import type { RouteBinding, Router, RouterStatus } from '@/shared/types/router'
 
-import { hasPortless } from '../shared/utils/portless'
-import { waitFor } from '../shared/utils/time'
+import { hasPortless } from '@/shared/utils/portless'
+import { waitFor } from '@/shared/utils/time'
 
 // Hostname policy: .localhost resolves natively in browsers, .test is the
 // IANA-reserved alternative; .local collides with mDNS and .dev is
