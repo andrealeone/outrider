@@ -279,6 +279,38 @@ The parity inventory is deliberately exhaustive, while a minimal tool ships defa
 
 ---
 
+### Feature requests
+
+Incoming enhancement requests, captured before design so each earns a written analysis
+before any code. Each links to its working note under
+[`docs/feature-analysis/`](docs/feature-analysis/); none is committed to a release until
+its note resolves the open questions it raises. Nothing here is built yet.
+
+**Companion API server.** A standalone Next.js app under `/api` at the repository root,
+toggled by `outrider api on` / `outrider api off`, exposing the daemon over HTTP for
+browsers and remote clients. It compiles independently of the single-binary CLI and must
+not pull web tooling into the core build. The largest of the three: it reopens the
+deliberate "no TCP listener in v1" and "user-only socket trust" decisions, so the auth
+and binding story has to be settled first. It bridges to the daemon over the existing
+socket rather than growing a TCP listener on the daemon itself. See
+[companion API server](docs/feature-analysis/companion-api-server.md).
+
+**Optional portless.** Portless is currently one of the three permitted runtime
+dependencies and the routing design assumes it. The request is to make it genuinely
+optional: outrider runs fully without it, degrades routing gracefully when it is absent
+(a service starts on its port and is marked *route pending* rather than failing), and
+lights up hostnames only when the user has chosen to install it. The existing Router
+isolation boundary is the seam that makes this cheap. See
+[optional portless](docs/feature-analysis/optional-portless.md).
+
+**Container proxy.** Supervise containers the way the supervisor handles process
+groups — a container becomes another service kind behind a `ContainerRuntime` boundary
+modelled on the Router — and, when portless is present, proxy their published ports onto
+hostnames through the existing route path. Builds directly on optional portless. See
+[container proxy](docs/feature-analysis/container-proxy.md).
+
+---
+
 ### Implementation status
 
 Tracked against the source tree, not the docs. `[x]` is implemented and shipping; `[ ]` is not built. Items the cuts discussion deliberately drops or defers are marked **(cut)** / **(deferred)** so an empty box reads as a roadmap entry, not an oversight.

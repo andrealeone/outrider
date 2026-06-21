@@ -35,6 +35,7 @@ broader context.
 - [Compatibility report](compatibility-report.md): detailed process-compose feature coverage
 - [Test coverage](test-coverage.md): what the test suite exercises and where the gaps are
 - [Glossary](glossary.md): the vocabulary outrider uses, explained
+- [Changelog](changelog.md): capabilities by month, newest first
 
 ## Architecture
 
@@ -56,3 +57,4 @@ How outrider works under the hood:
 
 - [Contributing guide](contributing.md): where to start, and how to send changes
 - [Developing outrider](develop.md): environment, codebase, scripts, and common tasks
+- [Feature analysis](feature-analysis/): working notes on requested features, before they are built
