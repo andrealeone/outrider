@@ -6,7 +6,7 @@ import { formatUrl, parseHostname, PORTLESS_HEADER, RouteStore } from 'portless'
 
 import type { RouteBinding, Router, RouterStatus } from '@/shared/types/router'
 
-import { hasPortless } from '@/shared/utils/portless'
+import { hasPortless, portlessBin } from '@/shared/utils/portless'
 import { waitFor } from '@/shared/utils/time'
 
 // Hostname policy: .localhost resolves natively in browsers, .test is the
@@ -22,6 +22,8 @@ const PROXY_START_TIMEOUT_MS = 8000
  * Router interface; nothing else imports the package.
  */
 export class PortlessRouter implements Router {
+  // Instantiated only when portless resolves; see createRouter.
+  readonly available = true
   private readonly stateDir: string
   private readonly store: RouteStore
   private warnedMissingCli = false
@@ -84,8 +86,8 @@ export class PortlessRouter implements Router {
       return false
     }
 
-    const cli = process.env.OUTRIDER_PORTLESS_BIN ?? Bun.which('portless')
-    if (cli === null || cli === undefined) return false
+    const cli = portlessBin()
+    if (cli === null) return false
 
     this.log('starting portless proxy')
     Bun.spawn({ cmd: [cli, 'proxy', 'start'], stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })
@@ -126,6 +128,8 @@ export class PortlessRouter implements Router {
 
 // eslint-disable-next-line max-classes-per-file
 class NoopRouter implements Router {
+  readonly available = false
+
   constructor(private readonly log: (message: string) => void) {}
 
   ensureProxy(): Promise<boolean> {

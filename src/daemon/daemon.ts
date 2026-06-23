@@ -4,7 +4,6 @@ import type { DaemonInfo } from '@/shared/types/protocol'
 
 import { Client } from '@/shared/client'
 import { writeSyncFile } from '@/shared/sync/sync-file'
-import { hasPortless } from '@/shared/utils/portless'
 import { lockPath, runtimeDir, socketPath } from '@/shared/utils/paths'
 import { nowIso } from '@/shared/utils/time'
 import { APP_VERSION, PROTOCOL_VERSION } from '@/shared/version'
@@ -39,12 +38,15 @@ export const runDaemon = async (): Promise<void> => {
   mkdirSync(runtimeDir, { recursive: true })
   removeIfExists(socketPath)
 
+  // The router is the single source of truth for portless availability; the
+  // handshake and the reconciler both read it, so they can never disagree.
+  const router = createRouter(log)
   const info: DaemonInfo = {
     version: APP_VERSION,
     protocol: PROTOCOL_VERSION,
     pid: process.pid,
     startedAt: nowIso(),
-    portless: hasPortless(),
+    portless: router.available,
   }
 
   const store = new StateStore()
@@ -61,7 +63,6 @@ export const runDaemon = async (): Promise<void> => {
     store.loadRestartCounters(),
   )
   const registry = new Registry(store, bus)
-  const router = createRouter(log)
   const reconciler = new Reconciler(registry, supervisor, router, bus, logger)
   const api = new Api({
     info,

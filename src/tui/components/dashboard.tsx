@@ -1,5 +1,5 @@
 import { Box, Text, useInput } from 'ink'
-import { useMemo, useState } from 'react'
+import { type Dispatch, type SetStateAction, useMemo, useState } from 'react'
 
 import type { ServiceState } from '@/shared/types/protocol'
 import type { ServiceEntry } from '@/shared/types/registry'
@@ -23,6 +23,9 @@ interface Props {
   width: number
   frame: number
   active: boolean
+  /** Cursor position, lifted to the parent so it survives leaving for a sub-view. */
+  selected: number
+  onSelect: Dispatch<SetStateAction<number>>
   onOpen: (view: View) => void
   onQuit: () => void
 }
@@ -40,8 +43,17 @@ const fuzzyMatch = (needle: string, haystack: string): boolean => {
   return true
 }
 
-export const Dashboard = ({ daemon, rows, width, frame, active, onOpen, onQuit }: Props) => {
-  const [selected, setSelected] = useState(0)
+export const Dashboard = ({
+  daemon,
+  rows,
+  width,
+  frame,
+  active,
+  selected,
+  onSelect: setSelected,
+  onOpen,
+  onQuit,
+}: Props) => {
   const [search, setSearch] = useState('')
   const [searching, setSearching] = useState(false)
   const [sortIndex, setSortIndex] = useState(0)
@@ -223,6 +235,7 @@ export const Dashboard = ({ daemon, rows, width, frame, active, onOpen, onQuit }
         width={width}
         frame={frame}
         online={daemon.connection === 'online'}
+        portless={daemon.daemon?.portless ?? true}
       />
       <Box flexGrow={1} />
       {confirmOff ? (

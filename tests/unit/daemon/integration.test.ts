@@ -22,6 +22,7 @@ const tmp = mkdtempSync(join(tmpdir(), 'outrider-test-'))
 const socket = join(tmp, 'test.sock')
 
 class FakeRouter implements Router {
+  readonly available = true
   registered = new Map<string, number>()
   ensureProxy(): Promise<boolean> {
     return Promise.resolve(true)
@@ -320,6 +321,7 @@ describe('daemon over the socket', () => {
 
 // eslint-disable-next-line max-classes-per-file
 class NoopFakeRouter implements Router {
+  readonly available = false
   registered = new Map<string, number>()
   aliased = new Set<string>()
 
@@ -438,20 +440,19 @@ describe('daemon without portless', () => {
     await waitForStatusNoPortless('pending-route', 'completed')
   })
 
-  test('route config validates uniqueness even without portless', async () => {
+  test('route config enforces uniqueness even without portless', async () => {
     await clientNoPortless.addService({ name: 'dup-route-1', command: 'sleep 60', route: 'dup' })
-    await clientNoPortless.addService({ name: 'dup-route-2', command: 'sleep 60', route: 'dup' })
 
-    const result = await clientNoPortless.validateService(
-      { name: 'test', command: 'echo', route: 'dup' },
-      undefined,
-    )
-    // Should fail due to duplicate route
-    expect(result.ok).toBe(false)
-    expect(result.errors.some((error) => /duplicate.*route/i.test(error))).toBe(true)
+    // Route uniqueness is enforced system-wide at add time, independent of
+    // whether portless is installed to actually serve the route.
+    let rejection: Error | undefined
+    try {
+      await clientNoPortless.addService({ name: 'dup-route-2', command: 'sleep 60', route: 'dup' })
+    } catch (err) {
+      rejection = err as Error
+    }
+    expect(rejection?.message).toMatch(/already claimed|unique/i)
 
-    // Clean up
     await clientNoPortless.removeService('dup-route-1')
-    await clientNoPortless.removeService('dup-route-2')
   })
 })

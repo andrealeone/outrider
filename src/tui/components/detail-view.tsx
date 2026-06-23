@@ -14,6 +14,8 @@ interface Props {
   rows: number
   active: boolean
   onBack: () => void
+  /** Whether the connected daemon reports portless as available on PATH. */
+  portless: boolean
 }
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -67,7 +69,7 @@ const maskedEnv = (entry: ServiceEntry): string[] =>
   })
 
 /** Full config snapshot, environment with secrets masked, and route status. */
-export const DetailView = ({ state, rows, active, onBack }: Props) => {
+export const DetailView = ({ state, rows, active, onBack, portless }: Props) => {
   useInput(
     (input, key) => {
       if (input === 'q' || key.escape) onBack()
@@ -85,6 +87,9 @@ export const DetailView = ({ state, rows, active, onBack }: Props) => {
 
   const { entry } = state
   const env = maskedEnv(entry)
+  // Show the pending hint only when the daemon confirms portless is absent;
+  // a stale flag from a prior portless-less daemon must not surface it.
+  const routePending = state.routePending === true && !portless
 
   return (
     <Box flexDirection="column" height={rows} paddingX={1}>
@@ -99,7 +104,7 @@ export const DetailView = ({ state, rows, active, onBack }: Props) => {
       </Row>
       <Row label="restarts">{String(state.restarts)}</Row>
       <Row label="exit code">{state.exitCode === undefined ? '—' : String(state.exitCode)}</Row>
-      {state.routePending ? (
+      {routePending ? (
         <Box>
           <Box width={16}>
             <Text color={theme.dim}>route</Text>

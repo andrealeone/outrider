@@ -16,6 +16,13 @@ export interface RouterStatus {
 }
 
 export interface Router {
+  /**
+   * Whether the portless CLI backs this router. False for the no-op router
+   * used when portless is absent; routed services then run port-only and are
+   * reported as route-pending. This is the single source of truth for that
+   * decision — callers must not re-derive it from the environment.
+   */
+  readonly available: boolean
   /** Check, start, and repair the proxy; safe to call repeatedly. */
   ensureProxy(): Promise<boolean>
   /**

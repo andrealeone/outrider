@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { homedir, userInfo } from 'node:os'
-import { basename, delimiter, join, resolve } from 'node:path'
+import { userInfo } from 'node:os'
+import { basename, resolve } from 'node:path'
 
 import type { Subprocess } from 'bun'
 import type { AvailabilityConfig } from '@/shared/types/process-compose'
@@ -17,6 +17,7 @@ import type { Logger } from './logger'
 import type { Prober } from './prober'
 
 import { parseDotenv, parseEnvList } from '@/shared/utils/env'
+import { userHome, withCommonPath } from '@/shared/utils/path-env'
 import { streamLines } from '@/shared/utils/stream-lines'
 import { nowIso } from '@/shared/utils/time'
 import { applyFrameworkQuirks } from './framework-quirks'
@@ -24,14 +25,6 @@ import { applyFrameworkQuirks } from './framework-quirks'
 const DEFAULT_BACKOFF_SECONDS = 1
 const DEFAULT_SHUTDOWN_TIMEOUT_SECONDS = 10
 const DEFAULT_LAUNCH_TIMEOUT_SECONDS = 60
-
-const userHome = (): string => {
-  try {
-    return userInfo().homedir || process.env.HOME || homedir()
-  } catch {
-    return process.env.HOME || homedir()
-  }
-}
 
 const fallbackShell = (): string => {
   try {
@@ -44,35 +37,6 @@ const fallbackShell = (): string => {
     return process.env.SHELL || (process.platform === 'darwin' ? '/bin/zsh' : '/bin/bash')
   }
 }
-
-const commonPathEntries = (): string[] => {
-  const home = userHome()
-  return [
-    join(home, '.local', 'bin'),
-    join(home, 'bin'),
-    join(home, '.bun', 'bin'),
-    join(home, '.cargo', 'bin'),
-    join(home, '.asdf', 'shims'),
-    join(home, '.mise', 'shims'),
-    join(home, '.local', 'share', 'mise', 'shims'),
-    join(home, '.volta', 'bin'),
-    join(home, '.pyenv', 'shims'),
-    join(home, '.rbenv', 'shims'),
-    '/opt/homebrew/bin',
-    '/opt/homebrew/sbin',
-    '/usr/local/bin',
-    '/usr/local/sbin',
-    '/usr/bin',
-    '/bin',
-    '/usr/sbin',
-    '/sbin',
-  ]
-}
-
-const withCommonPath = (path: string | undefined): string =>
-  [...new Set([...commonPathEntries(), ...(path ?? '').split(delimiter).filter(Boolean)])].join(
-    delimiter,
-  )
 
 const shellQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`
 
@@ -316,7 +280,8 @@ export class Supervisor {
     env.OUTRIDER_SERVICE = entry.id
     env.OUTRIDER_PROC_NAME = inst.name
     env.OUTRIDER_REPLICA_NUM = String(inst.replica)
-    if (runtime.routeUrl !== undefined) env.OUTRIDER_URL = runtime.routeUrl
+    // OUTRIDER_URL arrives via routeEnv, which the reconciler populates only
+    // when portless is available; a route-pending service must not see it.
 
     return Object.fromEntries(
       Object.entries(env).filter((kv): kv is [string, string] => kv[1] !== undefined),

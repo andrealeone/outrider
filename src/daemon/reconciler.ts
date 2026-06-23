@@ -7,7 +7,6 @@ import type { Logger } from './logger'
 import type { Registry } from './registry'
 import type { Supervisor } from './supervisor'
 
-import { hasPortless } from '@/shared/utils/portless'
 import { freePort } from '@/shared/utils/net'
 import { evaluateGate, shutdownLevels, withDependencies } from './scheduler'
 
@@ -211,7 +210,7 @@ export class Reconciler {
         const binding = await this.router.register(entry.route.route, port, alias)
         routeUrl = binding.url
 
-        if (hasPortless()) {
+        if (this.router.available) {
           routeEnv = {
             PORT: String(port),
             PORTLESS_URL: binding.url,
