@@ -1,4 +1,5 @@
 import { APP_VERSION } from '@/shared/version'
+import { fail, reply } from './output'
 import { commands } from './manifest'
 
 const usage = (): string => {
@@ -13,11 +14,11 @@ const usage = (): string => {
 /** Longest-prefix match of argv words against the command manifest. */
 export const dispatch = async (argv: string[]): Promise<void> => {
   if (argv[0] === '--version' || argv[0] === '-v') {
-    console.log(APP_VERSION)
+    reply(APP_VERSION)
     return
   }
   if (argv[0] === '--help' || argv[0] === '-h' || argv[0] === 'help') {
-    console.log(usage())
+    reply(usage())
     return
   }
 
@@ -30,6 +31,5 @@ export const dispatch = async (argv: string[]): Promise<void> => {
     }
   }
 
-  console.error(`Unknown command: ${argv.join(' ')}\n\n${usage()}`)
-  process.exit(1)
+  fail(`Unknown command: ${argv.join(' ')}\n\n${usage()}`)
 }

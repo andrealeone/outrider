@@ -19,6 +19,23 @@
 | `outrider daemon run` | The foreground daemon entrypoint the service unit invokes. Internal.                   |
 | `outrider state`      | Dumps the daemon state (or the offline registry) as JSON, for debugging and scripting. |
 
+## Output conventions
+
+Every command replies the same way, so the output is predictable in a terminal
+or a pipe:
+
+- **Status and results go to stdout; errors go to stderr.** A success line
+  (`Started 3 services`, `Outrider daemon off`) is stdout; a failure line
+  (`Outrider daemon is not running…`) is stderr.
+- **Failures exit non-zero.** A command that can't do what it was asked prints
+  the reason and exits 1, so `outrider start … && …` chains safely; success
+  exits 0. `outrider off` exits non-zero only if the daemon won't stop in time.
+- **Replies are plain status lines.** The one exception is `outrider state`,
+  which emits a JSON document (not a status line) for scripting and debugging.
+
+`outrider sync` follows the same rules; on a TTY without `--yes` it additionally
+renders an interactive checklist (see [config sync](features/sync-config.md)).
+
 ## Adding a command
 
 Commands are file routes: the path under `src/cli/commands/` defines the

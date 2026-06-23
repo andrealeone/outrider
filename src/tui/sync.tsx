@@ -6,9 +6,9 @@ import React from 'react'
 import { diff, type SyncOp } from '@/shared/sync/sync-diff'
 import { parseSyncFile, type SyncDoc, writeSyncFile } from '@/shared/sync/sync-file'
 import { Client } from '@/shared/client'
+import { fail, reply } from '@/cli/output'
 import { configYmlPath } from '@/shared/utils/paths'
 
-import { Alert } from './components/alert'
 import { type ApplyResult, SyncView } from './components/sync-view'
 
 const applyOp = (client: Client, op: SyncOp): Promise<unknown> => {
@@ -40,13 +40,7 @@ const applyAll =
 export const runSync = async (opts: { yes?: boolean } = {}): Promise<void> => {
   const client = new Client()
   if (!(await client.ping().catch(() => false))) {
-    const app = render(
-      <Alert type="error">
-        Outrider daemon is not running; start it with `outrider on`.
-      </Alert>,
-    )
-    await app.waitUntilExit()
-    process.exitCode = 1
+    fail('Outrider daemon is not running; start it with `outrider on`')
     return
   }
 
@@ -54,13 +48,9 @@ export const runSync = async (opts: { yes?: boolean } = {}): Promise<void> => {
   if (!existsSync(configYmlPath)) {
     writeSyncFile(model)
 
-    const app = render(
-      <Alert>
-        {`Wrote ${configYmlPath} from the current registry. Edit it and run \`outrider sync\` again.`}
-      </Alert>,
+    reply(
+      `Wrote ${configYmlPath} from the current registry. Edit it and run \`outrider sync\` again.`,
     )
-
-    await app.waitUntilExit()
 
     return
   }
@@ -69,36 +59,21 @@ export const runSync = async (opts: { yes?: boolean } = {}): Promise<void> => {
   try {
     desired = parseSyncFile(readFileSync(configYmlPath, 'utf8'))
   } catch (err) {
-    const app = render(
-      <Alert type="error">
-        {err instanceof Error ? err.message : String(err)}
-      </Alert>,
-    )
-    await app.waitUntilExit()
-    process.exitCode = 1
+    fail(err instanceof Error ? err.message : String(err))
     return
   }
 
   const ops = diff(model, desired)
   if (ops.length === 0) {
-    const app = render(
-      <Alert>
-        {`Registry already in sync with ${configYmlPath}`}
-      </Alert>,
-    )
-    await app.waitUntilExit()
+    reply(`Registry already in sync with ${configYmlPath}`)
     return
   }
 
   const apply = applyAll(client)
   if (!process.stdout.isTTY && !opts.yes) {
-    const app = render(
-      <Alert type="error">
-        Refusing to apply sync operations without a TTY. Re-run with `--yes` to apply non-interactively.
-      </Alert>,
+    fail(
+      'Refusing to apply sync operations without a TTY. Re-run with `--yes` to apply non-interactively.',
     )
-    await app.waitUntilExit()
-    process.exitCode = 1
     return
   }
   if (opts.yes) {
@@ -109,13 +84,9 @@ export const runSync = async (opts: { yes?: boolean } = {}): Promise<void> => {
       .map((r) => `${r.ok ? '✓' : '✗'} ${r.op.kind} ${r.op.name}${r.error ? ` — ${r.error}` : ''}`)
       .join('\n')
 
-    const app = render(
-      <Alert type={failed > 0 ? 'error' : 'info'}>
-        {`Applied ${results.length} operation${results.length !== 1 ? 's' : ''} (${succeeded} succeeded${failed > 0 ? `, ${failed} failed` : ''}).\n${summary}`}
-      </Alert>,
-    )
-    await app.waitUntilExit()
-    if (results.some((r) => !r.ok)) process.exitCode = 1
+    const message = `Applied ${results.length} operation${results.length !== 1 ? 's' : ''} (${succeeded} succeeded${failed > 0 ? `, ${failed} failed` : ''}).\n${summary}`
+    if (failed > 0) fail(message)
+    else reply(message)
     return
   }
 
