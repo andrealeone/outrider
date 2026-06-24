@@ -4,9 +4,10 @@ import { join } from 'node:path'
 
 import { formatUrl, parseHostname, PORTLESS_HEADER, RouteStore } from 'portless'
 
-import type { RouteBinding, Router, RouterStatus } from '../shared/types/router'
+import type { RouteBinding, Router, RouterStatus } from '@/shared/types/router'
 
-import { waitFor } from '../shared/utils/time'
+import { hasPortless, portlessBin } from '@/shared/utils/portless'
+import { waitFor } from '@/shared/utils/time'
 
 // Hostname policy: .localhost resolves natively in browsers, .test is the
 // IANA-reserved alternative; .local collides with mDNS and .dev is
@@ -21,6 +22,8 @@ const PROXY_START_TIMEOUT_MS = 8000
  * Router interface; nothing else imports the package.
  */
 export class PortlessRouter implements Router {
+  // Instantiated only when portless resolves; see createRouter.
+  readonly available = true
   private readonly stateDir: string
   private readonly store: RouteStore
   private warnedMissingCli = false
@@ -72,8 +75,7 @@ export class PortlessRouter implements Router {
   async ensureProxy(): Promise<boolean> {
     if (await this.proxyRunning()) return true
 
-    const cli = process.env.OUTRIDER_PORTLESS_BIN ?? Bun.which('portless')
-    if (cli === null || cli === undefined) {
+    if (!hasPortless()) {
       if (!this.warnedMissingCli) {
         this.warnedMissingCli = true
         this.log(
@@ -83,6 +85,9 @@ export class PortlessRouter implements Router {
       }
       return false
     }
+
+    const cli = portlessBin()
+    if (cli === null) return false
 
     this.log('starting portless proxy')
     Bun.spawn({ cmd: [cli, 'proxy', 'start'], stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })
@@ -117,6 +122,43 @@ export class PortlessRouter implements Router {
       port: r.port,
       url: formatUrl(r.hostname, this.proxyPort, this.tls),
     }))
-    return { available: Bun.which('portless') !== null, proxyRunning, routes }
+    return { available: hasPortless(), proxyRunning, routes }
   }
+}
+
+// eslint-disable-next-line max-classes-per-file
+class NoopRouter implements Router {
+  readonly available = false
+
+  constructor(private readonly log: (message: string) => void) {}
+
+  ensureProxy(): Promise<boolean> {
+    return Promise.resolve(false)
+  }
+
+  register(route: string, port: number): Promise<RouteBinding> {
+    const hostname = parseHostname(route, 'localhost')
+    return Promise.resolve({
+      route,
+      hostname,
+      port,
+      url: formatUrl(hostname, 80, false),
+    })
+  }
+
+  unregister(): Promise<void> {
+    return Promise.resolve()
+  }
+
+  urlFor(route: string): string {
+    return formatUrl(parseHostname(route, 'localhost'), 80, false)
+  }
+
+  status(): Promise<RouterStatus> {
+    return Promise.resolve({ available: false, proxyRunning: false, routes: [] })
+  }
+}
+
+export function createRouter(log: (message: string) => void): Router {
+  return hasPortless() ? new PortlessRouter(log) : new NoopRouter(log)
 }

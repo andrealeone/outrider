@@ -14,7 +14,8 @@
     "paths": {
       // bun build --compile inlines dynamic imports, which would pull ink's
       // optional react-devtools-core dependency into every build; stub it out.
-      "react-devtools-core": ["./src/tui/devtools-stub.ts"]
+      "react-devtools-core": ["./src/tui/devtools-stub.ts"],
+      "@/*": ["./src/*"]
     },
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,

@@ -1,19 +1,21 @@
 import { Box, Text, useInput } from 'ink'
 import React from 'react'
 
-import type { ServiceState } from '../../shared/types/protocol'
-import type { InstanceState } from '../../shared/types/protocol'
-import type { ServiceEntry } from '../../shared/types/registry'
+import type { ServiceState } from '@/shared/types/protocol'
+import type { InstanceState } from '@/shared/types/protocol'
+import type { ServiceEntry } from '@/shared/types/registry'
 
-import { maskSecret } from '../../shared/utils/format'
-import { formatUptime } from '../../shared/utils/time'
-import { theme } from '../theme'
+import { maskSecret } from '@/shared/utils/format'
+import { formatUptime } from '@/shared/utils/time'
+import { theme } from '@/tui/theme'
 
 interface Props {
   state: ServiceState | undefined
   rows: number
   active: boolean
   onBack: () => void
+  /** Whether the connected daemon reports portless as available on PATH. */
+  portless: boolean
 }
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -67,7 +69,7 @@ const maskedEnv = (entry: ServiceEntry): string[] =>
   })
 
 /** Full config snapshot, environment with secrets masked, and route status. */
-export const DetailView = ({ state, rows, active, onBack }: Props) => {
+export const DetailView = ({ state, rows, active, onBack, portless }: Props) => {
   useInput(
     (input, key) => {
       if (input === 'q' || key.escape) onBack()
@@ -85,6 +87,9 @@ export const DetailView = ({ state, rows, active, onBack }: Props) => {
 
   const { entry } = state
   const env = maskedEnv(entry)
+  // Show the pending hint only when the daemon confirms portless is absent;
+  // a stale flag from a prior portless-less daemon must not surface it.
+  const routePending = state.routePending === true && !portless
 
   return (
     <Box flexDirection="column" height={rows} paddingX={1}>
@@ -99,7 +104,18 @@ export const DetailView = ({ state, rows, active, onBack }: Props) => {
       </Row>
       <Row label="restarts">{String(state.restarts)}</Row>
       <Row label="exit code">{state.exitCode === undefined ? '—' : String(state.exitCode)}</Row>
-      <Row label="route">{state.routeUrl ?? entry.route?.route ?? '—'}</Row>
+      {routePending ? (
+        <Box>
+          <Box width={16}>
+            <Text color={theme.dim}>route</Text>
+          </Box>
+          <Text color={theme.dim}>
+            {state.routeUrl} · <Text>pending — portless not installed</Text>
+          </Text>
+        </Box>
+      ) : (
+        <Row label="route">{state.routeUrl ?? entry.route?.route ?? '—'}</Row>
+      )}
       <Row label="namespace">{entry.namespace ?? '—'}</Row>
       <Row label="tags">{entry.tags?.length ? entry.tags.join(', ') : '—'}</Row>
       <Row label="restart policy">{restartPolicyLine(entry)}</Row>

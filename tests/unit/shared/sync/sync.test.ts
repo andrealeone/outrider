@@ -3,10 +3,10 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { RegistryModel, ServiceEntry } from '../../../src/shared/types/registry'
+import type { RegistryModel, ServiceEntry } from '@/shared/types/registry'
 
-import { diff } from '../../../src/shared/sync/sync-diff'
-import { exportRegistry, parseSyncFile, toDefinition, writeSyncFile } from '../../../src/shared/sync/sync-file'
+import { diff } from '@/shared/sync/sync-diff'
+import { exportRegistry, parseSyncFile, toDefinition, writeSyncFile } from '@/shared/sync/sync-file'
 
 const entry = (over: Partial<ServiceEntry> & { id: string }): ServiceEntry => ({
   name: over.id,

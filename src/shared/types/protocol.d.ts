@@ -39,6 +39,8 @@ export interface ServiceState {
   instances: InstanceState[]
   /** Public URL when the service is routed through portless. */
   routeUrl?: string
+  /** Route declared but portless not installed; routeUrl shows what would work. */
+  routePending?: boolean
 }
 
 export interface DaemonInfo {
@@ -46,6 +48,8 @@ export interface DaemonInfo {
   protocol: number
   pid: number
   startedAt: string
+  /** Whether the portless CLI is available on PATH. */
+  portless: boolean
 }
 
 export interface StateSnapshot {

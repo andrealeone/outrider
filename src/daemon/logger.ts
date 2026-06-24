@@ -11,14 +11,14 @@ import {
 } from 'node:fs'
 import { join } from 'node:path'
 
-import type { LoggerConfig } from '../shared/types/process-compose'
-import type { LogLine } from '../shared/types/protocol'
+import type { LoggerConfig } from '@/shared/types/process-compose'
+import type { LogLine } from '@/shared/types/protocol'
 
 import type { EventBus } from './event-bus'
 
-import { serviceLogDir } from '../shared/utils/paths'
-import { RingBuffer } from '../shared/utils/ring-buffer'
-import { nowIso } from '../shared/utils/time'
+import { serviceLogDir } from '@/shared/utils/paths'
+import { RingBuffer } from '@/shared/utils/ring-buffer'
+import { nowIso } from '@/shared/utils/time'
 
 const RING_CAPACITY = 1000
 const DEFAULT_MAX_SIZE_MB = 10

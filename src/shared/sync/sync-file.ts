@@ -3,12 +3,12 @@
 // reconciles. Only standalone services round-trip — stack members are owned by
 // their compose files and are never written here.
 
-import type { ServiceDefinition } from '../types/protocol'
-import type { RegistryModel, ServiceEntry } from '../types/registry'
+import type { ServiceDefinition } from '@/shared/types/protocol'
+import type { RegistryModel, ServiceEntry } from '@/shared/types/registry'
 
-import { atomicWrite } from '../utils/atomic-file'
-import { configYmlPath } from '../utils/paths'
-import { normalizeTags } from '../utils/tags'
+import { atomicWrite } from '@/shared/utils/atomic-file'
+import { configYmlPath } from '@/shared/utils/paths'
+import { normalizeTags } from '@/shared/utils/tags'
 
 /** One service as it appears in the YAML file. Mirrors the editable definition. */
 export interface SyncService {

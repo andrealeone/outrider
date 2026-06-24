@@ -15,6 +15,9 @@ const App = () => {
   const { exit } = useApp()
   const { stdout } = useStdout()
   const [view, setView] = useState<View>({ name: 'dashboard' })
+  // Held here, not in Dashboard: opening a sub-view (edit, detail, logs)
+  // unmounts the dashboard, so its cursor must outlive it to be restored.
+  const [selected, setSelected] = useState(0)
 
   const rows = stdout.rows || 24
   const width = stdout.columns || 80
@@ -34,6 +37,7 @@ const App = () => {
           rows={rows}
           active
           onBack={back}
+          portless={daemon.daemon?.portless ?? true}
         />
       )
     case 'add':
@@ -49,6 +53,8 @@ const App = () => {
           width={width}
           frame={frame}
           active
+          selected={selected}
+          onSelect={setSelected}
           onOpen={setView}
           onQuit={exit}
         />

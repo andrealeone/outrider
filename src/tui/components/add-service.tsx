@@ -1,11 +1,11 @@
 import { Box, Text, useInput } from 'ink'
 import React, { useEffect, useState } from 'react'
 
-import type { ServiceDefinition } from '../../shared/types/protocol'
-import type { ServiceEntry } from '../../shared/types/registry'
-import type { DaemonHook } from '../use-daemon'
+import type { ServiceDefinition } from '@/shared/types/protocol'
+import type { ServiceEntry } from '@/shared/types/registry'
+import type { DaemonHook } from '@/tui/use-daemon'
 
-import { theme } from '../theme'
+import { theme } from '@/tui/theme'
 import { TextInput } from './text-input'
 
 interface Props {
@@ -18,7 +18,7 @@ interface Props {
 
 const RESTART_OPTIONS = ['no', 'on_failure', 'always'] as const
 
-const FIELDS = [
+const ALL_FIELDS = [
   'name',
   'command',
   'workingDir',
@@ -30,11 +30,16 @@ const FIELDS = [
   'submit',
 ] as const
 
-type Field = (typeof FIELDS)[number]
+type Field = (typeof ALL_FIELDS)[number]
 
 /** Form wizard for a standalone service, validated live against the daemon. */
 export const AddService = ({ daemon, active, edit, onDone }: Props) => {
   const editing = edit !== undefined
+  const routingAvailable = daemon.daemon?.portless ?? false
+  const fields = (routingAvailable
+    ? [...ALL_FIELDS]
+    : ALL_FIELDS.filter((f) => f !== 'route' && f !== 'aliasPort')) as unknown as Field[]
+
   const [field, setField] = useState<Field>(editing ? 'command' : 'name')
   const [name, setName] = useState(edit?.name ?? '')
   const [command, setCommand] = useState(edit?.config.command ?? '')
@@ -79,10 +84,9 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
   }, [name, command, workingDir, route, aliasPort, tags])
 
   const move = (delta: number): void => {
-    // The name field is locked while editing, so navigation starts at 1.
     const min = editing ? 1 : 0
-    const index = FIELDS.indexOf(field)
-    setField(FIELDS[Math.max(min, Math.min(FIELDS.length - 1, index + delta))] as Field)
+    const index = fields.indexOf(field)
+    setField(fields[Math.max(min, Math.min(fields.length - 1, index + delta))] as Field)
   }
 
   const submit = async (): Promise<void> => {
@@ -153,13 +157,17 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
         )}
         {textField('command', command, setCommand, 'command', 'bun run server.ts')}
         {textField('working dir', workingDir, setWorkingDir, 'workingDir', '(home)')}
-        {textField('route', route, setRoute, 'route', '(none — e.g. api → api.localhost)')}
-        {textField(
-          'alias port',
-          aliasPort,
-          setAliasPort,
-          'aliasPort',
-          '(none — fixed port for external tools, e.g. 10020)',
+        {routingAvailable && (
+          <>
+            {textField('route', route, setRoute, 'route', '(none — e.g. api → api.localhost)')}
+            {textField(
+              'alias port',
+              aliasPort,
+              setAliasPort,
+              'aliasPort',
+              '(none — fixed port for external tools, e.g. 10020)',
+            )}
+          </>
         )}
         {textField('tags', tags, setTags, 'tags', '(none — comma-separated, e.g. web, db)')}
         <Box>

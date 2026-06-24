@@ -1,9 +1,10 @@
 import { existsSync } from 'node:fs'
 
-import { Client } from '../../shared/client'
-import { socketPath } from '../../shared/utils/paths'
-import { waitFor } from '../../shared/utils/time'
-import { uninstallUnit } from '../../shared/service-unit'
+import { Client } from '@/shared/client'
+import { fail, reply } from '@/cli/output'
+import { socketPath } from '@/shared/utils/paths'
+import { waitFor } from '@/shared/utils/time'
+import { uninstallUnit } from '@/shared/service-unit'
 
 export const description = 'stop all services and the daemon, disable start at boot'
 
@@ -24,5 +25,6 @@ export const run = async (): Promise<void> => {
     15_000,
     200,
   )
-  console.log(gone ? 'Outrider daemon off' : 'Daemon is taking long to stop; check the daemon log')
+  if (gone) reply('Outrider daemon off')
+  else fail('Outrider daemon is taking a while to stop; check the daemon log')
 }

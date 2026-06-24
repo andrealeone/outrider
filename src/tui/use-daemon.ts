@@ -7,12 +7,12 @@ import type {
   LogLine,
   ServiceDefinition,
   ServiceState,
-} from '../shared/types/protocol'
-import type { RegistryModel } from '../shared/types/registry'
+} from '@/shared/types/protocol'
+import type { RegistryModel } from '@/shared/types/registry'
 
-import { ApiCallError, Client } from '../shared/client'
-import { installUnit, startUnit } from '../shared/service-unit'
-import { registryPath } from '../shared/utils/paths'
+import { ApiCallError, Client } from '@/shared/client'
+import { installUnit, startUnit } from '@/shared/service-unit'
+import { registryPath } from '@/shared/utils/paths'
 
 const RECONNECT_MS = 1200
 const FLUSH_MS = 80
