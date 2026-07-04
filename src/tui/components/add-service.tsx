@@ -36,9 +36,9 @@ type Field = (typeof ALL_FIELDS)[number]
 export const AddService = ({ daemon, active, edit, onDone }: Props) => {
   const editing = edit !== undefined
   const routingAvailable = daemon.daemon?.portless ?? false
-  const fields = (routingAvailable
+  const fields = routingAvailable
     ? [...ALL_FIELDS]
-    : ALL_FIELDS.filter((f) => f !== 'route' && f !== 'aliasPort')) as unknown as Field[]
+    : ALL_FIELDS.filter((f) => f !== 'route' && f !== 'aliasPort')
 
   const [field, setField] = useState<Field>(editing ? 'command' : 'name')
   const [name, setName] = useState(edit?.name ?? '')

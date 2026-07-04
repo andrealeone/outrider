@@ -1,8 +1,10 @@
 # Compatibility report
 
 Target: process-compose **v1.110.0** (verified May 2026) and portless
-**v0.14.0** (pinned). This report records every deliberate divergence; the
-[config schema](config-schema.md) records per-key support status.
+**v0.14.0** (pinned). This report records every deliberate divergence, with the
+reasoning behind each one; the [config schema](config-schema.md) records
+per-key support status, and the [feature parity](architecture/feature-parity.md)
+page gives the coarser, checklist-style comparison for a first read.
 
 ## Verified equivalences
 

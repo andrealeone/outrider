@@ -8,7 +8,7 @@ Install the portless CLI once (`bun add -g portless`). The daemon starts and
 repairs the proxy itself; on first start portless creates a local CA, trusts
 it, and binds 443.
 
-Binding 443 needs root, so portless auto-elevates with `sudo` — which
+Binding 443 needs root, so portless auto-elevates with `sudo`, which
 requires an interactive terminal for the password prompt. The daemon spawns
 the proxy headlessly (launchd/systemd, no TTY), so that elevation silently
 fails and portless falls back to an unprivileged port (1355), giving you
@@ -22,7 +22,7 @@ sudo portless service install
 ```
 
 Run that interactively (it needs your password) and the proxy comes up on
-443 at every boot, independent of outrider's daemon — no more silent
+443 at every boot, independent of outrider's daemon, no more silent
 fallback.
 
 ## In a stack file

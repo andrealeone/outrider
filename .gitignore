@@ -6,5 +6,10 @@
 .fallow
 
 node_modules
-dist
-dist/
+
+# raw compiled binaries (scripts/build.ts); never committed
+dist/bin
+
+# staged in from dist/bin/ by scripts/publish.ts right before `npm publish`,
+# removed again immediately after; never meant to be committed
+dist/outrider-*/bin/outrider

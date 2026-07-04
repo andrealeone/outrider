@@ -189,6 +189,8 @@ The whole tool compiles with bun build --compile into one binary containing the 
 
 Targets: darwin-arm64, darwin-x64, linux-x64, and linux-arm64 through cross-compilation flags. Enable minification and production defines. Expect a baseline of roughly 50 to 60 MB from the embedded runtime, acceptable for a system tool. Default themes, keymaps, and launchd or systemd unit templates embed as bundled assets. The first build spike must confirm ink and react bundle without dynamic require escapes.
 
+**Distribution.** No package registry is involved anywhere in this path; the four scripts below and a GitHub release are the entire delivery mechanism. `scripts/build.ts --all` writes one binary per target to `dist/bin/outrider-<target>`. `scripts/release.ts` tags a GitHub release (`v<version>`) and attaches each of the four binaries plus a `checksums.txt`. `scripts/install.sh`, run via `curl -fsSL .../scripts/install.sh | bash`, detects the caller's OS/CPU, downloads the matching asset from the latest (or a pinned) release, and installs it to `~/.local/bin/outrider`, mirroring Bun's own install script. `scripts/sync-version.ts` keeps `package.json`'s version in step with `src/shared/version.ts`. Each script has its own writeup in [`docs/scripts.md`](docs/scripts.md); the user-facing install/build/uninstall walkthrough is [`docs/install.md`](docs/install.md).
+
 ---
 
 ### Filesystem layout
@@ -289,7 +291,7 @@ its note resolves the open questions it raises. Nothing here is built yet.
 **Companion API server.** A standalone Next.js app under `/api` at the repository root,
 toggled by `outrider api on` / `outrider api off`, exposing the daemon over HTTP for
 browsers and remote clients. It compiles independently of the single-binary CLI and must
-not pull web tooling into the core build. The largest of the three: it reopens the
+not pull web tooling into the core build. The largest of the four: it reopens the
 deliberate "no TCP listener in v1" and "user-only socket trust" decisions, so the auth
 and binding story has to be settled first. It bridges to the daemon over the existing
 socket rather than growing a TCP listener on the daemon itself. See
@@ -298,7 +300,7 @@ socket rather than growing a TCP listener on the daemon itself. See
 **Optional portless.** Portless is currently one of the three permitted runtime
 dependencies and the routing design assumes it. The request is to make it genuinely
 optional: outrider runs fully without it, degrades routing gracefully when it is absent
-(a service starts on its port and is marked *route pending* rather than failing), and
+(a service starts on its port and is marked _route pending_ rather than failing), and
 lights up hostnames only when the user has chosen to install it. The existing Router
 isolation boundary is the seam that makes this cheap. See
 [optional portless](docs/feature-analysis/optional-portless.md).
@@ -308,6 +310,13 @@ groups — a container becomes another service kind behind a `ContainerRuntime` 
 modelled on the Router — and, when portless is present, proxy their published ports onto
 hostnames through the existing route path. Builds directly on optional portless. See
 [container proxy](docs/feature-analysis/container-proxy.md).
+
+**outrider doctor.** A diagnostics command that walks the checks the daemon already
+knows how to make (socket reachability, service-unit installation, portless presence and
+proxy health, hosts-file sync, orphaned or pending routes) and pairs each with a fix,
+rather than a user piecing that together from the dashboard and the daemon log. Read-only
+in its first cut; its first concrete check is portless health, so it is designed
+alongside optional portless. See [outrider doctor](docs/feature-analysis/doctor.md).
 
 ---
 
@@ -391,6 +400,8 @@ Tracked against the source tree, not the docs. `[x]` is implemented and shipping
 - [x] Single-executable build via `bun build --compile` (`scripts/build.ts`)
 - [x] launchd / systemd unit installation through `on`/`off`
 - [x] XDG path layout everywhere
+- [x] GitHub Releases distribution: version-sync and release scripts (`scripts/sync-version.ts`, `scripts/release.ts`), curl-able `scripts/install.sh`
+- [ ] First real `bun run release` cut at `0.1.0` — **(backlog)**, needs `gh` authenticated with `write` access to the repo
 
 **Value additions / beyond parity**
 
@@ -423,9 +434,9 @@ candid compatibility report, and a `test-coverage.md` that names its own gaps
 (rare and excellent). What's missing or wrong:
 
 - [x] **Bun version stated inconsistently — reconciled.** Per-version mentions
-      stripped everywhere except the single base requirement in `setup.md`
-      ("Bun 1.3.10+ for building from source"); `readme.md`'s pin line and the
-      build-guard's redundant `(currently >=1.3.10)` are gone.
+      stripped everywhere except the single base requirement, now in
+      `install.md` ("Bun 1.3.10+ for building from source"); `readme.md`'s pin
+      line and the build-guard's redundant `(currently >=1.3.10)` are gone.
 - [x] **Demo inaccuracy fixed.** `docs/demos/readme.md` no longer claims an
       `x-portless` route; since every demo process is a plain shell loop with no
       HTTP server, a route would point at a dead port. Replaced with a pointer
@@ -433,9 +444,20 @@ candid compatibility report, and a `test-coverage.md` that names its own gaps
 - [x] **Contributing page added** (`docs/contributing.md`) — vision intro,
       first-timer path, returning-dev references, change checklist, and
       issues-for-bugs/features. (Per decision: **no LICENSE for now.**)
-- [ ] **Uninstall path** — added an "Uninstalling" section to `setup.md`
-      (`outrider off`, remove binary, remove `~/.local/share/outrider` and
-      `~/.config/outrider*`). _Done this round._
+- [x] **Delivery strategy rewritten around scripts, not a package registry.**
+      The original plan to publish per-platform npm packages under
+      `@andrealeone` on GitHub Packages was cut entirely (`docs/publishing.md`,
+      `scripts/publish.ts`, and the `dist/outrider*/` launcher packages are all
+      gone). `scripts/release.ts` now cuts a plain GitHub release with the four
+      cross-compiled binaries plus a `checksums.txt`, and `scripts/install.sh`
+      (`curl -fsSL .../scripts/install.sh | bash`) fetches the right one by
+      `uname -ms`. Every script under `scripts/` has its own entry in
+      [`docs/scripts.md`](docs/scripts.md); the end-to-end install/build/
+      uninstall flow for users lives in [`docs/install.md`](docs/install.md),
+      linked from `develop.md`, `contributing.md`, and the docs index.
+- [x] **Uninstall path** — an "Uninstalling" section (`outrider off`, remove
+      binary, remove `~/.local/share/outrider` and `~/.config/outrider*`) lives
+      in `install.md`, folded in when `setup.md` was replaced by that page.
 - [ ] **No security note.** The socket's user-only-permissions trust model and
       the secret-masking heuristic caveat are mentioned in passing; a short
       `security.md` would consolidate them for a production audience. _Backlog._
@@ -450,17 +472,28 @@ used well; the ASCII architecture diagram reads cleanly. Fixes:
       are intentional and were left intact. Root `readme.md` left as-is per
       instruction.
 - [~] **TUI screenshot / GIF** — deferred per instruction (visuals skipped for
-      now). Still the highest-leverage appeal improvement when revisited.
+  now). Still the highest-leverage appeal improvement when revisited.
 - [ ] **Badges in `readme.md`** — minor; revisit once CI exists.
 
 **3. Structure & architecture of `/docs` — 7/10.** Sensible skeleton:
-`setup` · `usage` · reference (`cli-reference`, `config-schema`,
-`compatibility-report`, `test-coverage`, `glossary`) · `architecture/` ·
-`features/` · `guides/` · `demos/`. Status:
+`install` · `usage` · reference (`cli-reference`, `config-schema`,
+`compatibility-report`, `test-coverage`, `glossary`, `scripts`) ·
+`architecture/` · `features/` · `guides/` · `demos/`. Status:
 
 - [x] **Glossary added** (`docs/glossary.md`) — written as a grouped narrative
       (the big idea → what you manage → grouping → routing → health/lifecycle →
       storage → access), not a flat table, and linked from the index.
+- [x] **`setup.md` split into `scripts.md` and `install.md`.** `setup.md` had
+      drifted into three unrelated jobs: per-script internals (now
+      [`scripts.md`](docs/scripts.md)), the end-to-end install/build/uninstall
+      walkthrough (now [`install.md`](docs/install.md)), and two sections —
+      "Iterating locally" / "Checks and tests" — that fully duplicated
+      `develop.md`'s "Getting set up" and "Scripts and workflow" (dropped, not
+      moved) and "Routing prerequisites", which duplicated
+      `architecture/router.md`'s "Proxy lifecycle" / "Hostname policy"
+      paragraphs almost verbatim (replaced with a one-line pointer to that
+      page from `install.md`'s Requirements section). `setup.md` itself is
+      gone; every inbound link now points at `install.md` or `scripts.md`.
 - [ ] **Grow the demos folder.** One accurate demo today (`web-stack`:
       deps/probes/replicas/override). Add a **routed** demo with a real
       `x-portless` block backed by a tiny HTTP server, and a **tags +
@@ -501,6 +534,13 @@ additions, ordered roughly by value:
 
 **Applied this round:** Bun-version cleanup, demo fix, `docs/readme.md` index
 de-dup, `contributing.md`, `glossary.md`, `setup.md` uninstall section.
+**Applied next round:** delivery strategy moved off a package registry onto
+plain GitHub releases and `scripts/install.sh`; `docs/scripts.md` added
+(one entry per file under `scripts/`); `setup.md` retired in favour of
+`docs/install.md`, with its two redundant sections (dev-loop steps, routing
+prerequisites) removed rather than relocated since both already lived in
+`develop.md` and `architecture/router.md`; root `readme.md` gained an
+install section pointing at `install.md`.
 **Deferred:** security note, growing demos, TOCs, and the guide backlog above
 (per the "guide ideas, not built yet" instruction); LICENSE and visuals are out
 of scope for now by decision.

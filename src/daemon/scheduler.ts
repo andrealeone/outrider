@@ -84,7 +84,7 @@ export const shutdownLevels = (entries: ServiceEntry[]): ServiceEntry[][] => {
       const depId = entry.stack === undefined ? dep : `${entry.stack}/${dep}`
       if (byId.has(depId)) deps[depId] = {}
     }
-    configs[entry.id] = { depends_on: deps } as ProcessConfig
+    configs[entry.id] = { depends_on: deps }
   }
   return startOrder(configs)
     .reverse()

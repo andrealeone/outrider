@@ -10,7 +10,7 @@ open the dashboard, press `m`, and point it at the directory.
   HTTP server, so it stays routing-free; for a routed walkthrough see
   [add a routed service](../guides/add-a-routed-service.md)).
 - [`http-logger/`](http-logger/): a single-file Bun HTTP server
-  (`server.ts`) with no compose file at all — a demo for the
+  (`server.ts`) with no compose file at all, a demo for the
   [standalone-service](../features/standalone-services.md) path instead of
   import. It answers requests and logs a tick line every 15 seconds, so it's
   handy for watching outrider collect and tail real process output. See

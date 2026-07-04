@@ -1,11 +1,11 @@
 # Guide: add a demo process
 
-Goal: take a plain script — no `process-compose.yaml`, no stack — and get it
+Goal: take a plain script (no `process-compose.yaml`, no stack) and get it
 supervised, logged, and (optionally) routed by outrider as a
 [standalone service](../features/standalone-services.md).
 
 The [`http-logger` demo](../demos/http-logger/): a single-file Bun HTTP server
-(`server.ts`) that answers requests and, every 15 seconds, logs a tick line —
+(`server.ts`) that answers requests and, every 15 seconds, logs a tick line,
 a minimal stand-in for any long-running dev server whose log output you want
 outrider to collect.
 
@@ -17,7 +17,7 @@ outrider to collect.
    - **name**: `http-logger`
    - **command**: `bun server.ts`
    - **working directory**: the path to `docs/demos/http-logger/`
-   - **route**: `logger` (optional — gives it `https://logger.localhost`
+   - **route**: `logger` (optional, gives it `https://logger.localhost`
      instead of a memorised port; requires the portless CLI, see
      [add a routed service](add-a-routed-service.md))
    - **autostart**: on, if you want it to survive reboots
@@ -38,7 +38,7 @@ curl -s --unix-socket "$XDG_RUNTIME_DIR/outrider.sock" \
   }'
 ```
 
-`route` is optional — drop it to run the server unrouted, reachable only
+`route` is optional, drop it to run the server unrouted, reachable only
 through whatever port you set in its own `PORT` env var. Standalone services
 have no backing file: the registry is their source of truth, so `PUT
 /v1/services/:id` edits them in place and `DELETE /v1/services/:id` removes

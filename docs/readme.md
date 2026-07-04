@@ -7,7 +7,7 @@ manage them, and portless integration so services answer on hostnames like
 
 ## Getting started
 
-- [Setup and installation](setup.md): requirements, building from source, first run
+- [Installing](install.md): requirements, the install script or building from source, first run, uninstalling
 - [Day-to-day usage](usage.md): the dashboard, logs, adding services, desired state
 - [Guides](guides/): step-by-step walkthroughs
   - [Import a stack](guides/import-a-stack.md): load a `process-compose.yaml`
@@ -35,6 +35,7 @@ broader context.
 - [Config schema](config-schema.md): `process-compose.yaml` keys, outrider extensions, and upstream compatibility
 - [Compatibility report](compatibility-report.md): detailed process-compose feature coverage
 - [Test coverage](test-coverage.md): what the test suite exercises and where the gaps are
+- [Scripts](scripts.md): what each file under `scripts/` does
 - [Glossary](glossary.md): the vocabulary outrider uses, explained
 - [Changelog](changelog.md): capabilities by month, newest first
 

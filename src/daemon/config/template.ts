@@ -6,6 +6,9 @@
 const EXPRESSION = /\{\{([^}]*)\}\}/g
 const DOTTED_LOOKUP = /^\.([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)$/
 
+const isPrintable = (value: unknown): value is string | number | boolean =>
+  typeof value !== 'object'
+
 export class TemplateError extends Error {
   constructor(
     readonly expression: string,
@@ -38,8 +41,8 @@ export const renderTemplate = (
       }
       value = (value as Record<string, unknown>)[part]
     }
-    if (typeof value === 'object') {
+    if (!isPrintable(value)) {
       throw new TemplateError(expr, 'resolves to a map, not a printable value', context)
     }
-    return String(value as string | number | boolean)
+    return String(value)
   })

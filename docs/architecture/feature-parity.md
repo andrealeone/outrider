@@ -1,7 +1,10 @@
 # Feature parity with process-compose
 
 outrider is heavily inspired by [process-compose](https://github.com/F1bonacc1/process-compose) and maintains
-a high degree of compatibility. This document compares the features of both tools.
+a high degree of compatibility. This document is the at-a-glance comparison; for the
+precise per-key support status see the [config schema](../config-schema.md), and for
+every deliberate behavioural divergence and *why* see the
+[compatibility report](../compatibility-report.md).
 
 ## Shared features
 

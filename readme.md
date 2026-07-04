@@ -7,8 +7,7 @@ daemon owns your services' desired state, an Ink dashboard manages them, and
 `process-compose.yaml` files import and run without edits.
 
 ```bash
-bun install
-bun scripts/build.ts        # → dist/outrider (single self-contained binary)
+curl -fsSL https://raw.githubusercontent.com/andrealeone/outrider/master/scripts/install.sh | bash
 
 outrider on                 # start the daemon, enable it at boot
 outrider                    # open the dashboard
@@ -19,6 +18,23 @@ The whole public surface is those three commands; everything else — importing
 stacks, adding/editing/deleting services, logs, routes, scaling — happens in
 the dashboard or over the JSON socket API.
 
+## Installing
+
+The one-liner above downloads the binary matching your OS/CPU from the
+[latest release](https://github.com/andrealeone/outrider/releases/latest) and
+installs it to `~/.local/bin/outrider` — no package registry involved. See
+[docs/install.md](docs/install.md) for requirements, pinning a version,
+building from source, and uninstalling.
+
+## Getting started
+
+Once installed, `outrider on` then `outrider` is the whole flow: the dashboard
+opens and everything else — importing a `process-compose.yaml`, adding a
+standalone service, routing one to a hostname — happens from there. See
+[docs/usage.md](docs/usage.md) for the day-to-day dashboard walkthrough, and
+[docs/guides/](docs/guides/) for end-to-end guides on importing a stack,
+adding a routed service, and syncing services at scale.
+
 ## Why outrider?
 
 outrider is a brand new project heavily inspired by [process-compose](https://github.com/F1bonacc1/process-compose),
@@ -28,7 +44,7 @@ This means you get hostname-based routing instead of port juggling, a single das
 and configuration that survives reboots and terminal sessions. See the [feature parity document](docs/architecture/feature-parity.md)
 for a detailed comparison.
 
-Documentation lives in [docs/](docs/readme.md): setup, usage, the CLI and
+Documentation lives in [docs/](docs/readme.md): installing, usage, the CLI and
 socket reference, per-component architecture notes, the config schema with
 its process-compose compatibility report, guides, and runnable demos.
 
@@ -48,9 +64,3 @@ bun test                          # unit + integration suites
 bun run check                     # typecheck, lint, format
 bun scripts/generate-manifest.ts  # after adding a CLI command file
 ```
-
----
-
-Pinned: portless 0.14.0. Runtime dependencies are ink, react, and portless —
-anything beyond that needs a written justification in the change that
-introduces it.

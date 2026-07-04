@@ -125,7 +125,7 @@ describe('validateProject', () => {
         c: { 'command': 'x', 'x-portless': { route: 'app' } },
         d: { 'command': 'x', 'x-portless': { route: 'app' } },
       },
-    } as unknown as ProjectConfig)
+    })
     expect(result.errors).toHaveLength(3)
   })
 })
