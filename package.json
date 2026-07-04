@@ -18,11 +18,13 @@
     "check": "fallow",
     "check:fix": "fallow fix",
     "compile": "bun scripts/build.ts && rm ~/.local/bin/outrider && cp dist/bin/outrider ~/.local/bin/outrider && outrider off && outrider on",
+    "generate-manifest": "bun scripts/generate-manifest.ts",
     "sync-version": "bun scripts/sync-version.ts",
     "version:major": "npm version major --no-git-tag-version && bun scripts/sync-version.ts",
     "version:minor": "npm version minor --no-git-tag-version && bun scripts/sync-version.ts",
     "version:patch": "npm version patch --no-git-tag-version && bun scripts/sync-version.ts",
     "version:rc": "npm version prerelease --preid=rc --no-git-tag-version && bun scripts/sync-version.ts",
+    "version": "bun -p \"require('./package.json').version\"",
     "release": "bun scripts/release.ts"
   },
   "devDependencies": {
