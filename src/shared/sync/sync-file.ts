@@ -155,7 +155,7 @@ const coerceService = (name: string, raw: unknown): SyncService => {
     if (restart !== 'no' && restart !== 'on_failure' && restart !== 'always') {
       throw new SyncError(`service "${name}": restart must be one of no, on_failure, always`)
     }
-    svc.restart = restart as SyncService['restart']
+    svc.restart = restart
   }
   if (r.tags !== undefined) svc.tags = coerceTags(name, r.tags)
   if (r.route !== undefined) svc.route = coerceScalar(name, 'route', r.route)

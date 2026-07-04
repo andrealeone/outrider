@@ -34,8 +34,8 @@ beforeAll(() => {
   })
 })
 
-afterAll(() => {
-  server.stop(true)
+afterAll(async () => {
+  await server.stop(true)
 })
 
 const run = async (args: string[], env: Record<string, string>) =>
