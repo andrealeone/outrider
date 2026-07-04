@@ -1,5 +1,7 @@
 import type { ProcessStatus } from '@/shared/types/protocol'
 
+import { readPreferences } from '@/shared/utils/preferences'
+
 export interface Theme {
   /** Pastel green: titles, the running state. */
   accent: string
@@ -25,7 +27,8 @@ const palette: Theme = {
   dim: 'gray',
 }
 
-// A slightly deeper variant for light backgrounds, opt-in via OUTRIDER_THEME.
+// A slightly deeper variant for light backgrounds, opt-in via OUTRIDER_THEME
+// or the persisted `theme` preference (env var wins when both are set).
 const light: Theme = {
   accent: '#4e9a4e',
   select: '#1e72aa',
@@ -36,7 +39,8 @@ const light: Theme = {
   dim: 'gray',
 }
 
-export const theme: Theme = process.env.OUTRIDER_THEME === 'light' ? light : palette
+export const theme: Theme =
+  (process.env.OUTRIDER_THEME ?? readPreferences().theme) === 'light' ? light : palette
 
 export const statusColor = (status: ProcessStatus): string =>
   ({

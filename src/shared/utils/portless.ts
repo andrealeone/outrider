@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 
 import { withCommonPath } from './path-env'
+import { readPreferences } from './preferences'
 
 let cached: string | null | undefined
 
@@ -14,6 +15,10 @@ let cached: string | null | undefined
 export function portlessBin(): string | null {
   if (cached !== undefined) return cached
   if (process.env.OUTRIDER_NO_PORTLESS === '1') return (cached = null)
+  // The persisted `use-portless` preference is the same opt-out, without
+  // requiring an env var; the env var still wins so scripting/tests can force
+  // either mode regardless of what's on disk.
+  if (!readPreferences().usePortless) return (cached = null)
 
   const override = process.env.OUTRIDER_PORTLESS_BIN
   if (override !== undefined && override !== '') {

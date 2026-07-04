@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, test } from 'bun:test'
-import { chmodSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 
 import { hasPortless, portlessBin, resetPortlessCache } from '@/shared/utils/portless'
+import { preferencesPath } from '@/shared/utils/paths'
+import { resetPreferencesCache, setPreference } from '@/shared/utils/preferences'
 
 describe('hasPortless', () => {
   test('returns false when OUTRIDER_NO_PORTLESS is set to 1', () => {
@@ -85,6 +87,28 @@ describe('hasPortless', () => {
     process.env.PATH = prevPath
     if (prevNo !== undefined) process.env.OUTRIDER_NO_PORTLESS = prevNo
     resetPortlessCache()
+  })
+
+  // The `use-portless` preference is the persisted equivalent of
+  // OUTRIDER_NO_PORTLESS; it lives at the real preferencesPath (there's no
+  // override hook in portless.ts), so this restores whatever was there
+  // beforehand rather than leaving the test's value behind.
+  test('returns false when the use-portless preference is off', () => {
+    const before = existsSync(preferencesPath) ? readFileSync(preferencesPath, 'utf8') : undefined
+    const prevNo = process.env.OUTRIDER_NO_PORTLESS
+    delete process.env.OUTRIDER_NO_PORTLESS
+
+    setPreference('use-portless', 'off')
+    resetPortlessCache()
+    try {
+      expect(hasPortless()).toBe(false)
+    } finally {
+      if (before === undefined) rmSync(preferencesPath, { force: true })
+      else writeFileSync(preferencesPath, before)
+      resetPreferencesCache()
+      if (prevNo !== undefined) process.env.OUTRIDER_NO_PORTLESS = prevNo
+      resetPortlessCache()
+    }
   })
 })
 

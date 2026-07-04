@@ -10,6 +10,7 @@
 | `outrider start <name…>`        | Sets the named targets desired up and starts them (dependencies included). Each name is a service id, stack, namespace, or [tag](features/service-tags.md). Requires the daemon to be running.                 |
 | `outrider stop <name…>`         | Sets the named targets desired down and stops them. Same name resolution as `start`. Requires the daemon to be running.                                                                                        |
 | `outrider sync [--yes]`         | Reconciles `~/.config/outrider.yml` into the registry. Seeds the file on first run; otherwise shows the diff as a checklist (or applies it directly with `--yes`). See [config sync](features/sync-config.md). |
+| `outrider preferences`          | Views or changes persisted user preferences (feature switches), e.g. `use-portless` and `theme`. `[list]` / `get <key>` / `set <key> <value>` / `reset [<key>]`. See [Preferences](#preferences) below.        |
 | `outrider --help` / `--version` | The usual.                                                                                                                                                                                                     |
 
 ## Hidden commands
@@ -35,6 +36,19 @@ or a pipe:
 
 `outrider sync` follows the same rules; on a TTY without `--yes` it additionally
 renders an interactive checklist (see [config sync](features/sync-config.md)).
+
+## Preferences
+
+`outrider preferences` persists feature switches to `~/.config/outrider-preferences.json`
+(`src/shared/utils/preferences.ts`), read by the CLI, daemon, and TUI:
+
+| Key            | Values           | Effect                                                                                                            |
+| -------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `use-portless` | `on` / `off`     | Off is the persisted equivalent of `OUTRIDER_NO_PORTLESS=1` — `hasPortless()` reports unavailable even if the portless CLI is on `PATH`, so the daemon boots a `NoopRouter` and every routing-dependent TUI surface degrades the same way it does when portless isn't installed. Takes effect on the next daemon restart, same as installing/removing portless itself. |
+| `theme`        | `default` / `light` | Persisted equivalent of `OUTRIDER_THEME=light`.                                                                   |
+
+An env var always overrides the matching preference, so scripts and tests can force
+either mode regardless of what's on disk.
 
 ## Adding a command
 
