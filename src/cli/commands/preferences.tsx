@@ -1,3 +1,6 @@
+import { render } from 'ink'
+import React from 'react'
+
 import { fail, reply } from '@/cli/output'
 import {
   describePreferences,
@@ -6,10 +9,12 @@ import {
   resetPreference,
   setPreference,
 } from '@/shared/utils/preferences'
+import { PreferencesView } from '@/tui/components/preferences-view'
 
 export const description = 'view or change persisted user preferences (feature switches)'
 
-const usage = `usage: outrider preferences [list]
+const usage = `usage: outrider preferences
+       outrider preferences list
        outrider preferences get <key>
        outrider preferences set <key> <value>
        outrider preferences reset [<key>]
@@ -71,7 +76,15 @@ const runSync = (args: string[]): void => {
   }
 }
 
-export const run = (args: string[]): Promise<void> => {
+export const run = async (args: string[]): Promise<void> => {
+  if (args.length === 0) {
+    if (!process.stdout.isTTY) {
+      reply(describePreferences())
+      return
+    }
+    const app = render(<PreferencesView />, { exitOnCtrlC: true })
+    await app.waitUntilExit()
+    return
+  }
   runSync(args)
-  return Promise.resolve()
 }
