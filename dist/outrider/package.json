@@ -1,0 +1,21 @@
+{
+  "name": "@andrealeone/outrider",
+  "version": "0.0.0-rc.0",
+  "description": "A Bun-based, system-wide successor to process-compose.",
+  "bin": {
+    "outrider": "bin/outrider.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andrealeone/outrider.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "optionalDependencies": {
+    "@andrealeone/outrider-darwin-arm64": "0.0.0-rc.0",
+    "@andrealeone/outrider-darwin-x64": "0.0.0-rc.0",
+    "@andrealeone/outrider-linux-x64": "0.0.0-rc.0",
+    "@andrealeone/outrider-linux-arm64": "0.0.0-rc.0"
+  }
+}

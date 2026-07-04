@@ -1,7 +1,8 @@
 // Single source of truth for outrider's version: this repo's own
 // `package.json`. Run after bumping it, before publishing, to stamp the same
-// version into `src/shared/version.ts` and every npm/* package manifest
-// (including the optionalDependencies pins in npm/outrider/package.json).
+// version into `src/shared/version.ts` and every dist/outrider* package
+// manifest (including the optionalDependencies pins in
+// dist/outrider/package.json).
 //
 //   bun scripts/sync-version.ts
 
@@ -22,8 +23,12 @@ await Bun.write(
   ),
 )
 
-for (const name of await readdir('npm')) {
-  const path = `npm/${name}/package.json`,
+// `dist/bin` holds raw compiled binaries, not a package; only `dist/outrider*`
+// entries are the tracked package manifests this script keeps in sync.
+const packageDirs = (await readdir('dist')).filter((name) => name.startsWith('outrider'))
+
+for (const name of packageDirs) {
+  const path = `dist/${name}/package.json`,
     pkg = (await Bun.file(path).json()) as PackageManifest
 
   pkg.version = version
@@ -35,4 +40,4 @@ for (const name of await readdir('npm')) {
   await Bun.write(path, `${JSON.stringify(pkg, null, 2)}\n`)
 }
 
-console.log(`synced version ${version} to src/shared/version.ts and npm/*/package.json`)
+console.log(`synced version ${version} to src/shared/version.ts and dist/outrider*/package.json`)

@@ -11,23 +11,34 @@
 
 ## Installing from npm
 
-```bash
-npm install -g outrider
+Packages publish to **GitHub Packages**, not the public npm registry, so
+installing requires a GitHub personal access token with `read:packages` scope
+and a scoped registry entry in your `.npmrc`:
+
+```
+@andrealeone:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
 ```
 
-`outrider` on npm is a small JS launcher; the compiled binary for your platform
-(`outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, or `-linux-arm64`) installs
-alongside it as an `optionalDependency`, so npm downloads only the one matching
-your OS and CPU, never the other three. See [publishing](publishing.md) for how
-these packages are built and released.
+Then:
+
+```bash
+npm install -g @andrealeone/outrider
+```
+
+`@andrealeone/outrider` is a small JS launcher; the compiled binary for your
+platform (`@andrealeone/outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, or
+`-linux-arm64`) installs alongside it as an `optionalDependency`, so npm
+downloads only the one matching your OS and CPU, never the other three. See
+[publishing](publishing.md) for how these packages are built and released.
 
 ## Building from source
 
 ```bash
 git clone <repo> && cd outrider
 bun install
-bun scripts/build.ts          # → dist/outrider (~60 MB, self-contained)
-cp dist/outrider ~/.local/bin/outrider
+bun scripts/build.ts          # → dist/bin/outrider (~60 MB, self-contained)
+cp dist/bin/outrider ~/.local/bin/outrider
 ```
 
 One binary contains the CLI, the TUI, and the daemon (`outrider daemon run` is
@@ -42,7 +53,7 @@ refuses to compile on a Bun below the floor declared in `package.json`'s
 `engines.bun`; run `bun upgrade` if the guard trips.
 
 Cross-compile all four release targets with `bun scripts/build.ts --all`
-(`dist/outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64`);
+(`dist/bin/outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64`);
 these are what `scripts/publish.ts` stages into the npm packages (see
 [publishing](publishing.md)).
 
@@ -57,7 +68,7 @@ bun src/main.ts on            # start the daemon from source
 ```
 
 `bun run compile` is the one-shot rebuild-and-reinstall used while developing:
-it builds `dist/outrider`, replaces `~/.local/bin/outrider`, then cycles the
+it builds `dist/bin/outrider`, replaces `~/.local/bin/outrider`, then cycles the
 daemon (`outrider off && outrider on`) so the freshly built binary takes over.
 
 ### Checks and tests
@@ -108,7 +119,7 @@ Hostname policy: `.localhost` by default (browsers resolve it natively),
 
 ```bash
 outrider off                              # stops services, removes the service unit and socket
-npm uninstall -g outrider                 # if installed from npm, removes the binary too
+npm uninstall -g @andrealeone/outrider     # if installed from npm, removes the binary too
 rm ~/.local/bin/outrider                  # if installed from source, remove the binary manually
 rm -rf ~/.local/share/outrider            # registry, journal, logs (your desired state)
 rm -rf ~/.config/outrider ~/.config/outrider.yml   # daemon config + sync mirror, if present

@@ -1,8 +1,8 @@
 // Compile the single-executable outrider binary. One binary contains the
 // CLI, the TUI, and the daemon (`outrider daemon run` is the same file).
 //
-//   bun scripts/build.ts            → dist/outrider for the host platform
-//   bun scripts/build.ts --all      → dist/outrider-<target>, one per release target
+//   bun scripts/build.ts            → dist/bin/outrider for the host platform
+//   bun scripts/build.ts --all      → dist/bin/outrider-<target>, one per release target
 
 import { $ } from 'bun'
 
@@ -35,7 +35,7 @@ const TARGETS = ['bun-darwin-arm64', 'bun-darwin-x64', 'bun-linux-x64', 'bun-lin
 
 for (const target of targets) {
   const suffix = target === undefined ? '' : `-${target.replace('bun-', '')}`,
-    outfile = `dist/outrider${suffix}`,
+    outfile = `dist/bin/outrider${suffix}`,
     args = [
       'build',
       '--compile',

@@ -189,7 +189,7 @@ The whole tool compiles with bun build --compile into one binary containing the 
 
 Targets: darwin-arm64, darwin-x64, linux-x64, and linux-arm64 through cross-compilation flags. Enable minification and production defines. Expect a baseline of roughly 50 to 60 MB from the embedded runtime, acceptable for a system tool. Default themes, keymaps, and launchd or systemd unit templates embed as bundled assets. The first build spike must confirm ink and react bundle without dynamic require escapes.
 
-**npm distribution.** A compiled-per-arch binary cannot ship as one npm package, so `outrider` on npm is a small JS launcher (`npm/outrider/bin/outrider.js`) with no binary of its own; the four `outrider-<target>` packages carry one binary each, declared as `os`/`cpu`-scoped `optionalDependencies` so npm installs only the one matching the current machine. The launcher `require.resolve`s the installed platform package and `spawnSync`s it, forwarding argv, stdio, and exit code. `scripts/build.ts --all` writes to `dist/outrider-<target>`, same as the from-source build; `npm/` itself only ever holds tracked package manifests and the launcher, never a binary — `scripts/publish.ts` stages each one in from `dist/` immediately before its `npm publish` and deletes it right after. `scripts/sync-version.ts` keeps versions in step across `package.json`, `version.ts`, and the `npm/*/package.json` manifests. Full detail in `docs/publishing.md`.
+**npm distribution.** A compiled-per-arch binary cannot ship as one npm package, so `@andrealeone/outrider` is a small JS launcher (`dist/outrider/bin/outrider.js`) with no binary of its own; the four `@andrealeone/outrider-<target>` packages carry one binary each, declared as `os`/`cpu`-scoped `optionalDependencies` so npm installs only the one matching the current machine. The launcher `require.resolve`s the installed platform package and `spawnSync`s it, forwarding argv, stdio, and exit code. `scripts/build.ts --all` writes to `dist/bin/outrider-<target>`; `dist/outrider-<target>/` itself only ever holds tracked package manifests and the launcher, never a binary — `scripts/publish.ts` stages each one in from `dist/bin/` immediately before its `npm publish` and deletes it right after. Packages publish to GitHub Packages (`npm.pkg.github.com`) under the `@andrealeone` scope via `publishConfig` in each manifest and a repo-root `.npmrc`, not the public npm registry. `scripts/sync-version.ts` keeps versions in step across `package.json`, `version.ts`, and the `dist/outrider*/package.json` manifests. Full detail in `docs/publishing.md`.
 
 ---
 
@@ -393,8 +393,8 @@ Tracked against the source tree, not the docs. `[x]` is implemented and shipping
 - [x] Single-executable build via `bun build --compile` (`scripts/build.ts`)
 - [x] launchd / systemd unit installation through `on`/`off`
 - [x] XDG path layout everywhere
-- [x] npm distribution: launcher + per-platform `optionalDependencies` packages (`npm/`), version-sync and publish scripts (`scripts/sync-version.ts`, `scripts/publish.ts`), `docs/publishing.md` — not yet actually published to the registry
-- [ ] First real `npm publish` at `0.1.0` — **(backlog)**, needs the npm package names reserved first
+- [x] npm distribution: launcher + per-platform `optionalDependencies` packages (`dist/outrider*/`), version-sync and publish scripts (`scripts/sync-version.ts`, `scripts/publish.ts`), `docs/publishing.md` — publishes to GitHub Packages under `@andrealeone`, not yet actually published to the registry
+- [ ] First real `npm publish` at `0.1.0` — **(backlog)**, needs a `GITHUB_TOKEN` with `write:packages` in the release environment
 
 **Value additions / beyond parity**
 

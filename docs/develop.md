@@ -185,7 +185,7 @@ When you want to exercise your changes as a real installed binary:
 bun run compile
 ```
 
-It builds `dist/outrider`, replaces `~/.local/bin/outrider`, and cycles the
+It builds `dist/bin/outrider`, replaces `~/.local/bin/outrider`, and cycles the
 daemon (`outrider off && outrider on`) so the fresh binary takes over. For most
 work, `bun src/main.ts` is faster; reach for `compile` when you specifically need
 the installed-binary experience. The build itself is covered in
@@ -198,11 +198,11 @@ check` is what surfaces all of it.
 
 ### `bun run release`
 
-Cuts an npm release: syncs the version from `package.json` into
-`src/shared/version.ts` and every `npm/*/package.json`, cross-compiles all four
-platform binaries, then publishes each package. Not something you run day to
-day; see [publishing](publishing.md) for the full package layout and the steps
-around it.
+Cuts a GitHub Packages release: syncs the version from `package.json` into
+`src/shared/version.ts` and every `dist/outrider*/package.json`, cross-compiles
+all four platform binaries, then publishes each package. Not something you run
+day to day; see [publishing](publishing.md) for the full package layout and
+the steps around it.
 
 ## Common development tasks
 

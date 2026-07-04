@@ -1,0 +1,18 @@
+{
+  "name": "@andrealeone/outrider-darwin-arm64",
+  "version": "0.0.0-rc.0",
+  "description": "outrider prebuilt binary (darwin arm64)",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andrealeone/outrider.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
+}

@@ -1,11 +1,12 @@
-// Publish the npm packages, platform binaries first: `npm/outrider`'s
-// optionalDependencies must resolve to versions that already exist on the
-// registry, or `npm install outrider` fails on a version that isn't there yet.
+// Publish the npm packages to GitHub Packages, platform binaries first:
+// `dist/outrider`'s optionalDependencies must resolve to versions that already
+// exist on the registry, or `npm install @andrealeone/outrider` fails on a
+// version that isn't there yet.
 //
-// `npm/outrider-<target>/bin/outrider` is never committed: this script stages
-// the binary in from `dist/` (built by `scripts/build.ts --all`) right before
-// publishing that package, then removes it again so `npm/` only ever holds
-// tracked package manifests and the launcher script.
+// `dist/outrider-<target>/bin/outrider` is never committed: this script stages
+// the binary in from `dist/bin/` (built by `scripts/build.ts --all`) right
+// before publishing that package, then removes it again so `dist/outrider-<target>`
+// only ever holds tracked package manifests between releases.
 //
 //   bun scripts/build.ts --all && bun scripts/sync-version.ts && bun scripts/publish.ts
 
@@ -14,17 +15,17 @@ import { $ } from 'bun'
 const TARGETS = ['darwin-arm64', 'darwin-x64', 'linux-x64', 'linux-arm64']
 
 for (const target of TARGETS) {
-  const src = `dist/outrider-${target}`,
-    dest = `npm/outrider-${target}/bin/outrider`
+  const src = `dist/bin/outrider-${target}`,
+    dest = `dist/outrider-${target}/bin/outrider`
 
   await Bun.write(dest, Bun.file(src))
   await $`chmod +x ${dest}`
 
-  await $`npm publish --access public`.cwd(`npm/outrider-${target}`)
-  console.log(`published outrider-${target}`)
+  await $`npm publish`.cwd(`dist/outrider-${target}`)
+  console.log(`published @andrealeone/outrider-${target}`)
 
   await $`rm ${dest}`
 }
 
-await $`npm publish --access public`.cwd('npm/outrider')
-console.log('published outrider')
+await $`npm publish`.cwd('dist/outrider')
+console.log('published @andrealeone/outrider')
