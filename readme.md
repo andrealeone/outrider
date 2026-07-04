@@ -1,10 +1,12 @@
-# outrider
+<h1 align="center"><pre>outrider</pre></h1>
 
-A Bun-based, system-wide successor to process-compose: a persistent per-user
-daemon owns your services' desired state, an Ink dashboard manages them, and
-[portless](https://www.npmjs.com/package/portless) gives them hostnames like
-`api.myapp.localhost` instead of memorised ports. Existing
-`process-compose.yaml` files import and run without edits.
+**A system-wide successor to process-compose.** Instead of running
+per-project, outrider is a persistent per-user daemon that owns the desired state of
+all your services, with a TUI dashboard for managing them. Pair it with
+[portless](https://www.npmjs.com/package/portless) and your services get
+hostnames like `https://myapp.localhost` instead of ports you have to memorise.
+Point it at an existing `process-compose.yaml` and it imports the whole stack.
+It just runs, no edits needed.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/andrealeone/outrider/master/scripts/install.sh | bash
@@ -14,39 +16,42 @@ outrider                    # open the dashboard
 outrider off                # stop everything, disable boot start
 ```
 
-The whole public surface is those three commands; everything else — importing
-stacks, adding/editing/deleting services, logs, routes, scaling — happens in
-the dashboard or over the JSON socket API.
+That's the entire CLI: three commands. Everything else, importing stacks,
+adding, editing and deleting services, viewing logs, managing routes,
+scaling, is done from the dashboard or over the JSON socket API.
 
 ## Installing
 
-The one-liner above downloads the binary matching your OS/CPU from the
-[latest release](https://github.com/andrealeone/outrider/releases/latest) and
-installs it to `~/.local/bin/outrider` — no package registry involved. See
-[docs/install.md](docs/install.md) for requirements, pinning a version,
-building from source, and uninstalling.
+The `curl` one-liner above grabs the binary for your OS and CPU from the
+[latest release](https://github.com/andrealeone/outrider/releases/latest)
+and drops it at `~/.local/bin/outrider`, no package registry needed. For
+version pinning, building from source, and uninstalling, see
+[docs/install.md](docs/install.md).
 
 ## Getting started
 
-Once installed, `outrider on` then `outrider` is the whole flow: the dashboard
-opens and everything else — importing a `process-compose.yaml`, adding a
-standalone service, routing one to a hostname — happens from there. See
-[docs/usage.md](docs/usage.md) for the day-to-day dashboard walkthrough, and
-[docs/guides/](docs/guides/) for end-to-end guides on importing a stack,
-adding a routed service, and syncing services at scale.
+Run `outrider on`, then `outrider`, and you're done with the terminal: the
+dashboard takes it from there, whether you're importing a
+`process-compose.yaml`, adding a standalone service, or routing one to a
+hostname. [docs/usage.md](docs/usage.md) walks through the dashboard
+day-to-day, and [docs/guides/](docs/guides/) has end-to-end guides for
+importing a stack, adding a routed service, and syncing services at scale.
 
 ## Why outrider?
 
-outrider is a brand new project heavily inspired by [process-compose](https://github.com/F1bonacc1/process-compose),
-reimagined for a system-wide model. Where process-compose runs per-directory and answers HTTP requests,
-outrider runs as a persistent daemon that owns your services' desired state across your entire development environment.
-This means you get hostname-based routing instead of port juggling, a single dashboard for all your projects,
-and configuration that survives reboots and terminal sessions. See the [feature parity document](docs/architecture/feature-parity.md)
-for a detailed comparison.
+outrider is a new project, heavily inspired by
+[process-compose](https://github.com/F1bonacc1/process-compose) but built
+around a different model. process-compose runs per-directory and speaks
+HTTP; outrider runs as a persistent daemon that owns your services' desired
+state across your whole development environment. In practice that gets you
+hostname-based routing instead of port juggling, one dashboard for every
+project, and a state that survives reboots instead of dying with your
+terminal session. For the full comparison, see the
+[feature parity document](docs/architecture/feature-parity.md).
 
-Documentation lives in [docs/](docs/readme.md): installing, usage, the CLI and
-socket reference, per-component architecture notes, the config schema with
-its process-compose compatibility report, guides, and runnable demos.
+Documentation lives in [docs/](docs/readme.md): installation, usage, the CLI
+and socket reference, architecture notes per component, the config schema
+with its process-compose compatibility report, guides, and runnable demos.
 
 ## Features
 

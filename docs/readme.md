@@ -14,6 +14,7 @@ manage them, and portless integration so services answer on hostnames like
   - [Add a routed service](guides/add-a-routed-service.md): create a service with networking
   - [Add a demo process](guides/add-a-demo-process.md): register a standalone service with no compose file
   - [Sync services at scale](guides/sync-services-at-scale.md): bulk-edit services via `~/.config/outrider.yml`
+  - [Control outrider via the socket API](guides/control-outrider-via-the-socket-api.md): drive it from a script instead of the TUI
 - [Demos](demos/readme.md): runnable example configurations
 
 ## Features
@@ -27,6 +28,7 @@ broader context.
 - [Stacks and import](features/stacks-and-import.md): run existing `process-compose.yaml` files unedited
 - [Portless routing](features/portless-routing.md): hostnames instead of memorised ports
 - [The dashboard](features/the-dashboard.md): interactive TUI for managing everything
+- [Socket API](features/socket-api.md): control the daemon over its unix socket instead of the TUI
 - [Autostart and boot](features/autostart-and-boot.md): desired state that survives reboots
 
 ## Reference
@@ -45,6 +47,7 @@ How outrider works under the hood:
 
 - [Overview](architecture/overview.md): system diagram and layering rules
 - [Daemon](architecture/daemon.md): the control plane
+- [API](architecture/api.md): the socket dispatcher CLI, TUI, and scripts all speak
 - [Registry](architecture/registry.md): service and stack model
 - [Reconciler](architecture/reconciler.md): desired-state engine
 - [Supervisor](architecture/supervisor.md): process lifecycle

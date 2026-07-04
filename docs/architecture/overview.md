@@ -33,7 +33,7 @@ internals. Both sides speak only the shared protocol (`src/shared/types`) and
 the socket client (`src/shared/client.ts`). The TUI is a management surface,
 not a supervisor: closing it changes nothing about running services.
 
-Component notes: [daemon](daemon.md), [registry](registry.md),
+Component notes: [daemon](daemon.md), [api](api.md), [registry](registry.md),
 [reconciler](reconciler.md), [supervisor](supervisor.md),
 [scheduler](scheduler.md), [prober](prober.md), [logger](logger.md),
 [router](router.md), [tui](tui.md).
