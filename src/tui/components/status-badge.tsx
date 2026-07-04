@@ -1,9 +1,9 @@
 import { Text } from 'ink'
 import React from 'react'
 
-import type { ProcessStatus } from '../../shared/types/protocol'
+import type { ProcessStatus } from '@/shared/types/protocol'
 
-import { SPINNER_FRAMES, statusColor, statusGlyph, TRANSIENT_STATUSES } from '../theme'
+import { SPINNER_FRAMES, statusColor, statusGlyph, TRANSIENT_STATUSES } from '@/tui/theme'
 
 interface Props {
   status: ProcessStatus

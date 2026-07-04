@@ -13,11 +13,14 @@ import type {
 } from './types/protocol'
 import type { RegistryModel } from './types/registry'
 
-import { ApiCallError, DaemonUnreachableError, ProtocolMismatchError } from './client-errors'
+import { ApiCallError } from './errors/api-call-error'
+import { DaemonUnreachableError } from './errors/daemon-unreachable-error'
+import { ProtocolMismatchError } from './errors/protocol-mismatch-error'
 import { socketPath } from './utils/paths'
 import { PROTOCOL_VERSION } from './version'
 
-export { ApiCallError, ProtocolMismatchError } from './client-errors'
+export { ApiCallError } from './errors/api-call-error'
+export { ProtocolMismatchError } from './errors/protocol-mismatch-error'
 
 export class Client {
   constructor(readonly socket: string = socketPath) {}

@@ -1,20 +1,15 @@
 import { dirname, resolve } from 'node:path'
 import { homedir } from 'node:os'
 
-import type { LoadedProject, ProcessConfig } from '../shared/types/process-compose'
-import type { ServiceDefinition } from '../shared/types/protocol'
-import type {
-  DesiredState,
-  RegistryModel,
-  ServiceEntry,
-  StackEntry,
-} from '../shared/types/registry'
+import type { LoadedProject, ProcessConfig } from '@/shared/types/process-compose'
+import type { ServiceDefinition } from '@/shared/types/protocol'
+import type { DesiredState, RegistryModel, ServiceEntry, StackEntry } from '@/shared/types/registry'
 
 import type { EventBus } from './event-bus'
 import type { StateStore } from './state-store'
 
-import { nowIso } from '../shared/utils/time'
-import { isValidTag, normalizeTags as normalize, toTagList } from '../shared/utils/tags'
+import { nowIso } from '@/shared/utils/time'
+import { isValidTag, normalizeTags as normalize, toTagList } from '@/shared/utils/tags'
 import { hashProject, stackNameFor } from './config/load'
 import { RegistryError } from './registry-error'
 

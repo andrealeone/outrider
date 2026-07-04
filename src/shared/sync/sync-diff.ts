@@ -1,5 +1,5 @@
-import type { ServiceDefinition } from '../types/protocol'
-import type { RegistryModel } from '../types/registry'
+import type { ServiceDefinition } from '@/shared/types/protocol'
+import type { RegistryModel } from '@/shared/types/registry'
 
 import { canonical, entryToSyncService, type SyncDoc, type SyncService, toDefinition } from './sync-file'
 

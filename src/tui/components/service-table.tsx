@@ -1,11 +1,11 @@
 import { Box, Text } from 'ink'
 import React from 'react'
 
-import type { ServiceState } from '../../shared/types/protocol'
+import type { ServiceState } from '@/shared/types/protocol'
 
-import { fit } from '../../shared/utils/format'
-import { formatUptime } from '../../shared/utils/time'
-import { theme } from '../theme'
+import { fit } from '@/shared/utils/format'
+import { formatUptime } from '@/shared/utils/time'
+import { theme } from '@/tui/theme'
 import { StatusBadge } from './status-badge'
 
 interface Props {
@@ -16,6 +16,8 @@ interface Props {
   width: number
   frame: number
   online: boolean
+  /** Whether the connected daemon reports portless as available on PATH. */
+  portless: boolean
 }
 
 /**
@@ -34,6 +36,7 @@ export const ServiceTable = ({
   width,
   frame,
   online,
+  portless,
 }: Props) => {
   const nameWidth = Math.max(14, Math.min(28, width - 70))
   const stackWidth = 10
@@ -73,12 +76,17 @@ export const ServiceTable = ({
             ? formatUptime(state.startedAt)
             : '—'
         const cells = [fit(state.entry.name, nameWidth), fit(state.entry.stack ?? '·', stackWidth)]
+        // Only surface the "portless not installed" hint when the connected
+        // daemon confirms portless is absent; a stale routePending flag from a
+        // prior portless-less daemon must not show it once portless is present.
+        const routePending = state.routePending === true && !portless
+        const routeDisplay = routePending ? '' : (state.routeUrl ?? '')
         const trailing = [
           fit(state.health === 'unknown' ? '—' : state.health, 9),
           fit(uptime, 8),
           fit(String(state.restarts || '·'), 3),
           fit(state.entry.autostart ? '✓' : '·', 12),
-          fit(state.routeUrl ?? '', routeWidth).trimEnd(),
+          fit(routeDisplay, routeWidth).trimEnd(),
         ]
         return (
           <Box key={state.entry.id}>
@@ -97,7 +105,15 @@ export const ServiceTable = ({
             )}
             <Text color={rowColor} bold={isSelected} dimColor={!online && !isSelected}>
               {'  '}
-              {trailing.join('  ')}
+              {trailing.slice(0, -1).join('  ')}
+              {'  '}
+            </Text>
+            <Text
+              color={routePending ? theme.dim : rowColor}
+              bold={isSelected && !routePending}
+              dimColor={!online && !isSelected}
+            >
+              {trailing[trailing.length - 1]}
             </Text>
           </Box>
         )

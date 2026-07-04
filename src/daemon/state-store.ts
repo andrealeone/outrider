@@ -2,11 +2,11 @@ import { existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync }
 import { dirname } from 'node:path'
 import { appendFileSync } from 'node:fs'
 
-import type { JournalRecord, RegistryModel } from '../shared/types/registry'
+import type { JournalRecord, RegistryModel } from '@/shared/types/registry'
 
-import { atomicWrite } from '../shared/utils/atomic-file'
-import { journalPath, registryPath } from '../shared/utils/paths'
-import { nowIso } from '../shared/utils/time'
+import { atomicWrite } from '@/shared/utils/atomic-file'
+import { journalPath, registryPath } from '@/shared/utils/paths'
+import { nowIso } from '@/shared/utils/time'
 
 const JOURNAL_MAX_BYTES = 5 * 1024 * 1024
 const JOURNAL_BACKUPS = 2

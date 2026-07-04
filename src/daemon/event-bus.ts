@@ -1,4 +1,4 @@
-import type { DaemonEvent } from '../shared/types/protocol'
+import type { DaemonEvent } from '@/shared/types/protocol'
 
 type Listener = (event: DaemonEvent) => void
 

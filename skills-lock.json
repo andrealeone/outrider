@@ -5,13 +5,13 @@
       "source": "fallow-rs/fallow-skills",
       "sourceType": "github",
       "skillPath": "fallow/skills/fallow/SKILL.md",
-      "computedHash": "707038def548ff62a77d7daa9b8202134173941e917b59c70ba123912aab399c"
+      "computedHash": "c593c94963a7be3eb495d4ee3199d3a911a194f570f678f73954a38e03d61b51"
     },
     "improve": {
       "source": "shadcn/improve",
       "sourceType": "github",
       "skillPath": "skills/improve/SKILL.md",
-      "computedHash": "7a0f09dd535fc84391dc63bea826d6aeab985b92423fa4dd93edacb5dfb82524"
+      "computedHash": "39a9358732dcff385e9e4d3e60b4547856f834e54a58b35e455aa9bd49928c13"
     }
   }
 }

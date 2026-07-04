@@ -1,19 +1,19 @@
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
 
-import type { DaemonInfo } from '../shared/types/protocol'
+import type { DaemonInfo } from '@/shared/types/protocol'
 
-import { Client } from '../shared/client'
-import { writeSyncFile } from '../shared/sync/sync-file'
-import { lockPath, runtimeDir, socketPath } from '../shared/utils/paths'
-import { nowIso } from '../shared/utils/time'
-import { APP_VERSION, PROTOCOL_VERSION } from '../shared/version'
+import { Client } from '@/shared/client'
+import { writeSyncFile } from '@/shared/sync/sync-file'
+import { lockPath, runtimeDir, socketPath } from '@/shared/utils/paths'
+import { nowIso } from '@/shared/utils/time'
+import { APP_VERSION, PROTOCOL_VERSION } from '@/shared/version'
 import { Api } from './api'
 import { EventBus } from './event-bus'
 import { Logger } from './logger'
 import { Prober } from './prober'
 import { Reconciler } from './reconciler'
 import { Registry } from './registry'
-import { PortlessRouter } from './router'
+import { createRouter } from './router'
 import { StateStore } from './state-store'
 import { Supervisor } from './supervisor'
 
@@ -32,17 +32,21 @@ const removeIfExists = (path: string): void => {
  */
 export const runDaemon = async (): Promise<void> => {
   if (await new Client().ping().catch(() => true)) {
-    console.error('Another outrider daemon is already running (or speaks a newer protocol)')
+    console.error('Another Outrider daemon is already running (or speaks a newer protocol)')
     process.exit(1)
   }
   mkdirSync(runtimeDir, { recursive: true })
   removeIfExists(socketPath)
 
+  // The router is the single source of truth for portless availability; the
+  // handshake and the reconciler both read it, so they can never disagree.
+  const router = createRouter(log)
   const info: DaemonInfo = {
     version: APP_VERSION,
     protocol: PROTOCOL_VERSION,
     pid: process.pid,
     startedAt: nowIso(),
+    portless: router.available,
   }
 
   const store = new StateStore()
@@ -59,7 +63,6 @@ export const runDaemon = async (): Promise<void> => {
     store.loadRestartCounters(),
   )
   const registry = new Registry(store, bus)
-  const router = new PortlessRouter(log)
   const reconciler = new Reconciler(registry, supervisor, router, bus, logger)
   const api = new Api({
     info,

@@ -1,13 +1,13 @@
-import type { ServiceState } from '../shared/types/protocol'
-import type { ServiceEntry } from '../shared/types/registry'
-import type { Router } from '../shared/types/router'
+import type { ServiceState } from '@/shared/types/protocol'
+import type { ServiceEntry } from '@/shared/types/registry'
+import type { Router } from '@/shared/types/router'
 
 import type { EventBus } from './event-bus'
 import type { Logger } from './logger'
 import type { Registry } from './registry'
 import type { Supervisor } from './supervisor'
 
-import { freePort } from '../shared/utils/net'
+import { freePort } from '@/shared/utils/net'
 import { evaluateGate, shutdownLevels, withDependencies } from './scheduler'
 
 const TICK_INTERVAL_MS = 1000
@@ -21,6 +21,8 @@ const TICK_DEBOUNCE_MS = 30
 export class Reconciler {
   /** Services that should be brought up once their gates open. */
   private readonly pendingUp = new Map<string, { noDeps: boolean }>()
+  /** Service IDs with routes declared but portless unavailable. */
+  private readonly pendingRoutes = new Set<string>()
   private interval?: ReturnType<typeof setInterval>
   private debounce?: ReturnType<typeof setTimeout>
   private ticking = false
@@ -67,10 +69,13 @@ export class Reconciler {
   /** Current state of one service, synthesising 'pending' for never-started. */
   stateOf = (id: string): ServiceState | undefined => {
     const live = this.supervisor.stateOf(id)
-    if (live) return live
+    if (live) {
+      if (this.pendingRoutes.has(id)) live.routePending = true
+      return live
+    }
     const entry = this.registry.get(id)
     if (!entry) return undefined
-    return {
+    const synthetic: ServiceState = {
       entry,
       status: 'pending',
       health: 'unknown',
@@ -78,6 +83,8 @@ export class Reconciler {
       instances: [],
       routeUrl: entry.route ? this.router.urlFor(entry.route.route) : undefined,
     }
+    if (this.pendingRoutes.has(id)) synthetic.routePending = true
+    return synthetic
   }
 
   snapshot(): ServiceState[] {
@@ -126,6 +133,7 @@ export class Reconciler {
   async forgetService(id: string): Promise<void> {
     await this.requestDown([id])
     this.supervisor.forget(id)
+    this.pendingRoutes.delete(id)
   }
 
   /** Drop stale completed/error runtime state so snapshots use the latest registry entry. */
@@ -201,10 +209,19 @@ export class Reconciler {
       try {
         const binding = await this.router.register(entry.route.route, port, alias)
         routeUrl = binding.url
-        routeEnv = {
-          PORT: String(port),
-          PORTLESS_URL: binding.url,
-          OUTRIDER_URL: binding.url,
+
+        if (this.router.available) {
+          routeEnv = {
+            PORT: String(port),
+            PORTLESS_URL: binding.url,
+            OUTRIDER_URL: binding.url,
+          }
+          this.pendingRoutes.delete(entry.id)
+        } else {
+          routeEnv = {
+            PORT: String(port),
+          }
+          this.pendingRoutes.add(entry.id)
         }
       } catch (err) {
         this.logger.open(entry.id)

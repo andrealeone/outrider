@@ -4,7 +4,7 @@ import type {
   ProbeConfig,
   ProcessConfig,
   ProjectConfig,
-} from '../../shared/types/process-compose'
+} from '@/shared/types/process-compose'
 
 import { DependencyCycleError, startOrder } from './dag'
 

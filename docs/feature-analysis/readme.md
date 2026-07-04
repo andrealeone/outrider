@@ -16,6 +16,8 @@ because reopening such a decision is the expensive part, not the code.
   rather than a hard runtime dependency.
 - [Container proxy](container-proxy.md) — supervise containers and, when portless is
   present, route their published ports onto hostnames.
+- [outrider doctor](doctor.md) — a diagnostics command that health-checks the install
+  and its environment, pairing each finding with a fix.
 
 The list under [feature requests](../../specifics.md) in `specifics.md` is the
 authoritative roadmap; this folder holds the reasoning behind each entry.

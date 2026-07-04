@@ -13,6 +13,7 @@
   "rules": {
     "eslint/sort-vars": "off",
     "eslint/max-lines": "off",
+    "eslint/max-classes-per-file": "off",
     "eslint/require-await": "off",
     "eslint/require-unicode-regexp": "off",
     "eslint/max-lines-per-function": "off",

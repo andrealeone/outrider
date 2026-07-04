@@ -1,4 +1,4 @@
-import type { ProcessConfig } from '../../shared/types/process-compose'
+import type { ProcessConfig } from '@/shared/types/process-compose'
 
 export class DependencyCycleError extends Error {
   constructor(readonly cycle: string[]) {

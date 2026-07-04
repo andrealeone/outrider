@@ -1,4 +1,4 @@
-import { runUpDown } from '../updown'
+import { runUpDown } from '@/cli/updown'
 
 export const description = 'start services by name, stack, namespace, or tag'
 

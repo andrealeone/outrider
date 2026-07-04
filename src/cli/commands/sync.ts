@@ -1,4 +1,4 @@
-import { runSync } from '../../tui/sync'
+import { runSync } from '@/tui/sync'
 
 export const description = 'reconcile ~/.config/outrider.yml into the registry'
 

@@ -3,12 +3,12 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { LoadedProject } from '../../src/shared/types/process-compose'
-import type { ServiceDefinition } from '../../src/shared/types/protocol'
+import type { LoadedProject } from '@/shared/types/process-compose'
+import type { ServiceDefinition } from '@/shared/types/protocol'
 
-import { EventBus } from '../../src/daemon/event-bus'
-import { Registry, RegistryError } from '../../src/daemon/registry'
-import { StateStore } from '../../src/daemon/state-store'
+import { EventBus } from '@/daemon/event-bus'
+import { Registry, RegistryError } from '@/daemon/registry'
+import { StateStore } from '@/daemon/state-store'
 
 const tmp = mkdtempSync(join(tmpdir(), 'outrider-registry-'))
 let registry: Registry

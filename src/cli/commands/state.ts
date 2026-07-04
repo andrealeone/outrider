@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 
-import { Client } from '../../shared/client'
-import { registryPath } from '../../shared/utils/paths'
+import { Client } from '@/shared/client'
+import { registryPath } from '@/shared/utils/paths'
 
 export const description = 'dump daemon state as JSON (debugging)'
 export const hidden = true
