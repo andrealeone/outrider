@@ -17,7 +17,7 @@ dependencies, alongside ink and react, and the routing design assumes it is pres
 But the groundwork for optionality is already laid:
 
 - **The Router interface.** Every portless call already lives behind a `Router`
-  boundary (`src/daemon/router.ts`) — the "isolation rule" exists precisely because
+  boundary (`src/daemon/router.ts`): the "isolation rule" exists precisely because
   portless is pre-1.0 and its state format may change. That boundary is the natural
   seam for making the dependency optional. Nothing outside that file imports the
   package, and the reconciler already wraps `register` in a try/catch that degrades to
@@ -35,8 +35,8 @@ gracefully when its backend is absent."
 
 **Detect, don't assume.** A single memoized feature-switch, `hasPortless()`
 (`src/shared/utils/portless.ts`), is the one place the rest of the codebase asks the
-question. It checks for the portless **CLI on `PATH`** — `(OUTRIDER_PORTLESS_BIN ??
-Bun.which('portless')) != null` — honouring an `OUTRIDER_NO_PORTLESS=1` opt-out so a
+question. It checks for the portless **CLI on `PATH`**: `(OUTRIDER_PORTLESS_BIN ??
+Bun.which('portless')) != null`, honouring an `OUTRIDER_NO_PORTLESS=1` opt-out so a
 user with portless installed can still force the unrouted path (and tests can pin
 either mode). The result is resolved once at daemon start and surfaced through
 `/v1/info` (`DaemonInfo.portless`), so the CLI, dashboard, and the proposed companion
@@ -48,7 +48,7 @@ is the cheap boolean everything else branches on.
 `NoopRouter` through a `createRouter(log)` factory in `router.ts`
 (`hasPortless() ? new PortlessRouter(log) : new NoopRouter(log)`). The no-op records
 each registration as recorded-but-inactive desired state rather than an error, reports
-`available: false` from `status()`, and — importantly — still computes the *would-be*
+`available: false` from `status()`, and, importantly, still computes the *would-be*
 hostname from `urlFor()`, because the portless library helpers stay bundled (see the
 dependency decision below). Services still run; they simply answer on their port, not a
 hostname.
@@ -57,22 +57,22 @@ hostname.
 without portless should:
 
 - start normally on its allocated port, with **`PORT` injected but
-  `PORTLESS_URL`/`OUTRIDER_URL` omitted** — a published URL that does not resolve is
+  `PORTLESS_URL`/`OUTRIDER_URL` omitted**: a published URL that does not resolve is
   worse than no URL, so the unrouted path injects only what is true,
-- be marked in the dashboard and `routes` output as *route pending — portless not
+- be marked in the dashboard and `routes` output as *route pending, portless not
   installed*, with the hostname it *would* have (`ServiceState.routePending`),
 - never fail the import or the start over a missing optional integration.
 
-This mirrors the existing "every cut feature must still parse — a recognised but
+This mirrors the existing "every cut feature must still parse: a recognised but
 unsupported key warns precisely, never crashes" rule, applied to a runtime dependency
 instead of a config key. Route config keeps validating (uniqueness, reserved names, DNS
 labels) whether or not portless is present; validation is independent of the backend.
 
 **Hide what cannot work; surface what is merely pending.** In the TUI the *input*
-surfaces for routing — the route and alias-port fields in the add/edit form — are
+surfaces for routing (the route and alias-port fields in the add/edit form) are
 hidden entirely when portless is absent, because offering a field that produces a
-pending route is a worse experience than not offering it. But the *output* surfaces —
-the dashboard `ROUTE` column and the detail view — still render already-declared routes
+pending route is a worse experience than not offering it. But the *output* surfaces
+(the dashboard `ROUTE` column and the detail view) still render already-declared routes
 as *pending*, so an imported stack's routes never silently vanish. The asymmetry is
 deliberate: don't invite new routes you can't honour, but don't hide ones that already
 exist.
@@ -96,7 +96,7 @@ The open questions from the first draft are now settled:
 2. **Re-evaluation → on daemon restart.** Detection is resolved at daemon boot and the
    Router is chosen then. Installing portless while the daemon is up activates pending
    routes on the next restart. Live re-probing on reconcile or a signal is a documented
-   follow-up, not part of the first cut — restart is predictable and keeps the seam
+   follow-up, not part of the first cut: restart is predictable and keeps the seam
    single.
 
 3. **Config posture → detection alone.** Routing is off-until-detected with no extra
@@ -105,7 +105,7 @@ The open questions from the first draft are now settled:
 
 4. **Env when pending → `PORT` only.** The unrouted path injects `PORT` so the service
    binds and answers, but omits `PORTLESS_URL`/`OUTRIDER_URL`. A service that reads those
-   to print "listening at …" should print nothing rather than a hostname that 404s — the
+   to print "listening at …" should print nothing rather than a hostname that 404s; the
    absence is the honest signal, and it pairs with the *route pending* label.
 
 5. **Docs split → reframe as optional.** Routing is rewritten across the docs as an
@@ -121,26 +121,26 @@ The open questions from the first draft are now settled:
    user-installed external piece; the bundled lib is an implementation detail of the
    Router. Whether portless should eventually leave the bundle entirely and become a
    purely detected external tool (the way a container runtime is in
-   [container proxy](container-proxy.md)) is deferred — revisit if the lib ever pulls
+   [container proxy](container-proxy.md)) is deferred; revisit if the lib ever pulls
    weight we don't use, or if the pre-1.0 state-format churn makes bundling a liability.
 
 ## Implementation seam
 
 The change is small because the boundary already exists. The touch points:
 
-- **New** `src/shared/utils/portless.ts` — `hasPortless()` plus a `resetPortlessCache()`
+- **New** `src/shared/utils/portless.ts`: `hasPortless()` plus a `resetPortlessCache()`
   for tests.
-- **`src/daemon/router.ts`** — add `NoopRouter` and the `createRouter` factory; refactor
+- **`src/daemon/router.ts`**: add `NoopRouter` and the `createRouter` factory; refactor
   the existing inline `Bun.which('portless')` checks to call `hasPortless()`.
-- **`src/daemon/daemon.ts`** — instantiate via the factory; set `info.portless`.
-- **`src/shared/types/protocol.d.ts`** — `DaemonInfo.portless: boolean` and
+- **`src/daemon/daemon.ts`**: instantiate via the factory; set `info.portless`.
+- **`src/shared/types/protocol.d.ts`**: `DaemonInfo.portless: boolean` and
   `ServiceState.routePending?: boolean`; bump `PROTOCOL_VERSION` (the client enforces an
   exact match).
-- **`src/daemon/reconciler.ts`** — flag `routePending` and gate the `PORTLESS_URL`/
+- **`src/daemon/reconciler.ts`**: flag `routePending` and gate the `PORTLESS_URL`/
   `OUTRIDER_URL` injection.
-- **TUI** — `add-service.tsx` hides the route/alias fields when absent; `service-table.tsx`
+- **TUI**: `add-service.tsx` hides the route/alias fields when absent; `service-table.tsx`
   and `detail-view.tsx` render the pending state.
-- **Tests** — unit coverage for `hasPortless()` and `NoopRouter`; an absent-portless
+- **Tests**: unit coverage for `hasPortless()` and `NoopRouter`; an absent-portless
   scenario in the integration test; a check that route config still validates without
   portless.
 
@@ -158,5 +158,5 @@ The change is small because the boundary already exists. The touch points:
 This is the **prerequisite** for the [container proxy](container-proxy.md): containers
 should run whether or not portless is present, and gain hostnames only when it is. Land
 optional portless first. It also gives [`outrider doctor`](doctor.md) its first concrete
-check — *is portless installed, and is its proxy healthy?* — so the two are best designed
+check, *is portless installed, and is its proxy healthy?*, so the two are best designed
 together.

@@ -189,6 +189,8 @@ The whole tool compiles with bun build --compile into one binary containing the 
 
 Targets: darwin-arm64, darwin-x64, linux-x64, and linux-arm64 through cross-compilation flags. Enable minification and production defines. Expect a baseline of roughly 50 to 60 MB from the embedded runtime, acceptable for a system tool. Default themes, keymaps, and launchd or systemd unit templates embed as bundled assets. The first build spike must confirm ink and react bundle without dynamic require escapes.
 
+**npm distribution.** A compiled-per-arch binary cannot ship as one npm package, so `outrider` on npm is a small JS launcher (`npm/outrider/bin/outrider.js`) with no binary of its own; the four `outrider-<target>` packages carry one binary each, declared as `os`/`cpu`-scoped `optionalDependencies` so npm installs only the one matching the current machine. The launcher `require.resolve`s the installed platform package and `spawnSync`s it, forwarding argv, stdio, and exit code. `scripts/build.ts --all` writes to `dist/outrider-<target>`, same as the from-source build; `npm/` itself only ever holds tracked package manifests and the launcher, never a binary — `scripts/publish.ts` stages each one in from `dist/` immediately before its `npm publish` and deletes it right after. `scripts/sync-version.ts` keeps versions in step across `package.json`, `version.ts`, and the `npm/*/package.json` manifests. Full detail in `docs/publishing.md`.
+
 ---
 
 ### Filesystem layout
@@ -298,7 +300,7 @@ socket rather than growing a TCP listener on the daemon itself. See
 **Optional portless.** Portless is currently one of the three permitted runtime
 dependencies and the routing design assumes it. The request is to make it genuinely
 optional: outrider runs fully without it, degrades routing gracefully when it is absent
-(a service starts on its port and is marked *route pending* rather than failing), and
+(a service starts on its port and is marked _route pending_ rather than failing), and
 lights up hostnames only when the user has chosen to install it. The existing Router
 isolation boundary is the seam that makes this cheap. See
 [optional portless](docs/feature-analysis/optional-portless.md).
@@ -391,6 +393,8 @@ Tracked against the source tree, not the docs. `[x]` is implemented and shipping
 - [x] Single-executable build via `bun build --compile` (`scripts/build.ts`)
 - [x] launchd / systemd unit installation through `on`/`off`
 - [x] XDG path layout everywhere
+- [x] npm distribution: launcher + per-platform `optionalDependencies` packages (`npm/`), version-sync and publish scripts (`scripts/sync-version.ts`, `scripts/publish.ts`), `docs/publishing.md` — not yet actually published to the registry
+- [ ] First real `npm publish` at `0.1.0` — **(backlog)**, needs the npm package names reserved first
 
 **Value additions / beyond parity**
 
@@ -433,6 +437,11 @@ candid compatibility report, and a `test-coverage.md` that names its own gaps
 - [x] **Contributing page added** (`docs/contributing.md`) — vision intro,
       first-timer path, returning-dev references, change checklist, and
       issues-for-bugs/features. (Per decision: **no LICENSE for now.**)
+- [x] **Publishing page added** (`docs/publishing.md`) — the npm package
+      layout (`outrider` launcher + four `outrider-<target>` binary packages),
+      what each release script does, and the local-tarball verification steps
+      before a real `npm publish`. Linked from `setup.md`'s new npm install
+      section, `develop.md`, and the docs index.
 - [ ] **Uninstall path** — added an "Uninstalling" section to `setup.md`
       (`outrider off`, remove binary, remove `~/.local/share/outrider` and
       `~/.config/outrider*`). _Done this round._
@@ -450,7 +459,7 @@ used well; the ASCII architecture diagram reads cleanly. Fixes:
       are intentional and were left intact. Root `readme.md` left as-is per
       instruction.
 - [~] **TUI screenshot / GIF** — deferred per instruction (visuals skipped for
-      now). Still the highest-leverage appeal improvement when revisited.
+  now). Still the highest-leverage appeal improvement when revisited.
 - [ ] **Badges in `readme.md`** — minor; revisit once CI exists.
 
 **3. Structure & architecture of `/docs` — 7/10.** Sensible skeleton:

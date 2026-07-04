@@ -9,6 +9,18 @@
   for named routes (`bun add -g portless`). Without it, everything works except
   hostnames; routed services start with a named warning instead.
 
+## Installing from npm
+
+```bash
+npm install -g outrider
+```
+
+`outrider` on npm is a small JS launcher; the compiled binary for your platform
+(`outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, or `-linux-arm64`) installs
+alongside it as an `optionalDependency`, so npm downloads only the one matching
+your OS and CPU, never the other three. See [publishing](publishing.md) for how
+these packages are built and released.
+
 ## Building from source
 
 ```bash
@@ -24,13 +36,15 @@ the same file), so installation is a single copy.
 `bun build --compile` embeds the **running** Bun as the binary's runtime, so the
 binary is only as new as the Bun that built it. The daemon's live event stream
 rides a unix-socket WebSocket on the `ws+unix://` scheme, which older runtimes
-reject with *"Wrong url scheme for WebSocket"*. To stop a stale runtime from
+reject with _"Wrong url scheme for WebSocket"_. To stop a stale runtime from
 shipping in a binary that can't talk to its own daemon, `scripts/build.ts`
 refuses to compile on a Bun below the floor declared in `package.json`'s
 `engines.bun`; run `bun upgrade` if the guard trips.
 
 Cross-compile all four release targets with `bun scripts/build.ts --all`
-(`dist/outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64`).
+(`dist/outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64`);
+these are what `scripts/publish.ts` stages into the npm packages (see
+[publishing](publishing.md)).
 
 ### Iterating locally
 
@@ -94,7 +108,8 @@ Hostname policy: `.localhost` by default (browsers resolve it natively),
 
 ```bash
 outrider off                              # stops services, removes the service unit and socket
-rm ~/.local/bin/outrider                  # remove the binary
+npm uninstall -g outrider                 # if installed from npm, removes the binary too
+rm ~/.local/bin/outrider                  # if installed from source, remove the binary manually
 rm -rf ~/.local/share/outrider            # registry, journal, logs (your desired state)
 rm -rf ~/.config/outrider ~/.config/outrider.yml   # daemon config + sync mirror, if present
 ```

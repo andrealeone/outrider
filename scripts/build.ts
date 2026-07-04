@@ -2,7 +2,7 @@
 // CLI, the TUI, and the daemon (`outrider daemon run` is the same file).
 //
 //   bun scripts/build.ts            → dist/outrider for the host platform
-//   bun scripts/build.ts --all      → all four release targets
+//   bun scripts/build.ts --all      → dist/outrider-<target>, one per release target
 
 import { $ } from 'bun'
 
@@ -27,6 +27,8 @@ if (tooOld) {
   process.exit(1)
 }
 
+// Each cross-compile target maps to the npm package that ships it; see
+// scripts/publish.ts and docs/publishing.md for how these land there.
 const TARGETS = ['bun-darwin-arm64', 'bun-darwin-x64', 'bun-linux-x64', 'bun-linux-arm64'] as const,
   all = process.argv.includes('--all'),
   targets = all ? [...TARGETS] : [undefined]

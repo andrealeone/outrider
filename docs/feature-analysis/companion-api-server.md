@@ -18,15 +18,15 @@ and must not drag web tooling into the core build.
 
 ## Why
 
-The daemon already speaks a clean JSON command-and-event protocol — but only over a
+The daemon already speaks a clean JSON command-and-event protocol, but only over a
 unix domain socket, reachable only from the local machine by a process with filesystem
 access to the socket. That is exactly right for the CLI and TUI. It is the wrong shape
 for three audiences this server would serve:
 
-- **Browsers** — a web dashboard or status page that talks HTTP, not a unix socket.
-- **Remote and scripted clients** — anything off-box, or anything that prefers REST to
+- **Browsers**: a web dashboard or status page that talks HTTP, not a unix socket.
+- **Remote and scripted clients**: anything off-box, or anything that prefers REST to
   a raw socket protocol.
-- **Richer surfaces** — a hosted control panel, webhooks, or integrations that want a
+- **Richer surfaces**: a hosted control panel, webhooks, or integrations that want a
   stable, documented HTTP contract.
 
 The companion server is a thin HTTP front for the existing socket API, not a second
@@ -38,7 +38,7 @@ Two decisions in [`specifics.md`](../../specifics.md) were made deliberately and
 feature reopens both. They must be settled here first.
 
 - **"No TCP listener in v1."** The control plane is unix-socket only, which is what lets
-  the daemon skip token auth. An HTTP server that binds a TCP port — even on loopback —
+  the daemon skip token auth. An HTTP server that binds a TCP port, even on loopback,
   changes the trust boundary. The server should bridge to the daemon *over the existing
   socket* and own its own auth, rather than the daemon growing a TCP listener.
 - **"User-only socket permissions, so v1 needs no token auth."** Any HTTP surface needs
@@ -85,7 +85,7 @@ browser / remote client
    is the remote-access story, and is it in scope at all for a first cut?
 2. **Server lifetime.** Managed service vs. special-cased daemon child; what happens to
    it on `outrider off`.
-3. **Distribution.** Bundled, fetched, or source — and how it updates in lockstep with
+3. **Distribution.** Bundled, fetched, or source, and how it updates in lockstep with
    the daemon protocol version (the handshake already guards mismatches).
 4. **Scope of the first cut.** Read-only status API first, or full command parity with
    the socket from day one?
@@ -94,7 +94,7 @@ browser / remote client
 
 ## Risks
 
-- **Trust-model creep.** The easy path — bind a TCP port on the daemon — quietly
+- **Trust-model creep.** The easy path, binding a TCP port on the daemon, quietly
   undoes the security posture. The bridge-over-socket shape must be held.
 - **Build complexity.** A second toolchain in the repo is real maintenance cost and
   cuts against the single-executable simplicity that is a selling point.

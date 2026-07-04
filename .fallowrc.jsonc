@@ -3,7 +3,10 @@
   // stub that tsconfig "paths" substitutes for react-devtools-core (fallow
   // cannot see paths-based references).
   "entry": ["scripts/*.ts", "src/tui/devtools-stub.ts"],
-  "ignorePatterns": ["tests/**", "**/*.d.ts"],
+  // npm/* are the published-package manifests (see docs/publishing.md): their
+  // optionalDependencies are resolved at runtime by npm/outrider/bin/outrider.js
+  // via require.resolve, not by a static import fallow can see.
+  "ignorePatterns": ["tests/**", "**/*.d.ts", "npm/**"],
   "rules": {
     // CLI commands are file routes: every module intentionally exports the
     // same { description, run, hidden } shape, keyed by file path.

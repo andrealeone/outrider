@@ -8,3 +8,7 @@
 node_modules
 dist
 dist/
+
+# staged in from dist/ by scripts/publish.ts right before `npm publish`,
+# removed again immediately after; never meant to be committed
+npm/outrider-*/bin/outrider

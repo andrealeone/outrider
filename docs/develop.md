@@ -1,6 +1,6 @@
 # Developing outrider
 
-This is the guide for working *on* outrider rather than *with* it: getting the
+This is the guide for working _on_ outrider rather than _with_ it: getting the
 codebase running, finding your way around it, and keeping your changes healthy.
 It leans on the user-facing docs rather than repeating them: [setup](setup.md)
 for installing and building, and [contributing](contributing.md) for opening
@@ -196,11 +196,19 @@ defaults, so every value has a known type, functions declare their returns,
 optionals must be checked before use, and exhaustiveness is enforced. `bun run
 check` is what surfaces all of it.
 
+### `bun run release`
+
+Cuts an npm release: syncs the version from `package.json` into
+`src/shared/version.ts` and every `npm/*/package.json`, cross-compiles all four
+platform binaries, then publishes each package. Not something you run day to
+day; see [publishing](publishing.md) for the full package layout and the steps
+around it.
+
 ## Common development tasks
 
 ### Adding a CLI command
 
-Commands are file routes under `src/cli/commands/`, where the file path *is* the
+Commands are file routes under `src/cli/commands/`, where the file path _is_ the
 command path:
 
 1. Create the file: `commands/start.ts` becomes `outrider start`,
@@ -243,6 +251,7 @@ doc has a home:
 - [`architecture/`](architecture/overview.md): how components work, for contributors
 - [`guides/`](guides/): step-by-step walkthroughs
 - [`glossary.md`](glossary.md): the project's vocabulary
+- [`publishing.md`](publishing.md): the npm package layout and release steps
 - `develop.md`: this guide
 
 Write for a reader who's sharp but new to the code: explain the concept, show an
