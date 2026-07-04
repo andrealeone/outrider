@@ -3,12 +3,12 @@ import { type Dispatch, type SetStateAction, useMemo, useState } from 'react'
 
 import type { ServiceState } from '@/shared/types/protocol'
 import type { ServiceEntry } from '@/shared/types/registry'
-import type { DaemonHook } from '@/tui/use-daemon'
+import type { DaemonHook } from '@/tui/lib/use-daemon'
 
-import { theme } from '@/tui/theme'
-import { Header } from './header'
-import { ServiceTable } from './service-table'
-import { TextInput } from './text-input'
+import { theme } from '@/tui/lib/theme'
+import { Header } from '@/tui/views/dashboard/header'
+import { ServiceTable } from '@/tui/views/dashboard/service-table'
+import { TextInput } from '@/tui/components/text-input'
 
 export type View =
   | { name: 'dashboard' }

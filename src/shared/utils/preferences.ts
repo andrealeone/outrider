@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 
-import { atomicWrite } from './atomic-file'
-import { preferencesPath } from './paths'
+import { atomicWrite } from '@/shared/utils/atomic-file'
+import { preferencesPath } from '@/shared/utils/paths'
 
 /** Persisted, user-facing feature switches — set via `outrider preferences`. */
 export interface Preferences {

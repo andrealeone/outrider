@@ -2,13 +2,13 @@ import type { ServiceState } from '@/shared/types/protocol'
 import type { ServiceEntry } from '@/shared/types/registry'
 import type { Router } from '@/shared/types/router'
 
-import type { EventBus } from './event-bus'
-import type { Logger } from './logger'
-import type { Registry } from './registry'
-import type { Supervisor } from './supervisor'
+import type { EventBus } from '@/daemon/event-bus'
+import type { Logger } from '@/daemon/logger'
+import type { Registry } from '@/daemon/registry'
+import type { Supervisor } from '@/daemon/supervisor'
 
 import { freePort } from '@/shared/utils/net'
-import { evaluateGate, shutdownLevels, withDependencies } from './scheduler'
+import { evaluateGate, shutdownLevels, withDependencies } from '@/daemon/scheduler'
 
 const TICK_INTERVAL_MS = 1000
 const TICK_DEBOUNCE_MS = 30

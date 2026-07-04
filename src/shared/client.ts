@@ -10,17 +10,17 @@ import type {
   ServiceState,
   StateSnapshot,
   UpDownBody,
-} from './types/protocol'
-import type { RegistryModel } from './types/registry'
+} from '@/shared/types/protocol'
+import type { RegistryModel } from '@/shared/types/registry'
 
-import { ApiCallError } from './errors/api-call-error'
-import { DaemonUnreachableError } from './errors/daemon-unreachable-error'
-import { ProtocolMismatchError } from './errors/protocol-mismatch-error'
-import { socketPath } from './utils/paths'
-import { PROTOCOL_VERSION } from './version'
+import { ApiCallError } from '@/shared/errors/api-call-error'
+import { DaemonUnreachableError } from '@/shared/errors/daemon-unreachable-error'
+import { ProtocolMismatchError } from '@/shared/errors/protocol-mismatch-error'
+import { socketPath } from '@/shared/utils/paths'
+import { PROTOCOL_VERSION } from '@/shared/version'
 
-export { ApiCallError } from './errors/api-call-error'
-export { ProtocolMismatchError } from './errors/protocol-mismatch-error'
+export { ApiCallError } from '@/shared/errors/api-call-error'
+export { ProtocolMismatchError } from '@/shared/errors/protocol-mismatch-error'
 
 export class Client {
   constructor(readonly socket: string = socketPath) {}

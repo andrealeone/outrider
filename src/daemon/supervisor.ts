@@ -12,15 +12,15 @@ import type {
 } from '@/shared/types/protocol'
 import type { JournalRecord, ServiceEntry } from '@/shared/types/registry'
 
-import type { EventBus } from './event-bus'
-import type { Logger } from './logger'
-import type { Prober } from './prober'
+import type { EventBus } from '@/daemon/event-bus'
+import type { Logger } from '@/daemon/logger'
+import type { Prober } from '@/daemon/prober'
 
 import { parseDotenv, parseEnvList } from '@/shared/utils/env'
 import { userHome, withCommonPath } from '@/shared/utils/path-env'
 import { streamLines } from '@/shared/utils/stream-lines'
 import { nowIso } from '@/shared/utils/time'
-import { applyFrameworkQuirks } from './framework-quirks'
+import { applyFrameworkQuirks } from '@/daemon/framework-quirks'
 
 const DEFAULT_BACKOFF_SECONDS = 1
 const DEFAULT_SHUTDOWN_TIMEOUT_SECONDS = 10

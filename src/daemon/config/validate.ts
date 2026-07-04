@@ -6,7 +6,7 @@ import type {
   ProjectConfig,
 } from '@/shared/types/process-compose'
 
-import { DependencyCycleError, startOrder } from './dag'
+import { DependencyCycleError, startOrder } from '@/daemon/config/dag'
 
 const PROJECT_KEYS = new Set([
   'version',

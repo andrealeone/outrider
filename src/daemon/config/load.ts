@@ -9,11 +9,11 @@ import type {
 } from '@/shared/types/process-compose'
 
 import { parseDotenv, parseEnvList } from '@/shared/utils/env'
-import { discoverComposeFile, discoverOverrideFile } from './discover'
-import { expandEnv } from './expand'
-import { mergeAll } from './merge'
-import { renderTemplate } from './template'
-import { validateProject } from './validate'
+import { discoverComposeFile, discoverOverrideFile } from '@/daemon/config/discover'
+import { expandEnv } from '@/daemon/config/expand'
+import { mergeAll } from '@/daemon/config/merge'
+import { renderTemplate } from '@/daemon/config/template'
+import { validateProject } from '@/daemon/config/validate'
 
 export class ConfigLoadError extends Error {
   constructor(

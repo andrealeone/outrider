@@ -1,7 +1,7 @@
 import { Box, Text, useApp, useInput } from 'ink'
-import React, { useState } from 'react'
+import { useState } from 'react'
 
-import { theme } from '@/tui/theme'
+import { theme } from '@/tui/lib/theme'
 import {
   DEFAULT_PREFERENCES,
   type Preferences,
@@ -15,7 +15,7 @@ const FIELDS: Field[] = ['use-portless', 'theme']
 
 const DESCRIPTIONS: Record<Field, string> = {
   'use-portless': 'route services through portless when installed',
-  theme: 'dashboard palette',
+  'theme': 'dashboard palette',
 }
 
 /**
@@ -62,7 +62,8 @@ export const PreferencesView = () => {
         {FIELDS.map((field, i) => {
           const focused = i === cursor
           const value = field === 'use-portless' ? (prefs.usePortless ? 'on' : 'off') : prefs.theme
-          const valueColor = field === 'use-portless' ? (prefs.usePortless ? theme.ok : theme.dim) : undefined
+          const valueColor =
+            field === 'use-portless' ? (prefs.usePortless ? theme.ok : theme.dim) : undefined
           return (
             <Box key={field}>
               <Text color={focused ? theme.accent : undefined}>{focused ? '› ' : '  '}</Text>

@@ -1,4 +1,4 @@
-import React from 'react'
+import type { FC } from 'react'
 import { Box, Text } from 'ink'
 
 interface AlertProps {
@@ -6,7 +6,7 @@ interface AlertProps {
   type?: 'info' | 'warning' | 'error'
 }
 
-export const Alert: React.FC<AlertProps> = ({ children, type = 'info' }) => {
+export const Alert: FC<AlertProps> = ({ children, type = 'info' }) => {
   const colors: Record<string, 'cyan' | 'yellow' | 'red'> = {
     info: 'cyan',
     warning: 'yellow',

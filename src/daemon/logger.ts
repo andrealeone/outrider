@@ -14,7 +14,7 @@ import { join } from 'node:path'
 import type { LoggerConfig } from '@/shared/types/process-compose'
 import type { LogLine } from '@/shared/types/protocol'
 
-import type { EventBus } from './event-bus'
+import type { EventBus } from '@/daemon/event-bus'
 
 import { serviceLogDir } from '@/shared/utils/paths'
 import { RingBuffer } from '@/shared/utils/ring-buffer'

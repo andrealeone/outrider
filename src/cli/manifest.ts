@@ -4,15 +4,15 @@
 
 import type { CommandModule } from '@/shared/types/cli'
 
-import * as root from './commands/index'
-import * as daemon_run from './commands/daemon/run'
-import * as off from './commands/off'
-import * as on from './commands/on'
-import * as preferences from './commands/preferences'
-import * as start from './commands/start'
-import * as state from './commands/state'
-import * as stop from './commands/stop'
-import * as sync from './commands/sync'
+import * as root from '@/cli/commands/index'
+import * as daemon_run from '@/cli/commands/daemon/run'
+import * as off from '@/cli/commands/off'
+import * as on from '@/cli/commands/on'
+import * as preferences from '@/cli/commands/preferences'
+import * as start from '@/cli/commands/start'
+import * as state from '@/cli/commands/state'
+import * as stop from '@/cli/commands/stop'
+import * as sync from '@/cli/commands/sync'
 
 export const commands: Record<string, CommandModule> = {
   '': root,

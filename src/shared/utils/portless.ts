@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 
-import { withCommonPath } from './path-env'
-import { readPreferences } from './preferences'
+import { withCommonPath } from '@/shared/utils/path-env'
+import { readPreferences } from '@/shared/utils/preferences'
 
 let cached: string | null | undefined
 

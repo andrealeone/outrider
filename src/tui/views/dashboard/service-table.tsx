@@ -1,12 +1,11 @@
 import { Box, Text } from 'ink'
-import React from 'react'
 
 import type { ServiceState } from '@/shared/types/protocol'
 
 import { fit } from '@/shared/utils/format'
 import { formatUptime } from '@/shared/utils/time'
-import { theme } from '@/tui/theme'
-import { StatusBadge } from './status-badge'
+import { theme } from '@/tui/lib/theme'
+import { StatusBadge } from '@/tui/components/status-badge'
 
 interface Props {
   services: ServiceState[]

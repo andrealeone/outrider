@@ -1,7 +1,7 @@
 import { Text, useInput } from 'ink'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { theme } from '@/tui/theme'
+import { theme } from '@/tui/lib/theme'
 
 interface Props {
   value: string

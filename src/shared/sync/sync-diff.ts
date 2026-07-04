@@ -1,7 +1,7 @@
 import type { ServiceDefinition } from '@/shared/types/protocol'
 import type { RegistryModel } from '@/shared/types/registry'
 
-import { canonical, entryToSyncService, type SyncDoc, type SyncService, toDefinition } from './sync-file'
+import { canonical, entryToSyncService, type SyncDoc, type SyncService, toDefinition } from '@/shared/sync/sync-file'
 
 export type SyncOp =
   | { kind: 'create'; name: string; def: ServiceDefinition }

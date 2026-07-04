@@ -5,15 +5,15 @@ import type { LoadedProject, ProcessConfig } from '@/shared/types/process-compos
 import type { ServiceDefinition } from '@/shared/types/protocol'
 import type { DesiredState, RegistryModel, ServiceEntry, StackEntry } from '@/shared/types/registry'
 
-import type { EventBus } from './event-bus'
-import type { StateStore } from './state-store'
+import type { EventBus } from '@/daemon/event-bus'
+import type { StateStore } from '@/daemon/state-store'
 
 import { nowIso } from '@/shared/utils/time'
 import { isValidTag, normalizeTags as normalize, toTagList } from '@/shared/utils/tags'
-import { hashProject, stackNameFor } from './config/load'
-import { RegistryError } from './registry-error'
+import { hashProject, stackNameFor } from '@/daemon/config/load'
+import { RegistryError } from '@/daemon/registry-error'
 
-export { RegistryError } from './registry-error'
+export { RegistryError } from '@/daemon/registry-error'
 
 /** Normalize tags and reject any malformed one, as the registry stores them. */
 const normalizeTags = (tags?: string[]): string[] | undefined => {

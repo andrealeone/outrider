@@ -1,6 +1,6 @@
 import { APP_VERSION } from '@/shared/version'
-import { fail, reply } from './output'
-import { commands } from './manifest'
+import { fail, reply } from '@/cli/output'
+import { commands } from '@/cli/manifest'
 
 const usage = (): string => {
   const visible = Object.entries(commands).filter(([, mod]) => !mod.hidden && mod.description)

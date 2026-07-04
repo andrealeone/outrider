@@ -1,8 +1,8 @@
 // The JSON contract spoken over the unix socket. CLI and TUI depend on this
 // file and the client only; daemon internals never leak across the socket.
 
-import type { ConfigWarning } from './process-compose'
-import type { DesiredState, RegistryModel, ServiceEntry } from './registry'
+import type { ConfigWarning } from '@/shared/types/process-compose'
+import type { DesiredState, RegistryModel, ServiceEntry } from '@/shared/types/registry'
 
 /** Canonical process state machine, mirroring upstream statuses. */
 export type ProcessStatus =

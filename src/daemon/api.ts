@@ -7,16 +7,16 @@ import type {
 } from '@/shared/types/protocol'
 import type { Router } from '@/shared/types/router'
 
-import type { EventBus } from './event-bus'
-import type { Logger } from './logger'
-import type { Reconciler } from './reconciler'
-import type { Registry } from './registry'
+import type { EventBus } from '@/daemon/event-bus'
+import type { Logger } from '@/daemon/logger'
+import type { Reconciler } from '@/daemon/reconciler'
+import type { Registry } from '@/daemon/registry'
 
-import { startOrder } from './config/dag'
-import { ConfigLoadError, loadProject, stackNameFor } from './config/load'
-import { TemplateError } from './config/template'
-import { RegistryError } from './registry'
-import { withDependencies } from './scheduler'
+import { startOrder } from '@/daemon/config/dag'
+import { ConfigLoadError, loadProject, stackNameFor } from '@/daemon/config/load'
+import { TemplateError } from '@/daemon/config/template'
+import { RegistryError } from '@/daemon/registry'
+import { withDependencies } from '@/daemon/scheduler'
 
 const EVENTS_TOPIC = 'events'
 const POST_SERVICE_ACTIONS = new Set(['start', 'stop', 'restart', 'scale'])

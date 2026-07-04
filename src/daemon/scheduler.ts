@@ -2,7 +2,7 @@ import type { ProcessConfig } from '@/shared/types/process-compose'
 import type { ServiceState } from '@/shared/types/protocol'
 import type { ServiceEntry } from '@/shared/types/registry'
 
-import { startOrder } from './config/dag'
+import { startOrder } from '@/daemon/config/dag'
 
 export type GateResult = 'go' | 'wait' | 'never'
 

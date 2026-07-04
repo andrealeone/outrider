@@ -1,13 +1,13 @@
 import { render, useApp, useStdout } from 'ink'
-import React, { useState } from 'react'
+import { useState } from 'react'
 
-import { Dashboard, type View } from './components/dashboard'
-import { AddService } from './components/add-service'
-import { DetailView } from './components/detail-view'
-import { ImportStack } from './components/import-stack'
-import { LogsView } from './components/logs-view'
-import { useFrameClock } from './frame-clock'
-import { useDaemon } from './use-daemon'
+import { Dashboard, type View } from '@/tui/views/dashboard/dashboard'
+import { AddService } from '@/tui/views/add-service/add-service'
+import { DetailView } from '@/tui/views/detail/detail-view'
+import { ImportStack } from '@/tui/views/import-stack/import-stack'
+import { LogsView } from '@/tui/views/logs/logs-view'
+import { useFrameClock } from '@/tui/lib/use-frame-clock'
+import { useDaemon } from '@/tui/lib/use-daemon'
 
 const App = () => {
   const daemon = useDaemon()
@@ -70,7 +70,7 @@ const App = () => {
 export const runTui = async (): Promise<void> => {
   if (!process.stdout.isTTY) {
     // Dumb terminal or piped output: degrade to a plain text snapshot.
-    const { run } = await import('../cli/commands/state')
+    const { run } = await import('@/cli/commands/state')
     await run()
     return
   }

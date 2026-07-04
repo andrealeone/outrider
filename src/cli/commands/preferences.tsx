@@ -1,5 +1,4 @@
 import { render } from 'ink'
-import React from 'react'
 
 import { fail, reply } from '@/cli/output'
 import {
@@ -9,7 +8,7 @@ import {
   resetPreference,
   setPreference,
 } from '@/shared/utils/preferences'
-import { PreferencesView } from '@/tui/components/preferences-view'
+import { PreferencesView } from '@/tui/views/preferences/preferences-view'
 
 export const description = 'view or change persisted user preferences (feature switches)'
 

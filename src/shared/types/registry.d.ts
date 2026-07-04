@@ -1,7 +1,7 @@
 // The desired-state model persisted in registry.json. The daemon is the only
 // writer; the TUI reads it directly only in offline mode.
 
-import type { PortlessExtension, ProcessConfig, ShellConfig } from './process-compose'
+import type { PortlessExtension, ProcessConfig, ShellConfig } from '@/shared/types/process-compose'
 
 export type DesiredState = 'up' | 'down'
 

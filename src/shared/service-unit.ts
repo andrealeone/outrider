@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
-import { daemonLogPath, dataDir } from './utils/paths'
+import { daemonLogPath, dataDir } from '@/shared/utils/paths'
 
 const LAUNCHD_LABEL = 'dev.outrider.daemon'
 const launchdPlist = join(homedir(), 'Library', 'LaunchAgents', `${LAUNCHD_LABEL}.plist`)
