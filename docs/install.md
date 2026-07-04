@@ -61,7 +61,7 @@ runtime from shipping in a binary that can't talk to its own daemon,
 
 Cross-compile all four release targets with `bun scripts/build.ts --all`
 (`dist/bin/outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`,
-`-linux-arm64`) — the same targets `scripts/release.ts` attaches to a GitHub
+`-linux-arm64`), the same targets `scripts/release.ts` attaches to a GitHub
 release for `scripts/install.sh` to download. Building from source day to day
 for active development (no compile step, instant edits) is covered in
 [developing outrider](develop.md#getting-set-up) instead of here, since that's

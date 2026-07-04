@@ -1,5 +1,5 @@
 {
-  "name": "@andrealeone/outrider",
+  "name": "outrider",
   "version": "0.0.0-rc.0",
   "type": "module",
   "private": true,
