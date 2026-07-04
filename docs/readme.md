@@ -12,6 +12,7 @@ manage them, and portless integration so services answer on hostnames like
 - [Guides](guides/): step-by-step walkthroughs
   - [Import a stack](guides/import-a-stack.md): load a `process-compose.yaml`
   - [Add a routed service](guides/add-a-routed-service.md): create a service with networking
+  - [Add a demo process](guides/add-a-demo-process.md): register a standalone service with no compose file
   - [Sync services at scale](guides/sync-services-at-scale.md): bulk-edit services via `~/.config/outrider.yml`
 - [Demos](demos/readme.md): runnable example configurations
 
