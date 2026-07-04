@@ -9,28 +9,21 @@
   for named routes (`bun add -g portless`). Without it, everything works except
   hostnames; routed services start with a named warning instead.
 
-## Installing from npm
-
-Packages publish to **GitHub Packages**, not the public npm registry, so
-installing requires a GitHub personal access token with `read:packages` scope
-and a scoped registry entry in your `.npmrc`:
-
-```
-@andrealeone:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
-```
-
-Then:
+## Installing
 
 ```bash
-npm install -g @andrealeone/outrider
+curl -fsSL https://raw.githubusercontent.com/andrealeone/outrider/master/scripts/install.sh | bash
 ```
 
-`@andrealeone/outrider` is a small JS launcher; the compiled binary for your
-platform (`@andrealeone/outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, or
-`-linux-arm64`) installs alongside it as an `optionalDependency`, so npm
-downloads only the one matching your OS and CPU, never the other three. See
-[publishing](publishing.md) for how these packages are built and released.
+This downloads the compiled binary matching your OS and CPU from the
+[latest GitHub release](https://github.com/andrealeone/outrider/releases/latest)
+into `~/.local/bin/outrider` (override the install root with
+`OUTRIDER_INSTALL`), and offers to add that directory to `PATH` if it isn't
+there already. Pass a tag to install a specific version instead of latest:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/andrealeone/outrider/master/scripts/install.sh | bash -s v0.1.0
+```
 
 ## Building from source
 
@@ -54,8 +47,8 @@ refuses to compile on a Bun below the floor declared in `package.json`'s
 
 Cross-compile all four release targets with `bun scripts/build.ts --all`
 (`dist/bin/outrider-darwin-arm64`, `-darwin-x64`, `-linux-x64`, `-linux-arm64`);
-these are what `scripts/publish.ts` stages into the npm packages (see
-[publishing](publishing.md)).
+these are what `scripts/release.ts` attaches to a GitHub release for
+`scripts/install.sh` to download.
 
 ### Iterating locally
 
@@ -119,8 +112,7 @@ Hostname policy: `.localhost` by default (browsers resolve it natively),
 
 ```bash
 outrider off                              # stops services, removes the service unit and socket
-npm uninstall -g @andrealeone/outrider     # if installed from npm, removes the binary too
-rm ~/.local/bin/outrider                  # if installed from source, remove the binary manually
+rm ~/.local/bin/outrider                  # remove the binary
 rm -rf ~/.local/share/outrider            # registry, journal, logs (your desired state)
 rm -rf ~/.config/outrider ~/.config/outrider.yml   # daemon config + sync mirror, if present
 ```

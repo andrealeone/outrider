@@ -198,11 +198,12 @@ check` is what surfaces all of it.
 
 ### `bun run release`
 
-Cuts a GitHub Packages release: syncs the version from `package.json` into
-`src/shared/version.ts` and every `dist/outrider*/package.json`, cross-compiles
-all four platform binaries, then publishes each package. Not something you run
-day to day; see [publishing](publishing.md) for the full package layout and
-the steps around it.
+Cuts a GitHub release: syncs the version from `package.json` into
+`src/shared/version.ts`, cross-compiles all four platform binaries, then runs
+`gh release create` to tag `v<version>` and attach each binary plus a
+`checksums.txt`. Not something you run day to day; see
+[setup.md](setup.md#installing) for how `scripts/install.sh` consumes these
+releases.
 
 ## Common development tasks
 
@@ -251,7 +252,6 @@ doc has a home:
 - [`architecture/`](architecture/overview.md): how components work, for contributors
 - [`guides/`](guides/): step-by-step walkthroughs
 - [`glossary.md`](glossary.md): the project's vocabulary
-- [`publishing.md`](publishing.md): the npm package layout and release steps
 - `develop.md`: this guide
 
 Write for a reader who's sharp but new to the code: explain the concept, show an

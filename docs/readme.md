@@ -7,7 +7,7 @@ manage them, and portless integration so services answer on hostnames like
 
 ## Getting started
 
-- [Setup and installation](setup.md): requirements, installing from npm or building from source, first run
+- [Setup and installation](setup.md): requirements, the install script or building from source, first run
 - [Day-to-day usage](usage.md): the dashboard, logs, adding services, desired state
 - [Guides](guides/): step-by-step walkthroughs
   - [Import a stack](guides/import-a-stack.md): load a `process-compose.yaml`
@@ -57,5 +57,4 @@ How outrider works under the hood:
 
 - [Contributing guide](contributing.md): where to start, and how to send changes
 - [Developing outrider](develop.md): environment, codebase, scripts, and common tasks
-- [Publishing to npm](publishing.md): the npm package layout and how to cut a release
 - [Feature analysis](feature-analysis/): working notes on requested features, before they are built

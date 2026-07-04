@@ -27,8 +27,8 @@ if (tooOld) {
   process.exit(1)
 }
 
-// Each cross-compile target maps to the npm package that ships it; see
-// scripts/publish.ts and docs/publishing.md for how these land there.
+// Each cross-compile target is a release asset attached by scripts/release.ts;
+// see scripts/install.sh for how they land on a user's machine.
 const TARGETS = ['bun-darwin-arm64', 'bun-darwin-x64', 'bun-linux-x64', 'bun-linux-arm64'] as const,
   all = process.argv.includes('--all'),
   targets = all ? [...TARGETS] : [undefined]
