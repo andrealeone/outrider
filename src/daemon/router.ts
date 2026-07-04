@@ -90,9 +90,20 @@ export class PortlessRouter implements Router {
     if (cli === null) return false
 
     this.log('starting portless proxy')
-    Bun.spawn({ cmd: [cli, 'proxy', 'start'], stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' })
+    const proc = Bun.spawn({
+      cmd: [cli, 'proxy', 'start'],
+      stdin: 'ignore',
+      stdout: 'ignore',
+      stderr: 'pipe',
+    })
     const up = await waitFor(() => this.proxyRunning(), PROXY_START_TIMEOUT_MS, 250)
-    if (!up) this.log('portless proxy did not come up; check "portless status"')
+    if (!up) {
+      if (proc.exitCode === null) proc.kill()
+      const stderr = (await new Response(proc.stderr).text()).trim()
+      this.log(
+        `portless proxy did not come up; run "portless doctor" to check${stderr ? `\n${stderr}` : ''}`,
+      )
+    }
     return up
   }
 
