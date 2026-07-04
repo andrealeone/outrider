@@ -2,13 +2,13 @@
 
 This is the guide for working _on_ outrider rather than _with_ it: getting the
 codebase running, finding your way around it, and keeping your changes healthy.
-It leans on the user-facing docs rather than repeating them: [setup](setup.md)
+It leans on the user-facing docs rather than repeating them: [install](install.md)
 for installing and building, and [contributing](contributing.md) for opening
 issues and sending pull requests.
 
 ## Getting set up
 
-The prerequisites and the supported Bun version live in [setup](setup.md#requirements);
+The prerequisites and the supported Bun version live in [install](install.md#requirements);
 once you have them, getting a working checkout is three commands:
 
 ```bash
@@ -189,7 +189,7 @@ It builds `dist/bin/outrider`, replaces `~/.local/bin/outrider`, and cycles the
 daemon (`outrider off && outrider on`) so the fresh binary takes over. For most
 work, `bun src/main.ts` is faster; reach for `compile` when you specifically need
 the installed-binary experience. The build itself is covered in
-[setup](setup.md#building-from-source).
+[install](install.md#building-from-source).
 
 A note on strict mode while you're in here: TypeScript runs stricter than its
 defaults, so every value has a known type, functions declare their returns,
@@ -202,8 +202,11 @@ Cuts a GitHub release: syncs the version from `package.json` into
 `src/shared/version.ts`, cross-compiles all four platform binaries, then runs
 `gh release create` to tag `v<version>` and attach each binary plus a
 `checksums.txt`. Not something you run day to day; see
-[setup.md](setup.md#installing) for how `scripts/install.sh` consumes these
+[install.md](install.md#installing) for how `scripts/install.sh` consumes these
 releases.
+
+Each of these commands wraps one or more files under `scripts/`; see
+[scripts.md](scripts.md) for what each individual script does.
 
 ## Common development tasks
 
@@ -246,12 +249,13 @@ components first; the patterns are consistent, so follow them.
 Docs ship with the code, so a feature without docs isn't finished. Each kind of
 doc has a home:
 
-- [`setup.md`](setup.md): installing, building, first run
+- [`install.md`](install.md): installing, building, first run, uninstalling
 - [`usage.md`](usage.md): day-to-day workflows
 - [`features/`](features/readme.md): capability deep-dives for end users
 - [`architecture/`](architecture/overview.md): how components work, for contributors
 - [`guides/`](guides/): step-by-step walkthroughs
 - [`glossary.md`](glossary.md): the project's vocabulary
+- [`scripts.md`](scripts.md): what each file under `scripts/` does
 - `develop.md`: this guide
 
 Write for a reader who's sharp but new to the code: explain the concept, show an

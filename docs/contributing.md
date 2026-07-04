@@ -18,7 +18,7 @@ help, and just as much your opinion on where it gets in your way.
 
 Start by running it, then read just enough to find your footing.
 
-1. **[Setup and installation](setup.md)**: clone, `bun install`, run straight
+1. **[Installing](install.md)**: clone, `bun install`, run straight
    from source (`bun src/main.ts`), no compile step needed for the inner loop.
 2. **[Day-to-day usage](usage.md)**: drive the dashboard for ten minutes so the
    model (desired state, the daemon, routing) clicks before you read about it.
