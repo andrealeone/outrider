@@ -32,7 +32,7 @@ Features unique to outrider:
 | Feature | Description |
 |---------|-------------|
 | **System-wide daemon** | A persistent per-user daemon that owns desired state across reboots and terminal sessions |
-| **portless integration** | Services answer on hostnames like `api.myapp.localhost` instead of memorized ports |
+| **Native routing** | Services answer on hostnames like `api.myapp.localhost` instead of memorized ports, via an in-process proxy — no external CLI |
 | **Standalone services** | Registry-native services with no backing configuration file |
 | **Global config sync** | Edit services at scale in `~/.config/outrider.yml` across all projects |
 | **Service tags** | Group services and start/stop entire tags with one command |
@@ -62,4 +62,4 @@ If you're coming from process-compose, outrider provides a seamless transition:
 - **API clients**: If you've built tools against the REST API, outrider's socket API provides equivalent capabilities
 - **Service management**: All core process management features translate directly
 
-The main differences are architectural: outrider's system-wide daemon model trades away REST/HTTP API access for persistent desired-state management, portless hostname routing, and config synchronization across your entire development environment.
+The main differences are architectural: outrider's system-wide daemon model trades away REST/HTTP API access for persistent desired-state management, native hostname routing, and config synchronization across your entire development environment.

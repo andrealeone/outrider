@@ -4,6 +4,16 @@ A high-level record of what outrider can do, newest first. Dates are coarse (mon
 and year only), and each line names a capability, not a commit. Follow the links for
 the detail behind any entry.
 
+## July 2026
+
+**Native routing.** The portless CLI dependency is gone: [routing](features/native-routing.md)
+is now an in-process reverse proxy owned entirely by the daemon, backed by the
+registry's own route table, with local CA/certificate minting and hot-swap built
+in (TLS is currently off by default — a Bun runtime limitation, not a design
+choice; see the [compatibility report](compatibility-report.md)). `x-portless`
+becomes `x-route`; static aliases are now derived automatically from a pinned
+port rather than a separate config flag.
+
 ## June 2026
 
 The first working shape of the tool: a persistent per-user daemon, an Ink dashboard,
@@ -28,7 +38,7 @@ top.
 
 **Routing**
 
-- [Portless routing](features/portless-routing.md): services answer on hostnames like
+- [Native routing](features/native-routing.md): services answer on hostnames like
   `api.myapp.localhost` instead of memorised ports, with static aliases for fixed-port
   targets.
 

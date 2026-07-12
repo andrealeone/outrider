@@ -59,7 +59,7 @@ services:
     autostart: true # optional, default false
     restart: on_failure # optional: no | on_failure | always
     tags: [web, edge] # optional
-    route: api # optional: see portless routing
+    route: api # optional: see native routing
     alias_port: 10020 # optional: fixed-port (alias) route
     namespace: backend # optional
     env: # optional

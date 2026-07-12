@@ -26,6 +26,12 @@ interface BindResult {
   port: number
 }
 
+/** The real bound port, which differs from the requested one when it was 0 (ephemeral). */
+const boundPort = (server: AnyServer): number => {
+  const address = server.address()
+  return typeof address === 'object' && address !== null ? address.port : 0
+}
+
 /** Bind primary, falling back to a well-known alternate on EACCES/EADDRINUSE. */
 const listenWithFallback = (
   server: AnyServer,
@@ -41,13 +47,13 @@ const listenWithFallback = (
       server.removeAllListeners('error')
       server.once('error', reject)
       server.listen(fallback, '0.0.0.0', () => {
-        resolve({ port: fallback })
+        resolve({ port: boundPort(server) })
       })
     }
     server.once('error', tryFallback)
     server.listen(primary, '0.0.0.0', () => {
       server.removeListener('error', tryFallback)
-      resolve({ port: primary })
+      resolve({ port: boundPort(server) })
     })
   })
 

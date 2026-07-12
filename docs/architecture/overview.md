@@ -12,7 +12,7 @@ CLI (one-shot commands)          TUI (Ink)
   |       |             |                   |
   |   scheduler --- supervisor --- prober   |
   |       |             |            |      |
-  |  json store      logger       router ------ portless proxy
+  |  json store      logger       router (in-process proxy)|
   +--------------------+--------------------+
                        |
              Bun.spawn process groups

@@ -12,10 +12,8 @@ because reopening such a decision is the expensive part, not the code.
 
 - [Companion API server](companion-api-server.md): a standalone Next.js app under
   `/api`, toggled by `outrider api on` / `off`, exposing the daemon over HTTP.
-- [Optional portless](optional-portless.md): make portless a chosen integration
-  rather than a hard runtime dependency.
-- [Container proxy](container-proxy.md): supervise containers and, when portless is
-  present, route their published ports onto hostnames.
+- [Container proxy](container-proxy.md): supervise containers and route their
+  published ports onto hostnames through the native router.
 - [outrider doctor](doctor.md): a diagnostics command that health-checks the install
   and its environment, pairing each finding with a fix.
 

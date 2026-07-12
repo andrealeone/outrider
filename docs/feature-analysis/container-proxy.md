@@ -1,11 +1,11 @@
 # Feature analysis: container proxy
 
-**Status:** proposed, not built. Depends on [optional portless](optional-portless.md).
+**Status:** proposed, not built.
 
 ## The request
 
-Let outrider run **containers** the way it runs processes, and, when portless is
-present, proxy the container's published ports onto human-readable hostnames. A
+Let outrider run **containers** the way it runs processes, and proxy the container's
+published ports onto human-readable hostnames through the native router. A
 container becomes another kind of managed service in the registry, supervised through
 the same desired-state model, and routed through the same Router boundary.
 
@@ -31,15 +31,15 @@ maps cleanly onto container lifecycle, so the reconciler, scheduler, and dashboa
 no new vocabulary.
 
 **Runtime behind an interface, like the Router.** Talk to the container runtime through
-a small `ContainerRuntime` boundary, the same discipline the Router gets for portless.
-This keeps Docker / Podman / nerdctl differences, and their absence, at one seam, and
-makes "no runtime installed" a graceful-degradation case rather than a crash.
+a small `ContainerRuntime` boundary, the same discipline the Router already models for
+routing. This keeps Docker / Podman / nerdctl differences, and their absence, at one
+seam, and makes "no runtime installed" a graceful-degradation case rather than a crash.
 
 **Ports → routes through the existing path.** When a container publishes a port and
-declares an `x-portless` route, the daemon registers that port with portless exactly as
-it does for a process. Because [portless is optional](optional-portless.md), a container
-on a machine without portless still runs and still publishes its port; it just answers
-on the port, not a hostname: the same *route pending* state defined there.
+declares an `x-route` route, the daemon registers that port with the native router
+exactly as it does for a process — `kind: static`, since the daemon doesn't own the
+container's port allocation the way it does for a spawned process (see
+[Router](../architecture/router.md)).
 
 **Reuse, don't reinvent.** Probes (an `http_get` against the published port or its
 route), `depends_on`, restart policy, logs (stream the container's stdout/stderr into
@@ -49,7 +49,8 @@ services with no new concepts.
 ## Open questions
 
 1. **Runtime support.** Docker first, or a runtime-agnostic interface from the start
-   (Podman, nerdctl, containerd)? Detection and absence handling mirror portless.
+   (Podman, nerdctl, containerd)? Detection and absence handling should follow the same
+   detect-and-degrade discipline as any other optional external tool.
 2. **Config surface.** How is a container service declared? An outrider-native schema,
    or compatibility with `process-compose`'s own container support if/where it exists?
    And does Compose-file import belong here?
@@ -60,7 +61,7 @@ services with no new concepts.
    and must be bounded.
 5. **Health.** Reuse outrider's probes, defer to the runtime's own healthcheck, or
    support both?
-6. **Routing a port range.** A container may publish several ports; the `x-portless`
+6. **Routing a port range.** A container may publish several ports; the `x-route`
    block currently models one route. Multi-port routing needs a defined shape.
 
 ## Risks
@@ -70,11 +71,11 @@ services with no new concepts.
   already-defined container's lifecycle and route one published port.
 - **Cross-runtime drift.** Docker and Podman differ in CLI and socket APIs; the
   `ContainerRuntime` boundary is what keeps that from leaking everywhere.
-- **Dependency posture.** A container runtime is a heavy external dependency. Like
-  portless, it should be *detected and optional*, never bundled or assumed.
+- **Dependency posture.** A container runtime is a heavy external dependency; it
+  should be *detected and optional*, never bundled or assumed.
 
 ## Sequencing
 
-Build after [optional portless](optional-portless.md), because the "runs without
-portless, gains hostnames when present" behaviour is shared and should exist once. The
-`ContainerRuntime` boundary should be modelled on the already-proven Router pattern.
+The `ContainerRuntime` boundary should be modelled on the already-proven Router
+pattern: one seam, graceful degradation when the runtime is absent, native routing
+for whatever it supervises.

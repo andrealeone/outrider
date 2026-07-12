@@ -5,12 +5,12 @@
 | Command                         | Behaviour                                                                                                                                                                                                      |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `outrider`                      | Opens the dashboard TUI. With the daemon off it opens in offline mode, showing the persisted registry and a prompt to switch the daemon on. With no TTY it degrades to a JSON state dump.                      |
-| `outrider on`                   | Starts the daemon: installs the launchd agent (macOS) or systemd user unit (Linux) pointing back at this binary, waits for the socket, reconciles autostart services, prints a one-line summary. Idempotent.   |
+| `outrider on`                   | Starts the daemon: installs the launchd agent (macOS) or systemd user unit (Linux) pointing back at this binary, waits for the socket, reconciles autostart services, prints a one-line summary. Also runs the routing proxy's foreground repair (CA trust, hosts sync) when TLS is on and something has drifted. Idempotent.   |
 | `outrider off`                  | Stops the daemon: removes the service unit (so nothing resurrects it), shuts services down through the signal ladder in reverse dependency order, persists state, removes the socket. Idempotent.              |
 | `outrider start <name…>`        | Sets the named targets desired up and starts them (dependencies included). Each name is a service id, stack, namespace, or [tag](features/service-tags.md). Requires the daemon to be running.                 |
 | `outrider stop <name…>`         | Sets the named targets desired down and stops them. Same name resolution as `start`. Requires the daemon to be running.                                                                                        |
 | `outrider sync [--yes]`         | Reconciles `~/.config/outrider.yml` into the registry. Seeds the file on first run; otherwise shows the diff as a checklist (or applies it directly with `--yes`). See [config sync](features/sync-config.md). |
-| `outrider preferences`          | Views or changes persisted user preferences (feature switches), e.g. `use-portless` and `theme`. `[list]` / `get <key>` / `set <key> <value>` / `reset [<key>]`. See [Preferences](#preferences) below.        |
+| `outrider preferences`          | Views or changes persisted user preferences (feature switches), e.g. `theme`. `[list]` / `get <key>` / `set <key> <value>` / `reset [<key>]`. See [Preferences](#preferences) below.        |
 | `outrider --help` / `--version` | The usual.                                                                                                                                                                                                     |
 
 ## Hidden commands
@@ -44,7 +44,6 @@ renders an interactive checklist (see [config sync](features/sync-config.md)).
 
 | Key            | Values           | Effect                                                                                                            |
 | -------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `use-portless` | `on` / `off`     | Off is the persisted equivalent of `OUTRIDER_NO_PORTLESS=1`: `hasPortless()` reports unavailable even if the portless CLI is on `PATH`, so the daemon boots a `NoopRouter` and every routing-dependent TUI surface degrades the same way it does when portless isn't installed. Takes effect on the next daemon restart, same as installing/removing portless itself. |
 | `theme`        | `default` / `light` | Persisted equivalent of `OUTRIDER_THEME=light`.                                                                   |
 
 An env var always overrides the matching preference, so scripts and tests can force
@@ -72,7 +71,8 @@ shape: `{ "error": { "code", "message" } }`. Clients handshake via `GET
 | `GET /v1/info`                                    | daemon version, protocol, pid (handshake)                            |
 | `GET /v1/state`                                   | full snapshot of every service                                       |
 | `GET /v1/registry`                                | the persisted desired model                                          |
-| `GET /v1/routes`                                  | portless proxy status and route table                                |
+| `GET /v1/routes`                                  | the route table, with per-route liveness                             |
+| `GET /v1/proxy`                                   | routing proxy status: `inspect()`, TLD, and every registered hostname (what `outrider on`'s repair step reads) |
 | `POST /v1/up` `{names?, noDeps?}`                 | set desired up (deps included unless noDeps) and start               |
 | `POST /v1/down` `{names?}`                        | set desired down and stop                                            |
 | `POST /v1/import` `{path, dryRun?}`               | import or refresh a stack; dry run returns the report only           |
