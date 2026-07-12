@@ -13,7 +13,7 @@ export interface ProbeAttachment {
   cwd: string
   /** PORT injected for routed services, used as the http_get fallback port. */
   port?: string
-  /** When routed, http probes target the portless route: the exact user path. */
+  /** When routed, http probes target the route: the exact user path. */
   routeUrl?: string
   /** Called on ready/not-ready transitions (after failure_threshold breaches). */
   onTransition: (ok: boolean) => void

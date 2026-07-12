@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import type { ProcessStatus, ServiceState } from '@/shared/types/protocol'
-import type { RouteBinding, Router, RouterStatus } from '@/shared/types/router'
+import type { RouteKind } from '@/shared/types/registry'
+import type { RouteBinding, RouteInfo, Router, RouterInspection } from '@/shared/types/router'
 
 import { Client } from '@/shared/client'
 import { waitFor } from '@/shared/utils/time'
@@ -22,32 +23,45 @@ const tmp = mkdtempSync(join(tmpdir(), 'outrider-test-'))
 const socket = join(tmp, 'test.sock')
 
 class FakeRouter implements Router {
-  readonly available = true
   registered = new Map<string, number>()
-  ensureProxy(): Promise<boolean> {
-    return Promise.resolve(true)
-  }
-  aliased = new Set<string>()
-  register(route: string, port: number, alias = false): Promise<RouteBinding> {
-    this.registered.set(route, port)
-    if (alias) this.aliased.add(route)
+  private routes = new Map<string, { kind: RouteKind; service?: string; port: number }>()
+
+  ensureReady(): Promise<RouterInspection> {
     return Promise.resolve({
-      route,
-      hostname: `${route}.localhost`,
-      port,
-      url: `https://${route}.localhost`,
+      listening: true,
+      port: 80,
+      tls: false,
+      certTrusted: false,
+      hostsSynced: false,
+      issues: [],
     })
   }
-  unregister(route: string): Promise<void> {
-    this.registered.delete(route)
-    this.aliased.delete(route)
+  hostnameFor(label: string): string {
+    return `${label}.localhost`
+  }
+  urlFor(hostname: string): string {
+    return `http://${hostname}`
+  }
+  register(hostname: string, port: number, kind: RouteKind, service?: string): Promise<RouteBinding> {
+    this.registered.set(hostname, port)
+    this.routes.set(hostname, { kind, service, port })
+    return Promise.resolve({ hostname, port, url: this.urlFor(hostname) })
+  }
+  unregister(hostname: string): Promise<void> {
+    this.registered.delete(hostname)
+    this.routes.delete(hostname)
     return Promise.resolve()
   }
-  urlFor(route: string): string {
-    return `https://${route}.localhost`
+  list(): RouteInfo[] {
+    return [...this.routes.entries()].map(([hostname, r]) => ({
+      hostname,
+      ...r,
+      url: this.urlFor(hostname),
+      live: true,
+    }))
   }
-  status(): Promise<RouterStatus> {
-    return Promise.resolve({ available: true, proxyRunning: true, routes: [] })
+  inspect(): RouterInspection {
+    return { listening: true, port: 80, tls: false, certTrusted: false, hostsSynced: false, issues: [] }
   }
 }
 
@@ -82,7 +96,7 @@ beforeAll(() => {
   const registry = new Registry(store, bus)
   reconciler = new Reconciler(registry, supervisor, fakeRouter, bus, logger)
   api = new Api({
-    info: { version: APP_VERSION, protocol: PROTOCOL_VERSION, pid: process.pid, startedAt: 'now', portless: true },
+    info: { version: APP_VERSION, protocol: PROTOCOL_VERSION, pid: process.pid, startedAt: 'now' },
     registry,
     reconciler,
     logger,
@@ -206,18 +220,18 @@ describe('daemon over the socket', () => {
     })
     await client.start('routed')
     const state = await waitForStatus('routed', 'running')
-    expect(state.routeUrl).toBe('https://routed.localhost')
-    expect(fakeRouter.registered.has('routed')).toBe(true)
+    expect(state.routeUrl).toBe('http://routed.localhost')
+    expect(fakeRouter.registered.has('routed.localhost')).toBe(true)
 
     await waitFor(async () => (await client.logs('routed')).length > 0, 3000)
     const logs = await client.logs('routed')
-    expect(logs.some((l) => /url=https:\/\/routed\.localhost port=\d+/.test(l.line))).toBe(true)
+    expect(logs.some((l) => /url=http:\/\/routed\.localhost port=\d+/.test(l.line))).toBe(true)
     await client.stop('routed')
     await waitForStatus('routed', 'completed')
-    expect(fakeRouter.registered.has('routed')).toBe(false)
+    expect(fakeRouter.registered.has('routed.localhost')).toBe(false)
   })
 
-  test('alias-port services register a static alias on the fixed port', async () => {
+  test('alias-port services register at the pinned port', async () => {
     await client.addService({
       name: 'external',
       command: 'sleep 60',
@@ -226,12 +240,24 @@ describe('daemon over the socket', () => {
     })
     await client.start('external')
     await waitForStatus('external', 'running')
-    expect(fakeRouter.aliased.has('external')).toBe(true)
-    expect(fakeRouter.registered.get('external')).toBe(10020)
+    expect(fakeRouter.registered.get('external.localhost')).toBe(10020)
 
     await client.stop('external')
     await waitForStatus('external', 'completed')
-    expect(fakeRouter.aliased.has('external')).toBe(false)
+  })
+
+  test('route names must be unique system-wide', async () => {
+    await client.addService({ name: 'dup-route-1', command: 'sleep 60', route: 'dup' })
+
+    let rejection: Error | undefined
+    try {
+      await client.addService({ name: 'dup-route-2', command: 'sleep 60', route: 'dup' })
+    } catch (err) {
+      rejection = err as Error
+    }
+    expect(rejection?.message).toMatch(/unique/i)
+
+    await client.removeService('dup-route-1')
   })
 
   test('service lifecycle: edit restarts a live service, delete removes it', async () => {
@@ -316,143 +342,5 @@ describe('daemon over the socket', () => {
     const body = (await res.json()) as { error: { code: string; message: string } }
     expect(body.error.code).toBe('not-found')
     expect(body.error.message).toContain('ghost')
-  })
-})
-
-// eslint-disable-next-line max-classes-per-file
-class NoopFakeRouter implements Router {
-  readonly available = false
-  registered = new Map<string, number>()
-  aliased = new Set<string>()
-
-  ensureProxy(): Promise<boolean> {
-    return Promise.resolve(false)
-  }
-
-  register(route: string, port: number, alias = false): Promise<RouteBinding> {
-    this.registered.set(route, port)
-    if (alias) this.aliased.add(route)
-    return Promise.resolve({
-      route,
-      hostname: `${route}.localhost`,
-      port,
-      url: `http://${route}.localhost:80`,
-    })
-  }
-
-  unregister(route: string): Promise<void> {
-    this.registered.delete(route)
-    this.aliased.delete(route)
-    return Promise.resolve()
-  }
-
-  urlFor(route: string): string {
-    return `http://${route}.localhost:80`
-  }
-
-  status(): Promise<RouterStatus> {
-    return Promise.resolve({ available: false, proxyRunning: false, routes: [] })
-  }
-}
-
-describe('daemon without portless', () => {
-  const tmpNoPortless = mkdtempSync(join(tmpdir(), 'outrider-test-noop-'))
-  const socketNoPortless = join(tmpNoPortless, 'test.sock')
-  let apiNoPortless: Api
-  let reconcilerNoPortless: Reconciler
-  const clientNoPortless = new Client(socketNoPortless)
-
-  beforeAll(() => {
-    const store = new StateStore(
-      join(tmpNoPortless, 'registry.json'),
-      join(tmpNoPortless, 'journal.jsonl'),
-    )
-    const bus = new EventBus()
-    const logger = new Logger(bus)
-    const supervisor = new Supervisor(logger, new Prober(), bus, (r) => {
-      store.appendJournal(r)
-    })
-    const registry = new Registry(store, bus)
-    const noopRouter = new NoopFakeRouter()
-    reconcilerNoPortless = new Reconciler(registry, supervisor, noopRouter, bus, logger)
-    apiNoPortless = new Api({
-      info: { version: APP_VERSION, protocol: PROTOCOL_VERSION, pid: process.pid, startedAt: 'now', portless: false },
-      registry,
-      reconciler: reconcilerNoPortless,
-      logger,
-      router: noopRouter,
-      bus,
-      onShutdown: () => {},
-    })
-    apiNoPortless.listen(socketNoPortless)
-    reconcilerNoPortless.start()
-  })
-
-  afterAll(async () => {
-    await reconcilerNoPortless.shutdownAll()
-    apiNoPortless.stop()
-    rmSync(tmpNoPortless, { recursive: true, force: true })
-  })
-
-  const stateOfNoPortless = async (id: string): Promise<ServiceState | undefined> => {
-    const snapshot = await clientNoPortless.state()
-    return snapshot.services.find((s) => s.entry.id === id)
-  }
-
-  const waitForStatusNoPortless = async (
-    id: string,
-    status: ProcessStatus,
-    timeout = 8000,
-  ): Promise<ServiceState> => {
-    const ok = await waitFor(async () => (await stateOfNoPortless(id))?.status === status, timeout, 60)
-    const state = await stateOfNoPortless(id)
-    if (!ok) throw new Error(`"${id}" never reached ${status}; last: ${state?.status}`)
-    return state as ServiceState
-  }
-
-  test('handshake reports portless as unavailable', async () => {
-    const info = await clientNoPortless.info()
-    expect(info.portless).toBe(false)
-  })
-
-  test('routed service marks route as pending and only injects PORT', async () => {
-    await clientNoPortless.addService({
-      name: 'pending-route',
-      command: 'echo "port=$PORT url=$OUTRIDER_URL" && sleep 60',
-      route: 'pending',
-    })
-    await clientNoPortless.start('pending-route')
-    const state = await waitForStatusNoPortless('pending-route', 'running')
-
-    expect(state.routePending).toBe(true)
-    expect(state.routeUrl).toContain('pending.localhost')
-
-    await waitFor(async () => (await clientNoPortless.logs('pending-route')).length > 0, 3000)
-    const logs = await clientNoPortless.logs('pending-route')
-    const logLine = logs.find((l) => l.line.includes('port='))?.line ?? ''
-
-    // PORT should be present; OUTRIDER_URL should not (it was never set in env)
-    expect(/port=\d+/.test(logLine)).toBe(true)
-    expect(logLine).not.toContain('url=http://')
-    expect(logLine).toContain('url=')
-
-    await clientNoPortless.stop('pending-route')
-    await waitForStatusNoPortless('pending-route', 'completed')
-  })
-
-  test('route config enforces uniqueness even without portless', async () => {
-    await clientNoPortless.addService({ name: 'dup-route-1', command: 'sleep 60', route: 'dup' })
-
-    // Route uniqueness is enforced system-wide at add time, independent of
-    // whether portless is installed to actually serve the route.
-    let rejection: Error | undefined
-    try {
-      await clientNoPortless.addService({ name: 'dup-route-2', command: 'sleep 60', route: 'dup' })
-    } catch (err) {
-      rejection = err as Error
-    }
-    expect(rejection?.message).toMatch(/already claimed|unique/i)
-
-    await clientNoPortless.removeService('dup-route-1')
   })
 })

@@ -38,19 +38,17 @@ export const runDaemon = async (): Promise<void> => {
   mkdirSync(runtimeDir, { recursive: true })
   removeIfExists(socketPath)
 
-  // The router is the single source of truth for portless availability; the
-  // handshake and the reconciler both read it, so they can never disagree.
-  const router = createRouter(log)
   const info: DaemonInfo = {
     version: APP_VERSION,
     protocol: PROTOCOL_VERSION,
     pid: process.pid,
     startedAt: nowIso(),
-    portless: router.available,
   }
 
   const store = new StateStore()
   const bus = new EventBus()
+  const registry = new Registry(store, bus)
+  const router = createRouter(registry, log)
   const logger = new Logger(bus)
   const prober = new Prober()
   const supervisor = new Supervisor(
@@ -62,7 +60,6 @@ export const runDaemon = async (): Promise<void> => {
     },
     store.loadRestartCounters(),
   )
-  const registry = new Registry(store, bus)
   const reconciler = new Reconciler(registry, supervisor, router, bus, logger)
   const api = new Api({
     info,
@@ -106,6 +103,9 @@ export const runDaemon = async (): Promise<void> => {
   api.listen(socketPath)
   writeFileSync(lockPath, String(process.pid))
   store.appendJournal({ ts: nowIso(), type: 'daemon', data: { event: 'start', pid: process.pid } })
+  await router.ensureReady().catch((err: Error) => {
+    log(`routing proxy not ready: ${err.message}`)
+  })
   reconciler.start()
   bus.emit({ type: 'daemon', status: 'ready' })
   log(`outrider daemon ${APP_VERSION} listening on ${socketPath}`)

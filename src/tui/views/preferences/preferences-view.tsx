@@ -9,12 +9,11 @@ import {
   setPreference,
 } from '@/shared/utils/preferences'
 
-type Field = 'use-portless' | 'theme'
+type Field = 'theme'
 
-const FIELDS: Field[] = ['use-portless', 'theme']
+const FIELDS: Field[] = ['theme']
 
 const DESCRIPTIONS: Record<Field, string> = {
-  'use-portless': 'route services through portless when installed',
   'theme': 'dashboard palette',
 }
 
@@ -29,16 +28,9 @@ export const PreferencesView = () => {
   const [cursor, setCursor] = useState(0)
 
   const flip = (): void => {
-    const field = FIELDS[cursor]
-    if (field === 'use-portless') {
-      const next = !prefs.usePortless
-      setPreference('use-portless', next ? 'on' : 'off')
-      setPrefs((p) => ({ ...p, usePortless: next }))
-    } else {
-      const next: Preferences['theme'] = prefs.theme === 'default' ? 'light' : 'default'
-      setPreference('theme', next)
-      setPrefs((p) => ({ ...p, theme: next }))
-    }
+    const next: Preferences['theme'] = prefs.theme === 'default' ? 'light' : 'default'
+    setPreference('theme', next)
+    setPrefs((p) => ({ ...p, theme: next }))
   }
 
   useInput((input, key) => {
@@ -47,7 +39,6 @@ export const PreferencesView = () => {
     else if (key.upArrow || input === 'k') setCursor((c) => Math.max(c - 1, 0))
     else if (input === ' ' || key.return || key.leftArrow || key.rightArrow) flip()
     else if (input === 'r') {
-      setPreference('use-portless', DEFAULT_PREFERENCES.usePortless ? 'on' : 'off')
       setPreference('theme', DEFAULT_PREFERENCES.theme)
       setPrefs({ ...DEFAULT_PREFERENCES })
     }
@@ -61,16 +52,14 @@ export const PreferencesView = () => {
       <Box flexDirection="column" marginTop={1}>
         {FIELDS.map((field, i) => {
           const focused = i === cursor
-          const value = field === 'use-portless' ? (prefs.usePortless ? 'on' : 'off') : prefs.theme
-          const valueColor =
-            field === 'use-portless' ? (prefs.usePortless ? theme.ok : theme.dim) : undefined
+          const value = prefs.theme
           return (
             <Box key={field}>
               <Text color={focused ? theme.accent : undefined}>{focused ? '› ' : '  '}</Text>
               <Box width={14}>
                 <Text bold={focused}>{field}</Text>
               </Box>
-              <Text color={valueColor}>{value}</Text>
+              <Text>{value}</Text>
               <Text color={theme.dim}> · {DESCRIPTIONS[field]}</Text>
             </Box>
           )

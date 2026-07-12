@@ -21,7 +21,13 @@ const def = (over: Partial<ServiceDefinition> = {}): ServiceDefinition => ({
 
 beforeEach(() => {
   const store = new StateStore(join(tmp, 'registry.json'), join(tmp, 'journal.jsonl'))
-  store.saveRegistry({ version: 1, stacks: {}, services: {} })
+  store.saveRegistry({
+    version: 1,
+    stacks: {},
+    services: {},
+    routes: {},
+    proxy: { port: 80, tls: false, tld: 'localhost' },
+  })
   registry = new Registry(store, new EventBus())
 })
 

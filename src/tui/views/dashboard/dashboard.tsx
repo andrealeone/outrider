@@ -235,7 +235,6 @@ export const Dashboard = ({
         width={width}
         frame={frame}
         online={daemon.connection === 'online'}
-        portless={daemon.daemon?.portless ?? true}
       />
       <Box flexGrow={1} />
       {confirmOff ? (

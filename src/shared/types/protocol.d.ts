@@ -37,10 +37,8 @@ export interface ServiceState {
   exitCode?: number
   startedAt?: string
   instances: InstanceState[]
-  /** Public URL when the service is routed through portless. */
+  /** Public URL when the service is routed. */
   routeUrl?: string
-  /** Route declared but portless not installed; routeUrl shows what would work. */
-  routePending?: boolean
 }
 
 export interface DaemonInfo {
@@ -48,8 +46,6 @@ export interface DaemonInfo {
   protocol: number
   pid: number
   startedAt: string
-  /** Whether the portless CLI is available on PATH. */
-  portless: boolean
 }
 
 export interface StateSnapshot {
@@ -82,8 +78,8 @@ export interface ServiceDefinition {
   env?: Record<string, string>
   route?: string
   /**
-   * When set, the route is a static portless alias pointing at this fixed
-   * port — for external tools that manage their own port and ignore the
+   * When set, the route is pinned to this fixed port instead of an
+   * allocated one — for tools that manage their own port and ignore the
    * injected PORT. Requires `route`.
    */
   aliasPort?: number

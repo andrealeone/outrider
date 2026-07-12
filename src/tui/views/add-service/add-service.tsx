@@ -35,19 +35,14 @@ type Field = (typeof ALL_FIELDS)[number]
 /** Form wizard for a standalone service, validated live against the daemon. */
 export const AddService = ({ daemon, active, edit, onDone }: Props) => {
   const editing = edit !== undefined
-  const routingAvailable = daemon.daemon?.portless ?? false
-  const fields = routingAvailable
-    ? [...ALL_FIELDS]
-    : ALL_FIELDS.filter((f) => f !== 'route' && f !== 'aliasPort')
+  const fields = [...ALL_FIELDS]
 
   const [field, setField] = useState<Field>(editing ? 'command' : 'name')
   const [name, setName] = useState(edit?.name ?? '')
   const [command, setCommand] = useState(edit?.config.command ?? '')
   const [workingDir, setWorkingDir] = useState(edit?.config.working_dir ?? '')
   const [route, setRoute] = useState(edit?.route?.route ?? '')
-  const [aliasPort, setAliasPort] = useState(
-    edit?.route?.alias ? String(edit.route.port ?? '') : '',
-  )
+  const [aliasPort, setAliasPort] = useState(edit?.route?.port !== undefined ? String(edit.route.port) : '')
   const [restartIndex, setRestartIndex] = useState(
     Math.max(0, RESTART_OPTIONS.indexOf((edit?.config.availability?.restart ?? 'no') as never)),
   )
@@ -157,17 +152,13 @@ export const AddService = ({ daemon, active, edit, onDone }: Props) => {
         )}
         {textField('command', command, setCommand, 'command', 'bun run server.ts')}
         {textField('working dir', workingDir, setWorkingDir, 'workingDir', '(home)')}
-        {routingAvailable && (
-          <>
-            {textField('route', route, setRoute, 'route', '(none — e.g. api → api.localhost)')}
-            {textField(
-              'alias port',
-              aliasPort,
-              setAliasPort,
-              'aliasPort',
-              '(none — fixed port for external tools, e.g. 10020)',
-            )}
-          </>
+        {textField('route', route, setRoute, 'route', '(none — e.g. api → api.localhost)')}
+        {textField(
+          'alias port',
+          aliasPort,
+          setAliasPort,
+          'aliasPort',
+          '(none — fixed port for external tools, e.g. 10020)',
         )}
         {textField('tags', tags, setTags, 'tags', '(none — comma-separated, e.g. web, db)')}
         <Box>

@@ -12,9 +12,9 @@ export const userHome = (): string => {
 
 /**
  * Directories that hold user-installed tools but are routinely missing from
- * the minimal PATH a launchd agent / systemd user unit inherits. Portless and
- * other globally installed CLIs land here (e.g. ~/.bun/bin, ~/.local/bin), so
- * both spawned services and our own command lookups must consult them.
+ * the minimal PATH a launchd agent / systemd user unit inherits. Globally
+ * installed CLIs land here (e.g. ~/.bun/bin, ~/.local/bin), so both spawned
+ * services and our own command lookups must consult them.
  */
 export const commonPathEntries = (): string[] => {
   const home = userHome()

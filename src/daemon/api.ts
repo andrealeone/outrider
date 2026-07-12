@@ -109,7 +109,7 @@ export class Api {
       return json({ daemon: info, services: reconciler.snapshot() })
     }
     if (method === 'GET' && head === 'registry') return json(registry.snapshot())
-    if (method === 'GET' && head === 'routes') return json(await router.status())
+    if (method === 'GET' && head === 'routes') return json(router.list())
 
     if (method === 'POST' && head === 'up') {
       const { names, noDeps } = await body<UpDownBody>()

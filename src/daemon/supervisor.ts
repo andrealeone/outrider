@@ -280,8 +280,8 @@ export class Supervisor {
     env.OUTRIDER_SERVICE = entry.id
     env.OUTRIDER_PROC_NAME = inst.name
     env.OUTRIDER_REPLICA_NUM = String(inst.replica)
-    // OUTRIDER_URL arrives via routeEnv, which the reconciler populates only
-    // when portless is available; a route-pending service must not see it.
+    // OUTRIDER_URL arrives via routeEnv, populated by the reconciler once the
+    // route is registered.
 
     return Object.fromEntries(
       Object.entries(env).filter((kv): kv is [string, string] => kv[1] !== undefined),

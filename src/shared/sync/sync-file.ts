@@ -56,7 +56,7 @@ export const entryToSyncService = (entry: ServiceEntry): SyncService => {
   if (restart !== undefined && restart !== 'no') svc.restart = restart as SyncService['restart']
   if (entry.tags && entry.tags.length > 0) svc.tags = entry.tags
   if (entry.route?.route) svc.route = entry.route.route
-  if (entry.route?.alias && entry.route.port !== undefined) svc.alias_port = entry.route.port
+  if (entry.route?.port !== undefined) svc.alias_port = entry.route.port
   if (entry.namespace) svc.namespace = entry.namespace
   const env = parseEnvLines(entry.config.environment)
   if (env) svc.env = env

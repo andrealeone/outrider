@@ -1,6 +1,6 @@
-// Portless's run wrapper injects --port flags for frameworks that ignore the
-// PORT environment variable. Outrider owns spawning, so that duty transfers
-// here: the same small quirk table, applied to routed services only.
+// Some dev-server frameworks ignore the injected PORT environment variable
+// and need an explicit --port flag instead. This table covers the common
+// ones, applied to routed services only.
 
 const PORT_FLAG_FRAMEWORKS = [
   'vite',
@@ -27,7 +27,7 @@ const detect = (command: string): string | undefined =>
 
 /**
  * Append the --port flag for frameworks that ignore an injected PORT.
- * `framework` comes from x-portless (default "auto" sniffs the command,
+ * `framework` comes from x-route (default "auto" sniffs the command,
  * "none" disables injection, anything else is an explicit table hint).
  */
 export const applyFrameworkQuirks = (

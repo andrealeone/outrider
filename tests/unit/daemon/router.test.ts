@@ -1,88 +1,68 @@
-import { describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, test } from 'bun:test'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-import type { Router } from '@/shared/types/router'
-
-import { resetPortlessCache } from '@/shared/utils/portless'
+import { EventBus } from '@/daemon/event-bus'
+import { Registry } from '@/daemon/registry'
 import { createRouter } from '@/daemon/router'
+import { StateStore } from '@/daemon/state-store'
 
-const noop = () => {}
+const tmp = mkdtempSync(join(tmpdir(), 'outrider-router-'))
+const store = new StateStore(join(tmp, 'registry.json'), join(tmp, 'journal.jsonl'))
+const registry = new Registry(store, new EventBus())
+const router = createRouter(registry, () => {})
 
-describe('createRouter factory', () => {
-  test('returns NoopRouter when portless is absent', () => {
-    const prev = process.env.OUTRIDER_PORTLESS_BIN
-    process.env.OUTRIDER_PORTLESS_BIN = '/nonexistent'
-    resetPortlessCache()
-    const router = createRouter(noop)
-    expect(router.constructor.name).toBe('NoopRouter')
-    process.env.OUTRIDER_PORTLESS_BIN = prev
-    resetPortlessCache()
-  })
+afterAll(() => {
+  rmSync(tmp, { recursive: true, force: true })
 })
 
-describe('NoopRouter', () => {
-  // Use a guaranteed absent portless by setting OUTRIDER_PORTLESS_BIN to a non-existent path
-  // beforeEach would be nice but bun:test doesn't support it in the same way, so we create
-  // the router in each test with the override set
-  const withAbsentPortless = (fn: (router: Router) => void | Promise<void>): (() => void | Promise<void>) => {
-    return async () => {
-      const prev = process.env.OUTRIDER_PORTLESS_BIN
-      process.env.OUTRIDER_PORTLESS_BIN = '/nonexistent/portless'
-      resetPortlessCache()
-      const r = createRouter(noop)
-      try {
-        await fn(r)
-      } finally {
-        process.env.OUTRIDER_PORTLESS_BIN = prev
-        resetPortlessCache()
-      }
+describe('NativeRouter', () => {
+  test('hostnameFor appends the default tld', () => {
+    expect(router.hostnameFor('api')).toBe('api.localhost')
+  })
+
+  test('urlFor builds a URL for a hostname', () => {
+    const url = router.urlFor('myroute.localhost')
+    expect(url).toContain('myroute.localhost')
+    expect(url.startsWith('http://')).toBe(true)
+  })
+
+  test('register starts the proxy and returns a binding', async () => {
+    const binding = await router.register('api.localhost', 8080, 'managed', 'api')
+    expect(binding.hostname).toBe('api.localhost')
+    expect(binding.port).toBe(8080)
+    expect(binding.url).toContain('api.localhost')
+  })
+
+  test('ensureReady reports the proxy listening', async () => {
+    const inspection = await router.ensureReady()
+    expect(inspection.listening).toBe(true)
+    expect(inspection.issues).toEqual([])
+  })
+
+  test('list reflects registered routes', () => {
+    const routes = router.list()
+    expect(routes.some((r) => r.hostname === 'api.localhost' && r.service === 'api')).toBe(true)
+  })
+
+  test('re-registering the same service is idempotent', async () => {
+    const binding = await router.register('api.localhost', 9090, 'managed', 'api')
+    expect(binding.port).toBe(9090)
+  })
+
+  test('registering a hostname claimed by a different service conflicts', async () => {
+    let error: Error | undefined
+    try {
+      await router.register('api.localhost', 8081, 'managed', 'other')
+    } catch (err) {
+      error = err as Error
     }
-  }
+    expect(error?.message).toMatch(/claimed/)
+  })
 
-  test(
-    'ensureProxy returns false',
-    withAbsentPortless(async (r) => {
-      const result = await r.ensureProxy()
-      expect(result).toBe(false)
-    }),
-  )
-
-  test(
-    'register returns a binding with computed hostname',
-    withAbsentPortless(async (r) => {
-      const binding = await r.register('testapi', 8080)
-      expect(binding.route).toBe('testapi')
-      expect(binding.port).toBe(8080)
-      expect(binding.hostname).toBe('testapi.localhost')
-      expect(binding.url).toContain('testapi.localhost')
-      expect(binding.url.startsWith('http://')).toBe(true)
-    }),
-  )
-
-  test(
-    'unregister resolves without error',
-    withAbsentPortless(async (r) => {
-      await r.unregister('testapi')
-      // Should not throw
-      expect(true).toBe(true)
-    }),
-  )
-
-  test(
-    'urlFor returns computed URL for a route',
-    withAbsentPortless((r) => {
-      const url = r.urlFor('myroute')
-      expect(url).toContain('myroute.localhost')
-      expect(url.startsWith('http://')).toBe(true)
-    }),
-  )
-
-  test(
-    'status returns unavailable',
-    withAbsentPortless(async (r) => {
-      const status = await r.status()
-      expect(status.available).toBe(false)
-      expect(status.proxyRunning).toBe(false)
-      expect(status.routes).toEqual([])
-    }),
-  )
+  test('unregister removes the route', async () => {
+    await router.unregister('api.localhost')
+    expect(router.list().some((r) => r.hostname === 'api.localhost')).toBe(false)
+  })
 })

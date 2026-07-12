@@ -19,14 +19,8 @@ afterEach(() => {
 })
 
 describe('preferences', () => {
-  test('defaults to usePortless on and the default theme', () => {
+  test('defaults to the default theme', () => {
     expect(readPreferences(path)).toEqual(DEFAULT_PREFERENCES)
-  })
-
-  test('set/get round-trip a boolean preference', () => {
-    setPreference('use-portless', 'off', path)
-    expect(getPreference('use-portless', path)).toBe('false')
-    expect(readPreferences(path).usePortless).toBe(false)
   })
 
   test('set/get round-trip the theme preference', () => {
@@ -43,29 +37,25 @@ describe('preferences', () => {
 
   test('rejects a malformed value', () => {
     expect(() => {
-      setPreference('use-portless', 'maybe', path)
-    }).toThrow(/not on\/off/)
-    expect(() => {
       setPreference('theme', 'purple', path)
     }).toThrow(/not a theme/)
   })
 
   test('reset restores a single key to its default', () => {
-    setPreference('use-portless', 'off', path)
-    resetPreference('use-portless', path)
-    expect(readPreferences(path).usePortless).toBe(true)
+    setPreference('theme', 'light', path)
+    resetPreference('theme', path)
+    expect(readPreferences(path).theme).toBe('default')
   })
 
   test('reset with no key restores every preference', () => {
-    setPreference('use-portless', 'off', path)
     setPreference('theme', 'light', path)
     resetPreference(undefined, path)
     expect(readPreferences(path)).toEqual(DEFAULT_PREFERENCES)
   })
 
   test('persists across reads by writing to disk', () => {
-    setPreference('use-portless', 'off', path)
-    expect(readPreferences(path).usePortless).toBe(false)
+    setPreference('theme', 'light', path)
+    expect(readPreferences(path).theme).toBe('light')
   })
 })
 

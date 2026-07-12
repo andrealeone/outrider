@@ -1,9 +1,29 @@
 // The desired-state model persisted in registry.json. The daemon is the only
 // writer; the TUI reads it directly only in offline mode.
 
-import type { PortlessExtension, ProcessConfig, ShellConfig } from '@/shared/types/process-compose'
+import type { ProcessConfig, RouteExtension, ShellConfig } from '@/shared/types/process-compose'
 
 export type DesiredState = 'up' | 'down'
+
+export type RouteKind = 'managed' | 'static'
+
+/** One entry in the route table: a live hostname-to-port binding. */
+export interface RouteRecord {
+  hostname: string
+  kind: RouteKind
+  /** Owning service id for managed routes, absent for static ones. */
+  service?: string
+  port: number
+}
+
+/** Proxy configuration, persisted so a daemon restart reuses it. */
+export interface ProxySettings {
+  port: number
+  tls: boolean
+  tld: string
+  certPath?: string
+  keyPath?: string
+}
 
 export interface StackEntry {
   name: string
@@ -33,13 +53,15 @@ export interface ServiceEntry {
   /** Directory .env, env_file, and working_dir resolve against. */
   dir: string
   shell?: ShellConfig
-  route?: PortlessExtension
+  route?: RouteExtension
 }
 
 export interface RegistryModel {
   version: 1
   stacks: Record<string, StackEntry>
   services: Record<string, ServiceEntry>
+  routes: Record<string, RouteRecord>
+  proxy: ProxySettings
 }
 
 /** One line of journal.jsonl: an append-only daemon event record. */

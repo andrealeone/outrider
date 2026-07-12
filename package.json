@@ -41,7 +41,6 @@
   },
   "dependencies": {
     "ink": "^7.1.0",
-    "react": "^19.2.7",
-    "portless": "0.15.1"
+    "react": "^19.2.7"
   }
 }

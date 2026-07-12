@@ -21,8 +21,6 @@ const TICK_DEBOUNCE_MS = 30
 export class Reconciler {
   /** Services that should be brought up once their gates open. */
   private readonly pendingUp = new Map<string, { noDeps: boolean }>()
-  /** Service IDs with routes declared but portless unavailable. */
-  private readonly pendingRoutes = new Set<string>()
   private interval?: ReturnType<typeof setInterval>
   private debounce?: ReturnType<typeof setTimeout>
   private ticking = false
@@ -46,16 +44,10 @@ export class Reconciler {
         event.service.entry.route &&
         ['completed', 'error', 'skipped'].includes(event.service.status)
       ) {
-        void this.router.unregister(event.service.entry.route.route).catch(() => undefined)
+        const hostname = this.router.hostnameFor(event.service.entry.route.route)
+        void this.router.unregister(hostname).catch(() => undefined)
       }
     })
-    // Static aliases (pid 0) survive portless's stale-route cleanup, so a
-    // crashed daemon leaves them dangling at ports nothing listens on. Clear
-    // every known alias on boot; the resume pass re-registers the ones that
-    // come back up, and the rest stay gone until their service starts.
-    for (const s of this.registry.list()) {
-      if (s.route?.alias) void this.router.unregister(s.route.route).catch(() => undefined)
-    }
     // Cold boot: resume everything marked autostart with desired state up.
     const resume = this.registry.list().filter((s) => s.desired === 'up' && s.autostart)
     void this.requestUp(resume.map((s) => s.id))
@@ -69,22 +61,17 @@ export class Reconciler {
   /** Current state of one service, synthesising 'pending' for never-started. */
   stateOf = (id: string): ServiceState | undefined => {
     const live = this.supervisor.stateOf(id)
-    if (live) {
-      if (this.pendingRoutes.has(id)) live.routePending = true
-      return live
-    }
+    if (live) return live
     const entry = this.registry.get(id)
     if (!entry) return undefined
-    const synthetic: ServiceState = {
+    return {
       entry,
       status: 'pending',
       health: 'unknown',
       restarts: 0,
       instances: [],
-      routeUrl: entry.route ? this.router.urlFor(entry.route.route) : undefined,
+      routeUrl: entry.route ? this.router.urlFor(this.router.hostnameFor(entry.route.route)) : undefined,
     }
-    if (this.pendingRoutes.has(id)) synthetic.routePending = true
-    return synthetic
   }
 
   snapshot(): ServiceState[] {
@@ -133,7 +120,6 @@ export class Reconciler {
   async forgetService(id: string): Promise<void> {
     await this.requestDown([id])
     this.supervisor.forget(id)
-    this.pendingRoutes.delete(id)
   }
 
   /** Drop stale completed/error runtime state so snapshots use the latest registry entry. */
@@ -204,25 +190,12 @@ export class Reconciler {
     let routeUrl: string | undefined
 
     if (entry.route) {
-      const alias = entry.route.alias === true
       const port = entry.route.port ?? freePort()
+      const hostname = this.router.hostnameFor(entry.route.route)
       try {
-        const binding = await this.router.register(entry.route.route, port, alias)
+        const binding = await this.router.register(hostname, port, 'managed', entry.id)
         routeUrl = binding.url
-
-        if (this.router.available) {
-          routeEnv = {
-            PORT: String(port),
-            PORTLESS_URL: binding.url,
-            OUTRIDER_URL: binding.url,
-          }
-          this.pendingRoutes.delete(entry.id)
-        } else {
-          routeEnv = {
-            PORT: String(port),
-          }
-          this.pendingRoutes.add(entry.id)
-        }
+        routeEnv = { PORT: String(port), OUTRIDER_URL: binding.url }
       } catch (err) {
         this.logger.open(entry.id)
         this.logger.write(
