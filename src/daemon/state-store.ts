@@ -11,6 +11,12 @@ import { nowIso } from '@/shared/utils/time'
 const JOURNAL_MAX_BYTES = 5 * 1024 * 1024
 const JOURNAL_BACKUPS = 2
 
+// TLS defaults to off: Bun 1.3.14's node:http2 shim rejects TLS connections
+// whose ALPN offer omits h2, which is exactly what browsers send for a
+// WebSocket handshake — enabling TLS by default would silently break
+// WebSockets/HMR. Revisit once the upstream Bun bug is fixed; the CA, leaf
+// minting, and hot-swap machinery all work today and are covered by tests,
+// they are simply not switched on by default yet.
 const emptyModel = (): RegistryModel => ({
   version: 1,
   stacks: {},

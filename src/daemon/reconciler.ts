@@ -8,6 +8,7 @@ import type { Registry } from '@/daemon/registry'
 import type { Supervisor } from '@/daemon/supervisor'
 
 import { freePort } from '@/shared/utils/net'
+import { caPath } from '@/shared/utils/paths'
 import { evaluateGate, shutdownLevels, withDependencies } from '@/daemon/scheduler'
 
 const TICK_INTERVAL_MS = 1000
@@ -196,6 +197,7 @@ export class Reconciler {
         const binding = await this.router.register(hostname, port, 'managed', entry.id)
         routeUrl = binding.url
         routeEnv = { PORT: String(port), OUTRIDER_URL: binding.url }
+        if (this.registry.proxySettings().tls) routeEnv.NODE_EXTRA_CA_CERTS = caPath
       } catch (err) {
         this.logger.open(entry.id)
         this.logger.write(

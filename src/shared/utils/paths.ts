@@ -23,5 +23,14 @@ export const socketPath = join(runtimeDir, 'outrider.sock')
 export const lockPath = join(runtimeDir, 'outrider.lock')
 export const daemonLogPath = join(dataDir, 'daemon.log')
 
+const certsDir = join(dataDir, 'certs')
+export const caPath = join(certsDir, 'ca.pem')
+export const caKeyPath = join(certsDir, 'ca-key.pem')
+export const leafPath = join(certsDir, 'leaf.pem')
+export const leafKeyPath = join(certsDir, 'leaf-key.pem')
+export const trustMarkerPath = join(certsDir, 'trusted.flag')
+/** Real system file; never XDG-relative. */
+export const hostsFilePath = '/etc/hosts'
+
 export const serviceLogDir = (serviceId: string): string =>
   join(logsDir, serviceId.replaceAll('/', '__'))

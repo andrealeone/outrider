@@ -386,7 +386,6 @@ export class Supervisor {
       instance: inst.name,
       cwd: resolve(entry.dir, entry.config.working_dir ?? '.'),
       port: runtime.routeEnv.PORT,
-      routeUrl: runtime.routeUrl,
     }
     if (entry.config.readiness_probe) {
       this.prober.attach({
