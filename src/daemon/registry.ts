@@ -159,11 +159,13 @@ export class Registry {
   private entryFromDefinition(def: ServiceDefinition, previous?: ServiceEntry): ServiceEntry {
     // An alias port pins a fixed port instead of an allocated one (the
     // command owns it already); clearing it reverts to an allocated port.
+    // A pinned port on a standalone service is what makes it a static route.
+    const pinnedPort = def.aliasPort ?? previous?.route?.port
     const route = def.route
       ? {
           ...previous?.route,
           route: def.route,
-          port: def.aliasPort ?? previous?.route?.port,
+          port: pinnedPort,
         }
       : undefined
     const config: ProcessConfig = {
@@ -193,6 +195,7 @@ export class Registry {
       dir: previous?.dir ?? (def.workingDir ? resolve(def.workingDir) : homedir()),
       shell: previous?.shell,
       route,
+      routeKind: route?.port !== undefined ? 'static' : undefined,
     }
   }
 

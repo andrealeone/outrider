@@ -6,6 +6,7 @@ import type {
   ImportReport,
   LogLine,
   PatchServiceBody,
+  ProxyStatus,
   ServiceDefinition,
   ServiceState,
   StateSnapshot,
@@ -64,6 +65,7 @@ export class Client {
 
   state = (): Promise<StateSnapshot> => this.request('GET', '/v1/state')
   registry = (): Promise<RegistryModel> => this.request('GET', '/v1/registry')
+  proxyStatus = (): Promise<ProxyStatus> => this.request('GET', '/v1/proxy')
 
   up = (body: UpDownBody = {}): Promise<ServiceState[]> => this.request('POST', '/v1/up', body)
   down = (body: UpDownBody = {}): Promise<ServiceState[]> => this.request('POST', '/v1/down', body)

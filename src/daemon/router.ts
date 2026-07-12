@@ -1,3 +1,5 @@
+import { connect } from 'node:net'
+
 import type { Registry } from '@/daemon/registry'
 import { CertAuthority } from '@/daemon/router/cert-authority'
 import { HostsSync } from '@/daemon/router/hosts-sync'
@@ -10,6 +12,27 @@ const PLAIN_PRIMARY_PORT = 80
 const PLAIN_FALLBACK_PORT = 1354
 const TLS_PRIMARY_PORT = 443
 const TLS_FALLBACK_PORT = 1355
+const LIVE_CACHE_MS = 2000
+const LIVE_DIAL_TIMEOUT_MS = 300
+
+/** A short-lived TCP dial: is anything listening on this port right now? */
+const dialLive = (port: number): Promise<boolean> =>
+  new Promise((resolve) => {
+    const socket = connect({ host: '127.0.0.1', port, timeout: LIVE_DIAL_TIMEOUT_MS })
+    const settle = (live: boolean): void => {
+      socket.destroy()
+      resolve(live)
+    }
+    socket.once('connect', () => {
+      settle(true)
+    })
+    socket.once('timeout', () => {
+      settle(false)
+    })
+    socket.once('error', () => {
+      settle(false)
+    })
+  })
 
 /**
  * The native router: an in-process reverse proxy backed by the registry's
@@ -28,6 +51,7 @@ class NativeRouter implements Router {
   private readonly hostsSync: HostsSync
   private readonly engine: ProxyEngine
   private starting?: Promise<void>
+  private readonly liveCache = new Map<number, { checkedAt: number; live: boolean }>()
 
   constructor(
     registry: Registry,
@@ -93,8 +117,23 @@ class NativeRouter implements Router {
     return Promise.resolve()
   }
 
-  list(): RouteInfo[] {
-    return this.routeTable.list().map((r) => ({ ...r, url: this.urlFor(r.hostname), live: true }))
+  private async isLive(port: number): Promise<boolean> {
+    const cached = this.liveCache.get(port)
+    const now = Date.now()
+    if (cached && now - cached.checkedAt < LIVE_CACHE_MS) return cached.live
+    const live = await dialLive(port)
+    this.liveCache.set(port, { checkedAt: now, live })
+    return live
+  }
+
+  async list(): Promise<RouteInfo[]> {
+    return Promise.all(
+      this.routeTable.list().map(async (r) => ({
+        ...r,
+        url: this.urlFor(r.hostname),
+        live: await this.isLive(r.port),
+      })),
+    )
   }
 
   inspect(): RouterInspection {
@@ -132,6 +171,10 @@ class NativeRouter implements Router {
     const defaultPort = this.engine.tls ? 443 : 80
     const suffix = port !== undefined && port !== defaultPort ? `:${port}` : ''
     return `${scheme}://${hostname}${suffix}`
+  }
+
+  tld(): string {
+    return this.routeTable.tld()
   }
 }
 

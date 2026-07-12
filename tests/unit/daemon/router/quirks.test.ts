@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { applyFrameworkQuirks } from '@/daemon/framework-quirks'
+import { applyFrameworkQuirks } from '@/daemon/router/quirks'
 
 describe('applyFrameworkQuirks', () => {
   test('auto-detects vite and appends --port', () => {

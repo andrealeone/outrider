@@ -3,6 +3,7 @@
 
 import type { ConfigWarning } from '@/shared/types/process-compose'
 import type { DesiredState, RegistryModel, ServiceEntry } from '@/shared/types/registry'
+import type { RouterInspection } from '@/shared/types/router'
 
 /** Canonical process state machine, mirroring upstream statuses. */
 export type ProcessStatus =
@@ -51,6 +52,13 @@ export interface DaemonInfo {
 export interface StateSnapshot {
   daemon: DaemonInfo
   services: ServiceState[]
+}
+
+/** What a foreground command (`outrider on`, a TUI repair action) needs to grant trust and sync hosts. */
+export interface ProxyStatus {
+  inspection: RouterInspection
+  tld: string
+  hostnames: string[]
 }
 
 export interface LogLine {

@@ -25,6 +25,8 @@ export interface DaemonHook {
   services: ServiceState[]
   shuttingDown: boolean
   notice?: string
+  /** Routing proxy diagnostics (cert trust, hosts sync, listener); empty when all clear. */
+  proxyIssues: string[]
   /** Raw log stream subscription; bypasses React state for cheap fan-out. */
   onLog: (cb: (line: LogLine) => void) => () => void
   toggle: (state: ServiceState) => void
@@ -67,6 +69,7 @@ export const useDaemon = (): DaemonHook => {
   const [services, setServices] = useState<ServiceState[]>([])
   const [shuttingDown, setShuttingDown] = useState(false)
   const [notice, setNotice] = useState<string>()
+  const [proxyIssues, setProxyIssues] = useState<string[]>([])
 
   const byId = useRef(new Map<string, ServiceState>())
   const dirty = useRef(false)
@@ -150,6 +153,10 @@ export const useDaemon = (): DaemonHook => {
           },
         )
         setConnection('online')
+        void (async () => {
+          const status = await client.proxyStatus().catch(() => undefined)
+          if (status && alive.current) setProxyIssues(status.inspection.issues)
+        })()
       } catch (err) {
         if (!alive.current) return
         setNotice(
@@ -180,6 +187,7 @@ export const useDaemon = (): DaemonHook => {
     services,
     shuttingDown,
     notice,
+    proxyIssues,
     onLog: useCallback((cb) => {
       logSubscribers.current.add(cb)
       return () => logSubscribers.current.delete(cb)

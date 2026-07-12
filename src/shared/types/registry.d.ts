@@ -54,6 +54,13 @@ export interface ServiceEntry {
   dir: string
   shell?: ShellConfig
   route?: RouteExtension
+  /**
+   * A static route is pinned to a fixed port the command already owns (e.g.
+   * `kubectl port-forward`, `docker run -p`); its liveness is checked by
+   * dialing the port rather than mirroring supervisor state. Absent means
+   * "managed": the daemon owns the port allocation.
+   */
+  routeKind?: RouteKind
 }
 
 export interface RegistryModel {

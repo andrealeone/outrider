@@ -20,7 +20,7 @@ import { parseDotenv, parseEnvList } from '@/shared/utils/env'
 import { userHome, withCommonPath } from '@/shared/utils/path-env'
 import { streamLines } from '@/shared/utils/stream-lines'
 import { nowIso } from '@/shared/utils/time'
-import { applyFrameworkQuirks } from '@/daemon/framework-quirks'
+import { applyFrameworkQuirks } from '@/daemon/router/quirks'
 
 const DEFAULT_BACKOFF_SECONDS = 1
 const DEFAULT_SHUTDOWN_TIMEOUT_SECONDS = 10

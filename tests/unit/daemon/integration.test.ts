@@ -42,6 +42,9 @@ class FakeRouter implements Router {
   urlFor(hostname: string): string {
     return `http://${hostname}`
   }
+  tld(): string {
+    return 'localhost'
+  }
   register(hostname: string, port: number, kind: RouteKind, service?: string): Promise<RouteBinding> {
     this.registered.set(hostname, port)
     this.routes.set(hostname, { kind, service, port })
@@ -52,16 +55,21 @@ class FakeRouter implements Router {
     this.routes.delete(hostname)
     return Promise.resolve()
   }
-  list(): RouteInfo[] {
-    return [...this.routes.entries()].map(([hostname, r]) => ({
-      hostname,
-      ...r,
-      url: this.urlFor(hostname),
-      live: true,
-    }))
+  list(): Promise<RouteInfo[]> {
+    return Promise.resolve(
+      [...this.routes.entries()].map(([hostname, r]) => ({
+        hostname,
+        ...r,
+        url: this.urlFor(hostname),
+        live: true,
+      })),
+    )
   }
   inspect(): RouterInspection {
     return { listening: true, port: 80, tls: false, certTrusted: false, hostsSynced: false, issues: [] }
+  }
+  kindOf(hostname: string): RouteKind | undefined {
+    return this.routes.get(hostname)?.kind
   }
 }
 
@@ -222,6 +230,7 @@ describe('daemon over the socket', () => {
     const state = await waitForStatus('routed', 'running')
     expect(state.routeUrl).toBe('http://routed.localhost')
     expect(fakeRouter.registered.has('routed.localhost')).toBe(true)
+    expect(fakeRouter.kindOf('routed.localhost')).toBe('managed')
 
     await waitFor(async () => (await client.logs('routed')).length > 0, 3000)
     const logs = await client.logs('routed')
@@ -241,6 +250,7 @@ describe('daemon over the socket', () => {
     await client.start('external')
     await waitForStatus('external', 'running')
     expect(fakeRouter.registered.get('external.localhost')).toBe(10020)
+    expect(fakeRouter.kindOf('external.localhost')).toBe('static')
 
     await client.stop('external')
     await waitForStatus('external', 'completed')

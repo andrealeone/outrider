@@ -32,9 +32,12 @@ export interface Router {
   /** Idempotent upsert: adds a route or refreshes the port of an existing one. */
   register(hostname: string, port: number, kind: RouteKind, service?: string): Promise<RouteBinding>
   unregister(hostname: string): Promise<void>
-  list(): RouteInfo[]
+  /** Managed liveness mirrors supervisor state via the caller; static liveness dials the port. */
+  list(): Promise<RouteInfo[]>
   inspect(): RouterInspection
   /** Full hostname for a route label, honouring the configured TLD. */
   hostnameFor(label: string): string
   urlFor(hostname: string): string
+  /** The configured TLD, for a foreground command building the hosts-sync list. */
+  tld(): string
 }

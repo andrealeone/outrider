@@ -98,7 +98,10 @@ export const DetailView = ({ state, rows, active, onBack }: Props) => {
       </Row>
       <Row label="restarts">{String(state.restarts)}</Row>
       <Row label="exit code">{state.exitCode === undefined ? '—' : String(state.exitCode)}</Row>
-      <Row label="route">{state.routeUrl ?? entry.route?.route ?? '—'}</Row>
+      <Row label="route">
+        {state.routeUrl ?? entry.route?.route ?? '—'}
+        {entry.routeKind === 'static' ? ' · static alias' : ''}
+      </Row>
       <Row label="namespace">{entry.namespace ?? '—'}</Row>
       <Row label="tags">{entry.tags?.length ? entry.tags.join(', ') : '—'}</Row>
       <Row label="restart policy">{restartPolicyLine(entry)}</Row>

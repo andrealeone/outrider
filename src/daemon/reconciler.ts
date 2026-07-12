@@ -193,8 +193,9 @@ export class Reconciler {
     if (entry.route) {
       const port = entry.route.port ?? freePort()
       const hostname = this.router.hostnameFor(entry.route.route)
+      const kind = entry.routeKind ?? 'managed'
       try {
-        const binding = await this.router.register(hostname, port, 'managed', entry.id)
+        const binding = await this.router.register(hostname, port, kind, entry.id)
         routeUrl = binding.url
         routeEnv = { PORT: String(port), OUTRIDER_URL: binding.url }
         if (this.registry.proxySettings().tls) routeEnv.NODE_EXTRA_CA_CERTS = caPath

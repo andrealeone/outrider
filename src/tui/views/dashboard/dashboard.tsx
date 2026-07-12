@@ -255,6 +255,10 @@ export const Dashboard = ({
         <Box paddingX={1}>
           <Text color={theme.error}>{daemon.notice}</Text>
         </Box>
+      ) : daemon.proxyIssues.length > 0 ? (
+        <Box paddingX={1}>
+          <Text color={theme.warn}>routing: {daemon.proxyIssues[0]}</Text>
+        </Box>
       ) : null}
       <Box paddingX={1}>
         <Text color={theme.dim}>

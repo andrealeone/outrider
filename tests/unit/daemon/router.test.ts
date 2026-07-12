@@ -45,9 +45,12 @@ describe('NativeRouter (default: plain HTTP)', () => {
     expect(inspection.issues).toEqual([])
   })
 
-  test('list reflects registered routes', () => {
-    const routes = router.list()
-    expect(routes.some((r) => r.hostname === 'api.localhost' && r.service === 'api')).toBe(true)
+  test('list reflects registered routes and their liveness', async () => {
+    const routes = await router.list()
+    const route = routes.find((r) => r.hostname === 'api.localhost')
+    expect(route?.service).toBe('api')
+    // Nothing is actually listening on 9090 in this test, so it dials false.
+    expect(route?.live).toBe(false)
   })
 
   test('re-registering the same service is idempotent', async () => {
@@ -67,7 +70,8 @@ describe('NativeRouter (default: plain HTTP)', () => {
 
   test('unregister removes the route', async () => {
     await router.unregister('api.localhost')
-    expect(router.list().some((r) => r.hostname === 'api.localhost')).toBe(false)
+    const routes = await router.list()
+    expect(routes.some((r) => r.hostname === 'api.localhost')).toBe(false)
   })
 })
 
