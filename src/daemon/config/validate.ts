@@ -79,6 +79,14 @@ const DEFERRED_PROCESS_KEYS: Record<string, string> = {
 
 const ROUTE_LABEL = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
 
+/** x-route is the native spelling; x-portless is the permanent alias. */
+export const routeExtension = (proc: ProcessConfig): RouteExtension | undefined =>
+  proc['x-route'] ?? proc['x-portless']
+
+/** A pinned/alias port means the command owns the port (static route). */
+export const isPinnedRoute = (route?: RouteExtension): boolean =>
+  route !== undefined && (route.port !== undefined || route.alias === true)
+
 export interface ValidationResult {
   errors: string[]
   warnings: ConfigWarning[]
@@ -247,7 +255,7 @@ const validateProcess = (
   validateAvailability(name, proc, errors, warn)
   warnTriagedFeatures(name, proc, warn)
 
-  const route = proc['x-route']
+  const route = routeExtension(proc)
   if (route !== undefined) validateRoute(name, route, routeClaims, errors)
 }
 

@@ -71,7 +71,9 @@ export class Reconciler {
       health: 'unknown',
       restarts: 0,
       instances: [],
-      routeUrl: entry.route ? this.router.urlFor(this.router.hostnameFor(entry.route.route)) : undefined,
+      routeUrl: entry.route
+        ? this.router.urlFor(this.router.hostnameFor(entry.route.route))
+        : undefined,
     }
   }
 
@@ -193,11 +195,19 @@ export class Reconciler {
     if (entry.route) {
       const port = entry.route.port ?? freePort()
       const hostname = this.router.hostnameFor(entry.route.route)
-      const kind = entry.routeKind ?? 'managed'
+      const kind =
+        entry.routeKind ??
+        (entry.route.port !== undefined || entry.route.alias === true ? 'static' : 'managed')
       try {
         const binding = await this.router.register(hostname, port, kind, entry.id)
         routeUrl = binding.url
-        routeEnv = { PORT: String(port), OUTRIDER_URL: binding.url }
+        routeEnv = {
+          PORT: String(port),
+          HOST: '127.0.0.1',
+          OUTRIDER_URL: binding.url,
+          PORTLESS_URL: binding.url,
+          __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS: '.localhost',
+        }
         if (this.registry.proxySettings().tls) routeEnv.NODE_EXTRA_CA_CERTS = caPath
       } catch (err) {
         this.logger.open(entry.id)

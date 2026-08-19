@@ -20,8 +20,9 @@ their service: terminal states trigger route unregistration.
 Route allocation happens here: for an `x-route` service the reconciler takes
 the fixed port or asks the OS for a free one in the conventional 4000-4999
 range, registers the route through the Router with `entry.routeKind` (managed
-by default, `static` when the port is pinned via `aliasPort` — see
-[Router](router.md)), and injects `PORT` and `OUTRIDER_URL` (plus
+by default, `static` when the port is pinned via `aliasPort` or the
+portless-era `alias: true` flag — see [Router](router.md)), and injects
+`PORT`, `HOST=127.0.0.1`, `OUTRIDER_URL`, and `PORTLESS_URL` (plus
 `NODE_EXTRA_CA_CERTS` when TLS is on) into the spawn environment. Registration
 failure degrades to starting without a route, logged to the service's system
 stream.

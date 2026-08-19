@@ -26,21 +26,33 @@ const DEFAULT_BACKOFF_SECONDS = 1
 const DEFAULT_SHUTDOWN_TIMEOUT_SECONDS = 10
 const DEFAULT_LAUNCH_TIMEOUT_SECONDS = 60
 
-const fallbackShell = (): string => {
+const loginShell = (): string => {
   try {
-    return (
-      userInfo().shell ||
-      process.env.SHELL ||
-      (process.platform === 'darwin' ? '/bin/zsh' : '/bin/bash')
-    )
+    return userInfo().shell || process.env.SHELL || ''
   } catch {
-    return process.env.SHELL || (process.platform === 'darwin' ? '/bin/zsh' : '/bin/bash')
+    return process.env.SHELL || ''
   }
+}
+
+/** Passwd/SHELL can be a wrapper (Cursor's cursor-shell) that never evals -c. */
+const fallbackShell = (): string => {
+  const raw = loginShell()
+  const name = raw !== '' ? basename(raw) : ''
+  if (name === 'zsh' || name === 'bash' || name === 'sh' || name === 'fish' || name === 'ksh') {
+    return raw
+  }
+  return process.platform === 'darwin' ? '/bin/zsh' : '/bin/bash'
 }
 
 const shellQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`
 
 const exportCommonPath = (): string => `export PATH=${shellQuote(withCommonPath(undefined))}:$PATH`
+
+/**
+ * Cursor's `agent shell-integration` eval's `exec agent record` when this
+ * is unset, replacing the process before the service command runs.
+ */
+const SKIP_CURSOR_RECORD = 'export CURSOR_RECORD_SESSION=1'
 
 const defaultShellArgv = (shell: string, command: string): string[] => {
   switch (basename(shell)) {
@@ -50,14 +62,15 @@ const defaultShellArgv = (shell: string, command: string): string[] => {
         '-f',
         '-ic',
         [
+          SKIP_CURSOR_RECORD,
           'PROMPT=; RPROMPT=; PS1=',
           "trap 'exit 143' TERM INT",
           'unsetopt monitor',
+          exportCommonPath(),
           'source ~/.zshenv >/dev/null 2>&1 || true',
           'source ~/.zprofile >/dev/null 2>&1 || true',
           'source ~/.zshrc >/dev/null 2>&1 || true',
           'source ~/.zlogin >/dev/null 2>&1 || true',
-          exportCommonPath(),
           `eval ${shellQuote(command)}`,
         ].join('; '),
       ]
@@ -68,15 +81,16 @@ const defaultShellArgv = (shell: string, command: string): string[] => {
         '--norc',
         '-ic',
         [
+          SKIP_CURSOR_RECORD,
           'PS1=',
           "trap 'exit 143' TERM INT",
           'set +m',
           'shopt -s expand_aliases',
+          exportCommonPath(),
           'source ~/.bash_profile >/dev/null 2>&1 || true',
           'source ~/.bash_login >/dev/null 2>&1 || true',
           'source ~/.profile >/dev/null 2>&1 || true',
           'source ~/.bashrc >/dev/null 2>&1 || true',
-          exportCommonPath(),
           `eval ${shellQuote(command)}`,
         ].join('; '),
       ]
@@ -260,6 +274,7 @@ export class Supervisor {
     env.HOME ??= userHome()
     env.SHELL ??= fallbackShell()
     env.PATH = withCommonPath(env.PATH)
+    env.CURSOR_RECORD_SESSION = '1'
 
     const dotenvFile = resolve(entry.dir, '.env')
     if (!entry.config.is_dotenv_disabled && existsSync(dotenvFile)) {

@@ -14,14 +14,17 @@ engine underneath can change without callers noticing.
   hostname.
 - `router/proxy-engine.ts` — the listener. Plain mode is `node:http` on
   80 (falling back to 1354); TLS mode is `node:http2` with `allowHTTP1` on
-  443 (falling back to 1355). Forwarding re-issues each request to
-  `127.0.0.1:<port>` with `fetch`, streaming bodies both ways, restating the
-  original Host header (HTTP/2 carries it as the `:authority` pseudo-header,
-  which is stripped and reissued as `host` before forwarding), and stamping
-  every forward with `x-outrider-hop` — a second pass through the proxy
-  answers 508 Loop Detected. WebSocket/HMR upgrades bypass `fetch` entirely:
-  the engine hijacks the raw socket on the `'upgrade'` event and splices it to
-  a plain `net.connect` against the target.
+  443 (falling back to 1355). The IPv4 wildcard (`0.0.0.0`) is bound first
+  (required on macOS for unprivileged 80/443); a second listener on `::`
+  with `ipv6Only` covers `*.localhost` resolving to `::1`. Forwarding is a
+  raw HTTP/1.1 client to `127.0.0.1:<port>` (not `fetch` — fetch forbids or
+  overrides the Host header, and when the proxy itself is on port 80 that
+  reconnects to `*.localhost` and 508s). Bodies stream both ways, Host is
+  restated (HTTP/2's `:authority` is stripped and reissued as `host`), and
+  every forward is stamped with `x-outrider-hop` — a second pass through the
+  proxy answers 508 Loop Detected. WebSocket/HMR upgrades hijack the raw
+  socket on `'upgrade'` and splice it to a plain `net.connect` against the
+  target.
 - `router/cert-authority.ts` — mints a local CA and one leaf certificate
   covering every registered hostname (openssl subprocesses only, no bundled
   crypto library), re-minted and hot-swapped in place (`setSecureContext`)

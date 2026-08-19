@@ -72,11 +72,13 @@ export interface LoggerConfig {
   no_metadata?: boolean
 }
 
-/** The x-route extension block: opt-in named routing for one process. */
+/** The x-route / x-portless extension block: opt-in named routing for one process. */
 export interface RouteExtension {
   route: string
   framework?: string
   port?: number
+  /** Portless-era flag: the command already owns this port. Treated as a pinned/static route. */
+  alias?: boolean
 }
 
 export interface ProcessConfig {
@@ -110,6 +112,8 @@ export interface ProcessConfig {
   'is_template_disabled'?: boolean
   'ordered_shutdown'?: boolean
   'x-route'?: RouteExtension
+  /** Permanent alias of x-route; configs written against the portless integration. */
+  'x-portless'?: RouteExtension
   [extension: `x-${string}`]: unknown
 }
 

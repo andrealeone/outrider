@@ -26,16 +26,16 @@ in-process routing subsystem.
 
 ## Deliberate divergences
 
-| Area                                            | Upstream                                            | outrider                                                            | Why                                                                                                                           |
-| ----------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Lifetime                                        | project-bound, exits with the session               | system-wide per-user daemon; desired state persists                 | the tool's premise                                                                                                            |
-| exit_on_end / exit_on_failure / exit_on_skipped | terminate the binary                                | warned and ignored in persistent mode; will apply to ephemeral runs | a daemon never exits with a process                                                                                           |
-| Ports                                           | hard-coded per service                              | optional named routes via the native router (`x-route`)             | opt-in extension key; untouched configs behave identically                                                                    |
-| Replica naming                                  | all instances renamed `name-N`                      | instance 0 keeps the plain name; 1+ get `-N`                        | stable identity across rescaling; counters and probes stay attached                                                           |
-| Project update (Ctrl+E edits)                   | ephemeral in-memory edits                           | re-import the stack; the registry is the source of truth            | persisted desired state contradicts unsaved edits                                                                             |
-| TUI                                             | tview, themes, mouse                                | Ink, one light/dark pair, vim keymap, keyboard-only                 | cuts discussion in the brief                                                                                                  |
-| Env expansion of command strings                | at load                                             | at import (frozen into the registry; re-import refreshes)           | system-wide model imports once                                                                                                |
-| `success_threshold`                             | placeholder, not evaluated                          | same, documented                                                    | honesty over invented semantics                                                                                               |
+| Area                                            | Upstream                                            | outrider                                                            | Why                                                                                                                          |
+| ----------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Lifetime                                        | project-bound, exits with the session               | system-wide per-user daemon; desired state persists                 | the tool's premise                                                                                                           |
+| exit_on_end / exit_on_failure / exit_on_skipped | terminate the binary                                | warned and ignored in persistent mode; will apply to ephemeral runs | a daemon never exits with a process                                                                                          |
+| Ports                                           | hard-coded per service                              | optional named routes via the native router (`x-route`)             | opt-in extension key; untouched configs behave identically                                                                   |
+| Replica naming                                  | all instances renamed `name-N`                      | instance 0 keeps the plain name; 1+ get `-N`                        | stable identity across rescaling; counters and probes stay attached                                                          |
+| Project update (Ctrl+E edits)                   | ephemeral in-memory edits                           | re-import the stack; the registry is the source of truth            | persisted desired state contradicts unsaved edits                                                                            |
+| TUI                                             | tview, themes, mouse                                | Ink, one light/dark pair, vim keymap, keyboard-only                 | cuts discussion in the brief                                                                                                 |
+| Env expansion of command strings                | at load                                             | at import (frozen into the registry; re-import refreshes)           | system-wide model imports once                                                                                               |
+| `success_threshold`                             | placeholder, not evaluated                          | same, documented                                                    | honesty over invented semantics                                                                                              |
 | Liveness failure                                | restart behaviour mirrors upstream per restart mode | always restarts the instance (counts toward max_restarts)           | **assumption**: upstream behaviour must still be verified against the real binary per the open questions; revisit before 1.0 |
 
 ## Cut features (parse + named warning, never a crash)
@@ -64,21 +64,23 @@ proxy backed by the registry's own route table, with no external dependency.
 See [the router](architecture/router.md) for the implementation and
 [native routing](features/native-routing.md) for the user-facing feature.
 
-**What changed for configs.** `x-portless` becomes `x-route`, with the same
-`route`/`framework`/`port` fields; `alias` is dropped as a config field (see
-static aliases below). Reserved-subcommand-name validation on route labels is
-gone — that was a constraint from portless's own CLI subcommands, which no
-longer exist. `PORTLESS_URL` is dropped; `OUTRIDER_URL` is the only injected
-route URL now.
+**What changed for configs.** `x-route` is the native spelling, with the same
+`route`/`framework`/`port` fields; `x-portless` remains a permanent alias so
+existing compose files and registry entries keep working. The portless-era
+`alias: true` flag is still honoured (it pins the route as `kind: static`);
+new configs use a pinned `port` / the TUI "alias port" field instead.
+Reserved-subcommand-name validation on route labels is gone — that was a
+constraint from portless's own CLI subcommands, which no longer exist.
+`PORTLESS_URL` is still injected next to `OUTRIDER_URL` so scripts written
+against the old integration survive the swap.
 
 **Static aliases**, kept from the original design as "the only bridge to
-processes the daemon does not directly manage the port of," are no longer a
-config-level `alias: true` flag. They're derived automatically: a standalone
-service with a pinned port (the CLI/TUI "alias port" field) gets
-`routeKind: 'static'` on its registry entry, which only affects how its
-liveness is reported (`list()` dials the port on demand rather than mirroring
-supervisor state) — registration and env injection are identical to a managed
-route.
+processes the daemon does not directly manage the port of," are derived
+automatically: a pinned port (`aliasPort`, `x-route.port`, or the portless-era
+`alias: true` flag) gets `routeKind: 'static'` on its registry entry, which
+only affects how its liveness is reported (`list()` dials the port on demand
+rather than mirroring supervisor state) — registration and env injection are
+identical to a managed route.
 
 **TLS defaults to off — an upstream Bun bug, not a design choice.**
 The routing engine supports HTTPS/HTTP2 end to end (local CA, per-hostname

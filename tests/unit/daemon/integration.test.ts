@@ -45,7 +45,12 @@ class FakeRouter implements Router {
   tld(): string {
     return 'localhost'
   }
-  register(hostname: string, port: number, kind: RouteKind, service?: string): Promise<RouteBinding> {
+  register(
+    hostname: string,
+    port: number,
+    kind: RouteKind,
+    service?: string,
+  ): Promise<RouteBinding> {
     this.registered.set(hostname, port)
     this.routes.set(hostname, { kind, service, port })
     return Promise.resolve({ hostname, port, url: this.urlFor(hostname) })
@@ -66,7 +71,14 @@ class FakeRouter implements Router {
     )
   }
   inspect(): RouterInspection {
-    return { listening: true, port: 80, tls: false, certTrusted: false, hostsSynced: false, issues: [] }
+    return {
+      listening: true,
+      port: 80,
+      tls: false,
+      certTrusted: false,
+      hostsSynced: false,
+      issues: [],
+    }
   }
   kindOf(hostname: string): RouteKind | undefined {
     return this.routes.get(hostname)?.kind
@@ -129,7 +141,10 @@ describe('daemon over the socket', () => {
   })
 
   test('standalone service lifecycle: add, start, observe logs, stop', async () => {
-    await client.addService({ name: 'echoer', command: 'echo hello-from-echoer && sleep 60' })
+    await client.addService({
+      name: 'echoer',
+      command: 'echo hello-from-echoer crs=$CURSOR_RECORD_SESSION && sleep 60',
+    })
     await client.start('echoer')
     const running = await waitForStatus('echoer', 'running')
     expect(running.instances[0]?.pid).toBeGreaterThan(0)
@@ -138,6 +153,7 @@ describe('daemon over the socket', () => {
     await waitFor(async () => (await client.logs('echoer')).length > 0, 3000)
     const logs = await client.logs('echoer')
     expect(logs.some((l) => l.line.includes('hello-from-echoer'))).toBe(true)
+    expect(logs.some((l) => l.line.includes('crs=1'))).toBe(true)
 
     await client.stop('echoer')
     const stopped = await waitForStatus('echoer', 'completed')
@@ -220,10 +236,10 @@ describe('daemon over the socket', () => {
     await client.stop('fleet')
   })
 
-  test('routed services get PORT and the route URL injected', async () => {
+  test('routed services get PORT, HOST, and the route URL injected', async () => {
     await client.addService({
       name: 'routed',
-      command: 'echo "url=$OUTRIDER_URL port=$PORT" && sleep 60',
+      command: 'echo "url=$OUTRIDER_URL portless=$PORTLESS_URL port=$PORT host=$HOST" && sleep 60',
       route: 'routed',
     })
     await client.start('routed')
@@ -234,7 +250,13 @@ describe('daemon over the socket', () => {
 
     await waitFor(async () => (await client.logs('routed')).length > 0, 3000)
     const logs = await client.logs('routed')
-    expect(logs.some((l) => /url=http:\/\/routed\.localhost port=\d+/.test(l.line))).toBe(true)
+    expect(
+      logs.some((l) =>
+        /url=http:\/\/routed\.localhost portless=http:\/\/routed\.localhost port=\d+ host=127\.0\.0\.1/.test(
+          l.line,
+        ),
+      ),
+    ).toBe(true)
     await client.stop('routed')
     await waitForStatus('routed', 'completed')
     expect(fakeRouter.registered.has('routed.localhost')).toBe(false)

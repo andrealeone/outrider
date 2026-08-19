@@ -128,6 +128,28 @@ describe('validateProject', () => {
     })
     expect(result.errors).toHaveLength(2)
   })
+
+  test('x-portless is accepted as an alias of x-route, including alias ports', () => {
+    const result = validateProject({
+      processes: {
+        api: {
+          'command': 'kubectl port-forward svc/api 10015:8080',
+          'x-portless': { route: 'atoka-api', alias: true, port: 10015 },
+        },
+      },
+    })
+    expect(result.errors).toHaveLength(0)
+  })
+
+  test('x-portless and x-route share the uniqueness namespace', () => {
+    const result = validateProject({
+      processes: {
+        a: { 'command': 'x', 'x-route': { route: 'api' } },
+        b: { 'command': 'x', 'x-portless': { route: 'api' } },
+      },
+    })
+    expect(result.errors.some((e) => e.includes('api'))).toBe(true)
+  })
 })
 
 describe('loadProject (golden fixtures)', () => {

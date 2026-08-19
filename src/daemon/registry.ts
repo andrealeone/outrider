@@ -18,6 +18,7 @@ import type { StateStore } from '@/daemon/state-store'
 import { nowIso } from '@/shared/utils/time'
 import { isValidTag, normalizeTags as normalize, toTagList } from '@/shared/utils/tags'
 import { hashProject, stackNameFor } from '@/daemon/config/load'
+import { isPinnedRoute, routeExtension } from '@/daemon/config/validate'
 import { RegistryError } from '@/daemon/registry-error'
 
 export { RegistryError } from '@/daemon/registry-error'
@@ -118,6 +119,7 @@ export class Registry {
         ordered_shutdown: proc.ordered_shutdown ?? config.ordered_shutdown,
       }
       const existing = this.model.services[id]
+      const route = routeExtension(proc)
       const entry: ServiceEntry = {
         id,
         name: procName,
@@ -128,7 +130,8 @@ export class Registry {
         config: merged,
         dir,
         shell: config.shell,
-        route: proc['x-route'],
+        route,
+        routeKind: isPinnedRoute(route) ? 'static' : undefined,
         tags: normalizeTags(toTagList(proc['x-tags'])),
       }
       this.assertRouteFree(entry, name)
