@@ -9,8 +9,12 @@ Point it at an existing `process-compose.yaml` and it imports the whole stack.
 It just runs, no edits needed.
 
 ```bash
+curl -fsSL https://leone.gdn/outrider-install | bash
+# or
 curl -fsSL https://raw.githubusercontent.com/andrealeone/outrider/master/scripts/install.sh | bash
+```
 
+```bash
 outrider on                 # start the daemon, enable it at boot
 outrider                    # open the dashboard
 outrider off                # stop everything, disable boot start
