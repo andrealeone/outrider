@@ -11,7 +11,19 @@ import { nowIso } from '@/shared/utils/time'
 const JOURNAL_MAX_BYTES = 5 * 1024 * 1024
 const JOURNAL_BACKUPS = 2
 
-const emptyModel = (): RegistryModel => ({ version: 1, stacks: {}, services: {} })
+// TLS defaults to off: Bun 1.3.14's node:http2 shim rejects TLS connections
+// whose ALPN offer omits h2, which is exactly what browsers send for a
+// WebSocket handshake — enabling TLS by default would silently break
+// WebSockets/HMR. Revisit once the upstream Bun bug is fixed; the CA, leaf
+// minting, and hot-swap machinery all work today and are covered by tests,
+// they are simply not switched on by default yet.
+const emptyModel = (): RegistryModel => ({
+  version: 1,
+  stacks: {},
+  services: {},
+  routes: {},
+  proxy: { port: 80, tls: false, tld: 'localhost' },
+})
 
 /**
  * The daemon-owned persistence layer: registry.json written atomically on
@@ -31,7 +43,11 @@ export class StateStore {
     if (!existsSync(this.registryFile)) return emptyModel()
     try {
       const model = JSON.parse(readFileSync(this.registryFile, 'utf8')) as RegistryModel
-      return model.version === 1 ? model : emptyModel()
+      if (model.version !== 1) return emptyModel()
+      // Older registry.json files predate the route table and proxy settings.
+      model.routes ??= {}
+      model.proxy ??= emptyModel().proxy
+      return model
     } catch {
       // A corrupt registry must not brick the daemon; start empty and let
       // the journal tell the story.

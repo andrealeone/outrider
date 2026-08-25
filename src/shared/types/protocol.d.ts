@@ -3,6 +3,7 @@
 
 import type { ConfigWarning } from '@/shared/types/process-compose'
 import type { DesiredState, RegistryModel, ServiceEntry } from '@/shared/types/registry'
+import type { RouterInspection } from '@/shared/types/router'
 
 /** Canonical process state machine, mirroring upstream statuses. */
 export type ProcessStatus =
@@ -37,10 +38,8 @@ export interface ServiceState {
   exitCode?: number
   startedAt?: string
   instances: InstanceState[]
-  /** Public URL when the service is routed through portless. */
+  /** Public URL when the service is routed. */
   routeUrl?: string
-  /** Route declared but portless not installed; routeUrl shows what would work. */
-  routePending?: boolean
 }
 
 export interface DaemonInfo {
@@ -48,13 +47,18 @@ export interface DaemonInfo {
   protocol: number
   pid: number
   startedAt: string
-  /** Whether the portless CLI is available on PATH. */
-  portless: boolean
 }
 
 export interface StateSnapshot {
   daemon: DaemonInfo
   services: ServiceState[]
+}
+
+/** What a foreground command (`outrider on`, a TUI repair action) needs to grant trust and sync hosts. */
+export interface ProxyStatus {
+  inspection: RouterInspection
+  tld: string
+  hostnames: string[]
 }
 
 export interface LogLine {
@@ -82,8 +86,8 @@ export interface ServiceDefinition {
   env?: Record<string, string>
   route?: string
   /**
-   * When set, the route is a static portless alias pointing at this fixed
-   * port — for external tools that manage their own port and ignore the
+   * When set, the route is pinned to this fixed port instead of an
+   * allocated one — for tools that manage their own port and ignore the
    * injected PORT. Requires `route`.
    */
   aliasPort?: number

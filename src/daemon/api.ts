@@ -2,6 +2,7 @@ import type { Server } from 'bun'
 import type {
   DaemonInfo,
   ImportReport,
+  ProxyStatus,
   ServiceDefinition,
   UpDownBody,
 } from '@/shared/types/protocol'
@@ -109,7 +110,16 @@ export class Api {
       return json({ daemon: info, services: reconciler.snapshot() })
     }
     if (method === 'GET' && head === 'registry') return json(registry.snapshot())
-    if (method === 'GET' && head === 'routes') return json(await router.status())
+    if (method === 'GET' && head === 'routes') return json(await router.list())
+    if (method === 'GET' && head === 'proxy') {
+      const routes = await router.list()
+      const status: ProxyStatus = {
+        inspection: router.inspect(),
+        tld: router.tld(),
+        hostnames: routes.map((r) => r.hostname),
+      }
+      return json(status)
+    }
 
     if (method === 'POST' && head === 'up') {
       const { names, noDeps } = await body<UpDownBody>()

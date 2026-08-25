@@ -10,7 +10,7 @@ keys see the [config schema](../config-schema.md). For a detailed comparison wit
 - [Config sync](sync-config.md): edit services at scale in `~/.config/outrider.yml`
 - [Standalone services](standalone-services.md): registry-native services with no backing file
 - [Stacks and import](stacks-and-import.md): run existing `process-compose.yaml` files unedited
-- [portless routing](portless-routing.md): hostnames instead of memorised ports
+- [Native routing](native-routing.md): hostnames instead of memorised ports
 - [The dashboard](the-dashboard.md): the Ink TUI that manages everything
 - [Socket API](socket-api.md): control the daemon over its unix socket instead of the TUI
 - [Autostart and boot](autostart-and-boot.md): desired state that survives reboots

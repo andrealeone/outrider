@@ -2,7 +2,7 @@
 
 outrider is a Bun-based, system-wide successor to process-compose: a persistent
 per-user daemon that owns desired state for your services, an Ink dashboard to
-manage them, and portless integration so services answer on hostnames like
+manage them, and a native in-process router so services answer on hostnames like
 `api.myapp.localhost` instead of memorised ports.
 
 ## Getting started
@@ -26,7 +26,7 @@ broader context.
 - [Config sync](features/sync-config.md): edit services at scale in `~/.config/outrider.yml`
 - [Standalone services](features/standalone-services.md): registry-native services with no backing file
 - [Stacks and import](features/stacks-and-import.md): run existing `process-compose.yaml` files unedited
-- [Portless routing](features/portless-routing.md): hostnames instead of memorised ports
+- [Native routing](features/native-routing.md): hostnames instead of memorised ports
 - [The dashboard](features/the-dashboard.md): interactive TUI for managing everything
 - [Socket API](features/socket-api.md): control the daemon over its unix socket instead of the TUI
 - [Autostart and boot](features/autostart-and-boot.md): desired state that survives reboots
@@ -54,7 +54,7 @@ How outrider works under the hood:
 - [Scheduler](architecture/scheduler.md): start order and dependency resolution
 - [Prober](architecture/prober.md): health checks and readiness
 - [Logger](architecture/logger.md): log collection and rotation
-- [Router](architecture/router.md): route management and portless integration
+- [Router](architecture/router.md): the in-process routing proxy
 - [TUI](architecture/tui.md): Ink dashboard and interaction
 - [Feature parity with process-compose](architecture/feature-parity.md)
 

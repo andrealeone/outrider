@@ -48,7 +48,7 @@ For real features, these are the references the work runs on:
   registry, reconciler, supervisor, scheduler, prober, logger, router, and TUI
   each have their own page; read the one you're about to touch.
 - **[Config schema](config-schema.md)**: the per-key support status and the
-  `x-portless` / `x-tags` extensions, the contract every parser change answers to.
+  `x-route` / `x-tags` extensions, the contract every parser change answers to.
 - **[Compatibility report](compatibility-report.md)**: the deliberate
   divergences from process-compose and *why*; check it before changing
   upstream-facing behaviour.
@@ -73,7 +73,7 @@ Both must pass. A couple of house rules worth knowing up front:
 - **Docs ship with the code.** A feature without docs is an unfinished feature;
   update the relevant `/docs` page in the same change.
 - **Dependencies are precious.** Anything beyond the pinned runtime set (ink,
-  react, portless) needs a written justification in the change that adds it.
+  react) needs a written justification in the change that adds it.
 - **Added a CLI command?** It's a file route under `src/cli/commands/`; run
   `bun scripts/generate-manifest.ts` so the compiled binary can find it.
 

@@ -5,22 +5,16 @@ import { preferencesPath } from '@/shared/utils/paths'
 
 /** Persisted, user-facing feature switches — set via `outrider preferences`. */
 export interface Preferences {
-  /** Route services through portless when it's installed; off skips detection entirely. */
-  usePortless: boolean
   /** Palette tuned for light terminal backgrounds. */
   theme: 'default' | 'light'
 }
 
 export const DEFAULT_PREFERENCES: Preferences = {
-  usePortless: true,
   theme: 'default',
 }
 
 /** CLI key, description shown by `outrider preferences`, and default. */
-export const PREFERENCE_KEYS = [
-  { key: 'use-portless', description: 'route services through portless when installed (on/off)' },
-  { key: 'theme', description: 'dashboard palette (default/light)' },
-] as const
+export const PREFERENCE_KEYS = [{ key: 'theme', description: 'dashboard palette (default/light)' }] as const
 
 // Only the real, default path is memoized — tests pass a throwaway path to
 // stay isolated from each other, and must always see a fresh read.
@@ -46,12 +40,6 @@ const save = (prefs: Preferences, path: string): void => {
   if (path === preferencesPath) cached = prefs
 }
 
-const parseBoolean = (raw: string): boolean => {
-  if (['on', 'true', 'yes', '1'].includes(raw)) return true
-  if (['off', 'false', 'no', '0'].includes(raw)) return false
-  throw new Error(`"${raw}" is not on/off`)
-}
-
 const parseTheme = (raw: string): Preferences['theme'] => {
   if (raw === 'default' || raw === 'light') return raw
   throw new Error(`"${raw}" is not a theme; use default/light`)
@@ -70,8 +58,6 @@ export const resetPreferencesCache = (): void => {
 export const getPreference = (key: string, path = preferencesPath): string => {
   const prefs = load(path)
   switch (key) {
-    case 'use-portless':
-      return String(prefs.usePortless)
     case 'theme':
       return prefs.theme
     default:
@@ -82,9 +68,6 @@ export const getPreference = (key: string, path = preferencesPath): string => {
 export const setPreference = (key: string, rawValue: string, path = preferencesPath): void => {
   const prefs = load(path)
   switch (key) {
-    case 'use-portless':
-      save({ ...prefs, usePortless: parseBoolean(rawValue) }, path)
-      return
     case 'theme':
       save({ ...prefs, theme: parseTheme(rawValue) }, path)
       return
@@ -101,9 +84,6 @@ export const resetPreference = (key: string | undefined, path = preferencesPath)
   }
   const prefs = load(path)
   switch (key) {
-    case 'use-portless':
-      save({ ...prefs, usePortless: DEFAULT_PREFERENCES.usePortless }, path)
-      return
     case 'theme':
       save({ ...prefs, theme: DEFAULT_PREFERENCES.theme }, path)
       return
@@ -114,8 +94,5 @@ export const resetPreference = (key: string | undefined, path = preferencesPath)
 
 export const describePreferences = (path = preferencesPath): string => {
   const prefs = load(path)
-  return [
-    `  use-portless   ${prefs.usePortless}`,
-    `  theme          ${prefs.theme}`,
-  ].join('\n')
+  return [`  theme          ${prefs.theme}`].join('\n')
 }

@@ -21,6 +21,8 @@ const model = (entries: ServiceEntry[]): RegistryModel => ({
   version: 1,
   stacks: {},
   services: Object.fromEntries(entries.map((e) => [e.id, e])),
+  routes: {},
+  proxy: { port: 80, tls: false, tld: 'localhost' },
 })
 
 describe('sync file codec', () => {
@@ -57,7 +59,7 @@ describe('sync file codec', () => {
 
   test('parses an alias-port route', () => {
     const m = model([
-      entry({ id: 'pf', config: { command: 'kubectl ...' }, route: { route: 'pf', alias: true, port: 10020 } }),
+      entry({ id: 'pf', config: { command: 'kubectl ...' }, route: { route: 'pf', port: 10020 } }),
     ])
     const doc = parseSyncFile(exportRegistry(m))
     expect(doc.services.pf?.route).toBe('pf')

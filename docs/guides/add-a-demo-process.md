@@ -17,8 +17,8 @@ outrider to collect.
    - **name**: `http-logger`
    - **command**: `bun server.ts`
    - **working directory**: the path to `docs/demos/http-logger/`
-   - **route**: `logger` (optional, gives it `https://logger.localhost`
-     instead of a memorised port; requires the portless CLI, see
+   - **route**: `logger` (optional, gives it `http://logger.localhost`
+     instead of a memorised port, see
      [add a routed service](add-a-routed-service.md))
    - **autostart**: on, if you want it to survive reboots
 4. Save. The service starts, and its ticks show up in the log pane every 15s.

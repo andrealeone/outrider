@@ -215,6 +215,7 @@ export const Dashboard = ({
           {SORTS[sortIndex % SORTS.length]}
           {searching || search !== '' ? ' · /' : ''}
         </Text>
+
         {searching || search !== '' ? (
           <TextInput
             value={search}
@@ -235,7 +236,6 @@ export const Dashboard = ({
         width={width}
         frame={frame}
         online={daemon.connection === 'online'}
-        portless={daemon.daemon?.portless ?? true}
       />
       <Box flexGrow={1} />
       {confirmOff ? (
@@ -255,6 +255,10 @@ export const Dashboard = ({
       ) : daemon.notice !== undefined ? (
         <Box paddingX={1}>
           <Text color={theme.error}>{daemon.notice}</Text>
+        </Box>
+      ) : daemon.proxyIssues.length > 0 ? (
+        <Box paddingX={1}>
+          <Text color={theme.warn}>routing: {daemon.proxyIssues[0]}</Text>
         </Box>
       ) : null}
       <Box paddingX={1}>

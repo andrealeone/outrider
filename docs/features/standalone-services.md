@@ -6,7 +6,7 @@ backing file, handy for a one-off dev server, a local proxy, or a tool you
 want supervised without authoring a compose file for it.
 
 Add one from the dashboard with `a`: name, command, working directory, an
-optional [route](portless-routing.md), an optional alias port, optional
+optional [route](native-routing.md), an optional alias port, optional
 [tags](service-tags.md), a restart policy, and the autostart flag. The form
 validates live against the daemon, so name collisions and malformed routes
 surface before you save.

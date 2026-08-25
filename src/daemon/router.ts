@@ -1,175 +1,185 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { connect } from 'node:net'
 
-import { formatUrl, parseHostname, PORTLESS_HEADER, RouteStore } from 'portless'
+import type { Registry } from '@/daemon/registry'
+import { CertAuthority } from '@/daemon/router/cert-authority'
+import { HostsSync } from '@/daemon/router/hosts-sync'
+import { ProxyEngine } from '@/daemon/router/proxy-engine'
+import { RouteTable } from '@/daemon/router/route-table'
+import type { RouteKind } from '@/shared/types/registry'
+import type { Router, RouteBinding, RouteInfo, RouterInspection } from '@/shared/types/router'
 
-import type { RouteBinding, Router, RouterStatus } from '@/shared/types/router'
+const PLAIN_PRIMARY_PORT = 80
+const PLAIN_FALLBACK_PORT = 1354
+const TLS_PRIMARY_PORT = 443
+const TLS_FALLBACK_PORT = 1355
+const LIVE_CACHE_MS = 2000
+const LIVE_DIAL_TIMEOUT_MS = 300
 
-import { hasPortless, portlessBin } from '@/shared/utils/portless'
-import { waitFor } from '@/shared/utils/time'
-
-// Hostname policy: .localhost resolves natively in browsers, .test is the
-// IANA-reserved alternative; .local collides with mDNS and .dev is
-// HSTS-forced by Google, so both are refused.
-const REFUSED_TLDS = new Set(['local', 'dev'])
-
-const PROXY_START_TIMEOUT_MS = 8000
+/** A short-lived TCP dial: is anything listening on this port right now? */
+const dialLive = (port: number): Promise<boolean> =>
+  new Promise((resolve) => {
+    const socket = connect({ host: '127.0.0.1', port, timeout: LIVE_DIAL_TIMEOUT_MS })
+    const settle = (live: boolean): void => {
+      socket.destroy()
+      resolve(live)
+    }
+    socket.once('connect', () => {
+      settle(true)
+    })
+    socket.once('timeout', () => {
+      settle(false)
+    })
+    socket.once('error', () => {
+      settle(false)
+    })
+  })
 
 /**
- * The portless bridge. Portless is pre-1.0 and its state format may change
- * between releases, so every call into it lives in this one file behind the
- * Router interface; nothing else imports the package.
+ * The native router: an in-process reverse proxy backed by the registry's
+ * route table. There is no external binary, no state-directory handshake,
+ * and no "unavailable" mode: the proxy is part of the daemon and is always
+ * there.
  */
-export class PortlessRouter implements Router {
-  // Instantiated only when portless resolves; see createRouter.
-  readonly available = true
-  private readonly stateDir: string
-  private readonly store: RouteStore
-  private warnedMissingCli = false
+interface NativeRouterDeps {
+  certAuthority?: CertAuthority
+  hostsSync?: HostsSync
+}
 
-  constructor(private readonly log: (message: string) => void) {
-    this.stateDir = process.env.PORTLESS_STATE_DIR ?? join(homedir(), '.portless')
-    this.store = new RouteStore(this.stateDir, { onWarning: log })
+class NativeRouter implements Router {
+  private readonly routeTable: RouteTable
+  private readonly certAuthority: CertAuthority
+  private readonly hostsSync: HostsSync
+  private readonly engine: ProxyEngine
+  private starting?: Promise<void>
+  private readonly liveCache = new Map<number, { checkedAt: number; live: boolean }>()
+
+  constructor(
+    registry: Registry,
+    private readonly log: (message: string) => void,
+    deps: NativeRouterDeps = {},
+  ) {
+    this.routeTable = new RouteTable(registry)
+    this.certAuthority = deps.certAuthority ?? new CertAuthority()
+    this.hostsSync = deps.hostsSync ?? new HostsSync()
+    const settings = registry.proxySettings()
+    const [primary, fallback] = settings.tls
+      ? [TLS_PRIMARY_PORT, TLS_FALLBACK_PORT]
+      : [PLAIN_PRIMARY_PORT, PLAIN_FALLBACK_PORT]
+    this.engine = new ProxyEngine(
+      this.routeTable,
+      primary,
+      fallback,
+      settings.tls
+        ? () => ({ key: this.certAuthority.leafKey(), cert: this.certAuthority.leafCert() })
+        : undefined,
+    )
   }
 
-  private readStateFile(name: string): string | undefined {
-    const path = join(this.stateDir, name)
-    if (!existsSync(path)) return undefined
-    return readFileSync(path, 'utf8').trim() || undefined
+  /** Every hostname the leaf certificate and hosts block must cover. */
+  private currentHostnames(): string[] {
+    return [this.routeTable.tld(), ...this.routeTable.list().map((r) => r.hostname)]
   }
 
-  private get tld(): string {
-    const tld = this.readStateFile('proxy.tld') ?? 'localhost'
-    return REFUSED_TLDS.has(tld) ? 'localhost' : tld
+  /** .localhost resolves natively in Chromium/Firefox; only other TLDs need the hosts block. */
+  private needsHostsSync(): boolean {
+    return this.routeTable.tld() !== 'localhost'
   }
 
-  private get tls(): boolean {
-    return this.readStateFile('proxy.tls') !== '0'
+  private refreshCert(): void {
+    if (!this.engine.tls) return
+    const changed = this.certAuthority.ensureLeaf(this.currentHostnames())
+    if (changed) this.engine.setCert({ key: this.certAuthority.leafKey(), cert: this.certAuthority.leafCert() })
   }
 
-  private get proxyPort(): number {
-    const raw = Number(this.readStateFile('proxy.port'))
-    return Number.isInteger(raw) && raw > 0 ? raw : this.tls ? 443 : 80
-  }
-
-  urlFor(route: string): string {
-    return formatUrl(parseHostname(route, this.tld), this.proxyPort, this.tls)
-  }
-
-  private async proxyRunning(): Promise<boolean> {
-    const scheme = this.tls ? 'https' : 'http'
-    try {
-      const res = await fetch(`${scheme}://127.0.0.1:${this.proxyPort}/`, {
-        signal: AbortSignal.timeout(1500),
-        tls: { rejectUnauthorized: false },
-      })
-      await res.arrayBuffer().catch(() => undefined)
-      return res.headers.get(PORTLESS_HEADER) === '1'
-    } catch {
-      return false
-    }
-  }
-
-  /** Check, start, and repair the proxy; exactly one component owns this. */
-  async ensureProxy(): Promise<boolean> {
-    if (await this.proxyRunning()) return true
-
-    if (!hasPortless()) {
-      if (!this.warnedMissingCli) {
-        this.warnedMissingCli = true
-        this.log(
-          'portless CLI not found on PATH; routed services start without hostnames. ' +
-            'Install it with "bun add -g portless" (or npm i -g portless)',
-        )
+  async ensureReady(): Promise<RouterInspection> {
+    this.starting ??= (async () => {
+      if (this.engine.tls) {
+        this.certAuthority.ensureCA()
+        this.certAuthority.ensureLeaf(this.currentHostnames())
       }
-      return false
-    }
-
-    const cli = portlessBin()
-    if (cli === null) return false
-
-    this.log('starting portless proxy')
-    const proc = Bun.spawn({
-      cmd: [cli, 'proxy', 'start'],
-      stdin: 'ignore',
-      stdout: 'ignore',
-      stderr: 'pipe',
-    })
-    const up = await waitFor(() => this.proxyRunning(), PROXY_START_TIMEOUT_MS, 250)
-    if (!up) {
-      if (proc.exitCode === null) proc.kill()
-      const stderr = (await new Response(proc.stderr).text()).trim()
-      this.log(
-        `portless proxy did not come up; run "portless doctor" to check${stderr ? `\n${stderr}` : ''}`,
-      )
-    }
-    return up
+      const port = await this.engine.start()
+      this.log(`routing proxy listening on ${port}${this.engine.tls ? ' (TLS)' : ''}`)
+    })()
+    await this.starting
+    return this.inspect()
   }
 
-  async register(route: string, port: number, alias = false): Promise<RouteBinding> {
-    await this.ensureProxy()
-    const hostname = parseHostname(route, this.tld)
-    // Managed routes register under the daemon's pid: portless prunes routes
-    // whose owner died, so a crashed daemon leaves no stale claims behind.
-    // Aliases use pid 0 — the same static-route mechanism as `portless alias`,
-    // for external tools that own their port. portless never prunes those, so
-    // the daemon clears them itself (see Reconciler boot/shutdown). force stays
-    // off — a route held by a live foreign process is an error, not a kill.
-    this.store.addRoute(hostname, port, alias ? 0 : process.pid, false)
-    return { route, hostname, port, url: formatUrl(hostname, this.proxyPort, this.tls) }
+  async register(hostname: string, port: number, kind: RouteKind, service?: string): Promise<RouteBinding> {
+    await this.ensureReady()
+    const record = this.routeTable.upsert(hostname, port, kind, service)
+    this.refreshCert()
+    return { hostname: record.hostname, port: record.port, url: this.urlFor(record.hostname) }
   }
 
-  unregister(route: string): Promise<void> {
-    this.store.removeRoute(parseHostname(route, this.tld))
+  unregister(hostname: string): Promise<void> {
+    this.routeTable.remove(hostname)
+    this.refreshCert()
     return Promise.resolve()
   }
 
-  async status(): Promise<RouterStatus> {
-    const proxyRunning = await this.proxyRunning()
-    const routes: RouteBinding[] = this.store.loadRoutes().map((r) => ({
-      route: r.hostname.split('.')[0] as string,
-      hostname: r.hostname,
-      port: r.port,
-      url: formatUrl(r.hostname, this.proxyPort, this.tls),
-    }))
-    return { available: hasPortless(), proxyRunning, routes }
+  private async isLive(port: number): Promise<boolean> {
+    const cached = this.liveCache.get(port)
+    const now = Date.now()
+    if (cached && now - cached.checkedAt < LIVE_CACHE_MS) return cached.live
+    const live = await dialLive(port)
+    this.liveCache.set(port, { checkedAt: now, live })
+    return live
+  }
+
+  async list(): Promise<RouteInfo[]> {
+    return Promise.all(
+      this.routeTable.list().map(async (r) => ({
+        ...r,
+        url: this.urlFor(r.hostname),
+        live: await this.isLive(r.port),
+      })),
+    )
+  }
+
+  inspect(): RouterInspection {
+    const port = this.engine.port
+    const tls = this.engine.tls
+    const certTrusted = tls && this.certAuthority.isTrusted()
+    const hostsSynced = !tls || !this.needsHostsSync() || this.hostsSync.isSynced(this.currentHostnames())
+
+    const issues: string[] = []
+    if (port === undefined) issues.push('proxy is not listening')
+    if (tls && !certTrusted) {
+      issues.push('the outrider CA is not trusted system-wide; run `outrider on` to grant trust')
+    }
+    if (tls && !hostsSynced) {
+      issues.push('/etc/hosts is out of date for the configured TLD; run `outrider on` to sync it')
+    }
+
+    return {
+      listening: port !== undefined,
+      port: port ?? (tls ? TLS_PRIMARY_PORT : PLAIN_PRIMARY_PORT),
+      tls,
+      certTrusted,
+      hostsSynced,
+      issues,
+    }
+  }
+
+  hostnameFor(label: string): string {
+    return this.routeTable.hostnameFor(label)
+  }
+
+  urlFor(hostname: string): string {
+    const port = this.engine.port
+    const scheme = this.engine.tls ? 'https' : 'http'
+    const defaultPort = this.engine.tls ? 443 : 80
+    const suffix = port !== undefined && port !== defaultPort ? `:${port}` : ''
+    return `${scheme}://${hostname}${suffix}`
+  }
+
+  tld(): string {
+    return this.routeTable.tld()
   }
 }
 
-// eslint-disable-next-line max-classes-per-file
-class NoopRouter implements Router {
-  readonly available = false
-
-  constructor(private readonly log: (message: string) => void) {}
-
-  ensureProxy(): Promise<boolean> {
-    return Promise.resolve(false)
-  }
-
-  register(route: string, port: number): Promise<RouteBinding> {
-    const hostname = parseHostname(route, 'localhost')
-    return Promise.resolve({
-      route,
-      hostname,
-      port,
-      url: formatUrl(hostname, 80, false),
-    })
-  }
-
-  unregister(): Promise<void> {
-    return Promise.resolve()
-  }
-
-  urlFor(route: string): string {
-    return formatUrl(parseHostname(route, 'localhost'), 80, false)
-  }
-
-  status(): Promise<RouterStatus> {
-    return Promise.resolve({ available: false, proxyRunning: false, routes: [] })
-  }
-}
-
-export function createRouter(log: (message: string) => void): Router {
-  return hasPortless() ? new PortlessRouter(log) : new NoopRouter(log)
-}
+export const createRouter = (
+  registry: Registry,
+  log: (message: string) => void,
+  deps?: NativeRouterDeps,
+): Router => new NativeRouter(registry, log, deps)

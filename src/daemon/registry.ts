@@ -3,7 +3,14 @@ import { homedir } from 'node:os'
 
 import type { LoadedProject, ProcessConfig } from '@/shared/types/process-compose'
 import type { ServiceDefinition } from '@/shared/types/protocol'
-import type { DesiredState, RegistryModel, ServiceEntry, StackEntry } from '@/shared/types/registry'
+import type {
+  DesiredState,
+  ProxySettings,
+  RegistryModel,
+  RouteRecord,
+  ServiceEntry,
+  StackEntry,
+} from '@/shared/types/registry'
 
 import type { EventBus } from '@/daemon/event-bus'
 import type { StateStore } from '@/daemon/state-store'
@@ -11,6 +18,7 @@ import type { StateStore } from '@/daemon/state-store'
 import { nowIso } from '@/shared/utils/time'
 import { isValidTag, normalizeTags as normalize, toTagList } from '@/shared/utils/tags'
 import { hashProject, stackNameFor } from '@/daemon/config/load'
+import { isPinnedRoute, routeExtension } from '@/daemon/config/validate'
 import { RegistryError } from '@/daemon/registry-error'
 
 export { RegistryError } from '@/daemon/registry-error'
@@ -111,6 +119,7 @@ export class Registry {
         ordered_shutdown: proc.ordered_shutdown ?? config.ordered_shutdown,
       }
       const existing = this.model.services[id]
+      const route = routeExtension(proc)
       const entry: ServiceEntry = {
         id,
         name: procName,
@@ -121,7 +130,8 @@ export class Registry {
         config: merged,
         dir,
         shell: config.shell,
-        route: proc['x-portless'],
+        route,
+        routeKind: isPinnedRoute(route) ? 'static' : undefined,
         tags: normalizeTags(toTagList(proc['x-tags'])),
       }
       this.assertRouteFree(entry, name)
@@ -150,14 +160,15 @@ export class Registry {
   }
 
   private entryFromDefinition(def: ServiceDefinition, previous?: ServiceEntry): ServiceEntry {
-    // An alias port marks an externally managed route (a fixed port the
-    // command owns); clearing it reverts to a normal daemon-managed route.
+    // An alias port pins a fixed port instead of an allocated one (the
+    // command owns it already); clearing it reverts to an allocated port.
+    // A pinned port on a standalone service is what makes it a static route.
+    const pinnedPort = def.aliasPort ?? previous?.route?.port
     const route = def.route
       ? {
           ...previous?.route,
           route: def.route,
-          alias: def.aliasPort !== undefined,
-          port: def.aliasPort ?? previous?.route?.port,
+          port: pinnedPort,
         }
       : undefined
     const config: ProcessConfig = {
@@ -167,7 +178,7 @@ export class Registry {
       'availability': def.restart
         ? { ...(previous?.config.availability ?? {}), restart: def.restart }
         : previous?.config.availability,
-      'x-portless': route,
+      'x-route': route,
     }
     if (def.env !== undefined) {
       config.environment = Object.entries(def.env).map(([k, v]) => `${k}=${v}`)
@@ -187,6 +198,7 @@ export class Registry {
       dir: previous?.dir ?? (def.workingDir ? resolve(def.workingDir) : homedir()),
       shell: previous?.shell,
       route,
+      routeKind: route?.port !== undefined ? 'static' : undefined,
     }
   }
 
@@ -305,6 +317,28 @@ export class Registry {
         `route "${route}" is already claimed by "${claimant.id}"; routes are unique system-wide`,
       )
     }
+  }
+
+  routes(): RouteRecord[] {
+    return Object.values(this.model.routes)
+  }
+
+  route(hostname: string): RouteRecord | undefined {
+    return this.model.routes[hostname]
+  }
+
+  upsertRoute(record: RouteRecord): void {
+    this.model.routes[record.hostname] = record
+    this.persist()
+  }
+
+  removeRoute(hostname: string): void {
+    delete this.model.routes[hostname]
+    this.persist()
+  }
+
+  proxySettings(): ProxySettings {
+    return this.model.proxy
   }
 
   private persist(): void {

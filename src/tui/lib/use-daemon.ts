@@ -13,6 +13,7 @@ import type { RegistryModel } from '@/shared/types/registry'
 import { ApiCallError, Client } from '@/shared/client'
 import { installUnit, startUnit } from '@/shared/service-unit'
 import { registryPath } from '@/shared/utils/paths'
+import { isServiceChecked } from '@/tui/lib/service-checked'
 
 const RECONNECT_MS = 1200
 const FLUSH_MS = 80
@@ -25,6 +26,8 @@ export interface DaemonHook {
   services: ServiceState[]
   shuttingDown: boolean
   notice?: string
+  /** Routing proxy diagnostics (cert trust, hosts sync, listener); empty when all clear. */
+  proxyIssues: string[]
   /** Raw log stream subscription; bypasses React state for cheap fan-out. */
   onLog: (cb: (line: LogLine) => void) => () => void
   toggle: (state: ServiceState) => void
@@ -67,6 +70,7 @@ export const useDaemon = (): DaemonHook => {
   const [services, setServices] = useState<ServiceState[]>([])
   const [shuttingDown, setShuttingDown] = useState(false)
   const [notice, setNotice] = useState<string>()
+  const [proxyIssues, setProxyIssues] = useState<string[]>([])
 
   const byId = useRef(new Map<string, ServiceState>())
   const dirty = useRef(false)
@@ -150,6 +154,10 @@ export const useDaemon = (): DaemonHook => {
           },
         )
         setConnection('online')
+        void (async () => {
+          const status = await client.proxyStatus().catch(() => undefined)
+          if (status && alive.current) setProxyIssues(status.inspection.issues)
+        })()
       } catch (err) {
         if (!alive.current) return
         setNotice(
@@ -180,6 +188,7 @@ export const useDaemon = (): DaemonHook => {
     services,
     shuttingDown,
     notice,
+    proxyIssues,
     onLog: useCallback((cb) => {
       logSubscribers.current.add(cb)
       return () => logSubscribers.current.delete(cb)
@@ -187,12 +196,15 @@ export const useDaemon = (): DaemonHook => {
     toggle: useCallback(
       (state: ServiceState) => {
         const id = state.entry.id
-        const next = (optimistic.current.get(id) ?? state.entry.desired) === 'up' ? 'down' : 'up'
+        const want = optimistic.current.get(id)
+        const view =
+          want === undefined ? state : { ...state, entry: { ...state.entry, desired: want } }
+        const next = isServiceChecked(view, connection === 'online') ? 'down' : 'up'
         optimistic.current.set(id, next)
         dirty.current = true
         guard(() => client.patchService(id, { desired: next }))
       },
-      [client, guard],
+      [client, guard, connection],
     ),
     restart: useCallback(
       (id: string) => {

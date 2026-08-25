@@ -21,7 +21,13 @@ const def = (over: Partial<ServiceDefinition> = {}): ServiceDefinition => ({
 
 beforeEach(() => {
   const store = new StateStore(join(tmp, 'registry.json'), join(tmp, 'journal.jsonl'))
-  store.saveRegistry({ version: 1, stacks: {}, services: {} })
+  store.saveRegistry({
+    version: 1,
+    stacks: {},
+    services: {},
+    routes: {},
+    proxy: { port: 80, tls: false, tld: 'localhost' },
+  })
   registry = new Registry(store, new EventBus())
 })
 
@@ -78,13 +84,36 @@ describe('service tags', () => {
     expect(registry.get('demo/api')?.tags).toEqual(['web', 'edge'])
     expect(registry.get('demo/db')?.tags).toEqual(['infra', 'data'])
   })
+
+  test('importProject reads x-portless as a route and pins alias ports as static', () => {
+    const project: LoadedProject = {
+      sources: [join(tmp, 'stack', 'process-compose.yaml')],
+      warnings: [],
+      config: {
+        name: 'demo',
+        processes: {
+          api: {
+            'command': 'kubectl port-forward svc/api 10015:8080',
+            'x-portless': { route: 'atoka-api', alias: true, port: 10015 },
+          },
+        },
+      },
+    }
+    registry.importProject(project)
+    const entry = registry.get('demo/api')
+    expect(entry?.route).toEqual({ route: 'atoka-api', alias: true, port: 10015 })
+    expect(entry?.routeKind).toBe('static')
+  })
 })
 
 describe('resolveIds union resolution', () => {
   const stack = (name: string, procs: string[]): LoadedProject => ({
     sources: [join(tmp, name, 'process-compose.yaml')],
     warnings: [],
-    config: { name, processes: Object.fromEntries(procs.map((p) => [p, { command: `echo ${p}` }])) },
+    config: {
+      name,
+      processes: Object.fromEntries(procs.map((p) => [p, { command: `echo ${p}` }])),
+    },
   })
 
   test('an exact id wins outright over a same-named tag', () => {

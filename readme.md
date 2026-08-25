@@ -2,9 +2,9 @@
 
 **A system-wide successor to process-compose.** Instead of running
 per-project, outrider is a persistent per-user daemon that owns the desired state of
-all your services, with a TUI dashboard for managing them. Pair it with
-[portless](https://www.npmjs.com/package/portless) and your services get
-hostnames like `https://myapp.localhost` instead of ports you have to memorise.
+all your services, with a TUI dashboard for managing them. Your services get
+hostnames like `http://myapp.localhost` instead of ports you have to memorise,
+served by outrider's own in-process router — no separate CLI, no dependency.
 Point it at an existing `process-compose.yaml` and it imports the whole stack.
 It just runs, no edits needed.
 
@@ -58,7 +58,7 @@ with its process-compose compatibility report, guides, and runnable demos.
 - **[Service tags](docs/features/service-tags.md)**: group services and start/stop a whole tag at once
 - **[Standalone services](docs/features/standalone-services.md)**: registry-native services with no backing file
 - **[Stacks and import](docs/features/stacks-and-import.md)**: run existing `process-compose.yaml` files unedited
-- **[Portless routing](docs/features/portless-routing.md)**: hostnames instead of memorised ports
+- **[Native routing](docs/features/native-routing.md)**: hostnames instead of memorised ports
 - **[The dashboard](docs/features/the-dashboard.md)**: the Ink TUI that manages everything
 - **[Autostart and boot](docs/features/autostart-and-boot.md)**: desired state that survives reboots
 

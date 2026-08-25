@@ -1,9 +1,9 @@
 import type {
   ConfigWarning,
-  PortlessExtension,
   ProbeConfig,
   ProcessConfig,
   ProjectConfig,
+  RouteExtension,
 } from '@/shared/types/process-compose'
 
 import { DependencyCycleError, startOrder } from '@/daemon/config/dag'
@@ -78,18 +78,14 @@ const DEFERRED_PROCESS_KEYS: Record<string, string> = {
 }
 
 const ROUTE_LABEL = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/
-const PORTLESS_RESERVED = new Set([
-  'run',
-  'proxy',
-  'alias',
-  'list',
-  'clean',
-  'trust',
-  'service',
-  'prune',
-  'status',
-  'config',
-])
+
+/** x-route is the native spelling; x-portless is the permanent alias. */
+export const routeExtension = (proc: ProcessConfig): RouteExtension | undefined =>
+  proc['x-route'] ?? proc['x-portless']
+
+/** A pinned/alias port means the command owns the port (static route). */
+export const isPinnedRoute = (route?: RouteExtension): boolean =>
+  route !== undefined && (route.port !== undefined || route.alias === true)
 
 export interface ValidationResult {
   errors: string[]
@@ -110,22 +106,17 @@ const validateProbe = (name: string, kind: string, probe: ProbeConfig, errors: s
 
 const validateRoute = (
   name: string,
-  route: PortlessExtension,
+  route: RouteExtension,
   claims: Map<string, string>,
   errors: string[],
 ): void => {
   if (!route.route) {
-    errors.push(`process "${name}": x-portless.route is required`)
+    errors.push(`process "${name}": x-route.route is required`)
     return
   }
   if (!ROUTE_LABEL.test(route.route)) {
     errors.push(
-      `process "${name}": x-portless.route "${route.route}" must be a lowercase DNS label (letters, digits, dashes)`,
-    )
-  }
-  if (PORTLESS_RESERVED.has(route.route)) {
-    errors.push(
-      `process "${name}": x-portless.route "${route.route}" collides with a reserved portless subcommand name`,
+      `process "${name}": x-route.route "${route.route}" must be a lowercase DNS label (letters, digits, dashes)`,
     )
   }
   const claimant = claims.get(route.route)
@@ -137,12 +128,7 @@ const validateRoute = (
     claims.set(route.route, name)
   }
   if (route.port !== undefined && (!Number.isInteger(route.port) || route.port < 1)) {
-    errors.push(`process "${name}": x-portless.port must be a positive integer`)
-  }
-  if (route.alias && route.port === undefined) {
-    errors.push(
-      `process "${name}": x-portless.alias needs x-portless.port — an alias routes to a fixed port`,
-    )
+    errors.push(`process "${name}": x-route.port must be a positive integer`)
   }
 }
 
@@ -269,7 +255,7 @@ const validateProcess = (
   validateAvailability(name, proc, errors, warn)
   warnTriagedFeatures(name, proc, warn)
 
-  const route = proc['x-portless']
+  const route = routeExtension(proc)
   if (route !== undefined) validateRoute(name, route, routeClaims, errors)
 }
 

@@ -1,6 +1,6 @@
 # Feature analysis: outrider doctor
 
-**Status:** proposed, not built. Depends in part on [optional portless](optional-portless.md).
+**Status:** proposed, not built.
 
 ## The request
 
@@ -12,15 +12,16 @@ to piece together "why didn't my route come up" from the dashboard, the daemon l
 ## Why it fits
 
 Most of what `doctor` needs to check already exists as scattered, ad-hoc signals: the
-Router's `status()`, `hasPortless()`, the socket liveness check the daemon itself uses on
-startup, and the *route pending* state introduced by [optional portless](optional-portless.md).
-`doctor` does not add new detection logic; it is a single command that walks the checks
-that already exist and prints them as a checklist instead of requiring the user to know
-where each one lives.
+Router's `inspect()`, the socket liveness check the daemon itself uses on startup, and
+the `GET /v1/proxy` status endpoint `outrider on` already reads to run its foreground
+repair. `doctor` does not add new detection logic; it is a single command that walks the
+checks that already exist and prints them as a checklist instead of requiring the user
+to know where each one lives.
 
 It is also the natural home for the guidance outrider already owes the user in a few
-places without a clean way to surface it: "portless not installed, here's how", "socket
-stale, here's the fix", "route claimed by a dead process, here's how it got orphaned".
+places without a clean way to surface it: "TLS on but the CA isn't trusted yet, here's
+how", "socket stale, here's the fix", "route claimed by a dead process, here's how it
+got orphaned".
 
 ## Design directions
 
@@ -39,18 +40,17 @@ broken, and keeps the first version small.
    version mismatch) rather than just reporting failure.
 3. **Service-unit installation.** The launchd agent / systemd user unit is installed and
    enabled, matching what `outrider on` should have set up.
-4. **Portless presence and health.** Reuses `hasPortless()` and the Router's `status()`:
-   not installed → install guidance; installed but proxy down → the exact repair
-   `ensureProxy` already knows how to do; proxy up but CA not trusted → point at the
-   trust-store step. This is the first concrete check the [optional portless
-   analysis](optional-portless.md) calls out as the reason the two features are best
-   designed together.
+4. **Routing proxy health.** Reuses the Router's `inspect()` (the same call
+   `GET /v1/proxy` and `outrider on` already make): proxy not listening → the bind
+   failure and its cause; TLS on but CA not trusted, or hosts block stale → the exact
+   repair `outrider on` already knows how to run in the foreground.
 5. **Hosts file / DNS.** For `.localhost`, nothing to check (browsers resolve it
    natively); for `.test` or any hostname requiring an `/etc/hosts` entry, confirms the
-   entry portless is supposed to have synced is actually present.
+   entry is actually present and current.
 6. **Registered routes vs. live processes.** Cross-checks the registry's route table
-   against the Router's live registrations, surfacing orphaned or *route pending*
-   entries by name so "why does this service have no hostname" has a one-command answer.
+   against the Router's live registrations (`list()`'s per-route liveness dial),
+   surfacing orphaned entries by name so "why does this service have no hostname" has a
+   one-command answer.
 7. **Filesystem layout.** `~/.local/share/outrider` and `~/.config` paths exist, are
    writable, and hold what the daemon expects (registry, journal present and parseable).
 
@@ -79,17 +79,14 @@ reports.
 ## Risks
 
 - **Becomes a second source of truth.** Every check `doctor` runs must call the same
-  code path the daemon itself uses (`hasPortless()`, `ensureProxy`'s status, the version
-  handshake), never a reimplementation, or the two will drift and `doctor` will report a
-  health outrider itself disagrees with.
+  code path the daemon itself uses (`inspect()`, the version handshake), never a
+  reimplementation, or the two will drift and `doctor` will report a health outrider
+  itself disagrees with.
 - **Scope creep.** It is tempting to fold every future integration's health check in
   here immediately; each addition should earn its place the way the checks above do, by
   already existing as daemon-internal state that just needs surfacing.
 
 ## Relationship to other requests
 
-Its first concrete check is portless health, so it is naturally designed alongside
-[optional portless](optional-portless.md); see that note's "Installation guidance, not
-bundling" section for the line `doctor` owns. It generalises further once [container
-proxy](container-proxy.md) lands, gaining a container-runtime presence/health check
-built the same way.
+It generalises further once [container proxy](container-proxy.md) lands, gaining a
+container-runtime presence/health check built the same way.

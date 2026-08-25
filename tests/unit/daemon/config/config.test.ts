@@ -117,16 +117,38 @@ describe('validateProject', () => {
     ])
   })
 
-  test('route names must be unique, valid labels, and not portless-reserved', () => {
+  test('route names must be unique, valid DNS labels', () => {
     const result = validateProject({
       processes: {
-        a: { 'command': 'x', 'x-portless': { route: 'proxy' } },
-        b: { 'command': 'x', 'x-portless': { route: 'Bad_Label' } },
-        c: { 'command': 'x', 'x-portless': { route: 'app' } },
-        d: { 'command': 'x', 'x-portless': { route: 'app' } },
+        a: { 'command': 'x', 'x-route': { route: 'proxy' } },
+        b: { 'command': 'x', 'x-route': { route: 'Bad_Label' } },
+        c: { 'command': 'x', 'x-route': { route: 'app' } },
+        d: { 'command': 'x', 'x-route': { route: 'app' } },
       },
     })
-    expect(result.errors).toHaveLength(3)
+    expect(result.errors).toHaveLength(2)
+  })
+
+  test('x-portless is accepted as an alias of x-route, including alias ports', () => {
+    const result = validateProject({
+      processes: {
+        api: {
+          'command': 'kubectl port-forward svc/api 10015:8080',
+          'x-portless': { route: 'atoka-api', alias: true, port: 10015 },
+        },
+      },
+    })
+    expect(result.errors).toHaveLength(0)
+  })
+
+  test('x-portless and x-route share the uniqueness namespace', () => {
+    const result = validateProject({
+      processes: {
+        a: { 'command': 'x', 'x-route': { route: 'api' } },
+        b: { 'command': 'x', 'x-portless': { route: 'api' } },
+      },
+    })
+    expect(result.errors.some((e) => e.includes('api'))).toBe(true)
   })
 })
 
@@ -141,7 +163,7 @@ describe('loadProject (golden fixtures)', () => {
     expect(processes.api?.replicas).toBe(1)
     expect(processes.worker?.disabled).toBe(true)
     expect(processes.db?.command).toBe('run-db --data /tmp/outrider-fixture-data')
-    expect(processes.api?.['x-portless']?.route).toBe('api')
+    expect(processes.api?.['x-route']?.route).toBe('api')
     expect(stackNameFor(project)).toBe('webstack')
     expect(hashProject(project)).toHaveLength(16)
   })

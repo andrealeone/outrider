@@ -75,7 +75,7 @@ browser / remote client
 - Distribution is the open question: is the API server bundled with the binary, fetched
   on first `api on`, or run from source? Each has a trade-off between binary size, the
   single-file install promise, and update cadence.
-- The "any dependency beyond ink, react, and portless needs written justification" rule
+- The "any dependency beyond ink and react needs written justification" rule
   applies to the *core*; the `/api` app is a separate dependency surface and should
   carry its own, smaller, justification policy documented alongside it.
 

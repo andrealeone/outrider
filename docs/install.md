@@ -10,11 +10,11 @@ usage starts once `outrider on` has run once; see [usage.md](usage.md) for that.
 - [Bun](https://bun.com) 1.3.10+, only if you're building from source (the
   compiled binary embeds its own runtime, so an installed-from-script outrider
   needs no Bun at all).
-- Optional: the [portless](https://www.npmjs.com/package/portless) CLI on
-  `PATH` for named routes (`bun add -g portless`). Without it, everything
-  works except hostnames; routed services start with a named warning instead,
-  and start on a plain port. See [the router](architecture/router.md) for the
-  proxy lifecycle and hostname policy this unlocks.
+
+Named routes (`api.myapp.localhost`) work out of the box: the daemon runs its
+own in-process routing proxy, no separate CLI or dependency required. See
+[the router](architecture/router.md) for the proxy lifecycle and hostname
+policy.
 
 ## Installing
 
@@ -88,6 +88,7 @@ conventions on macOS as well as Linux, one convention everywhere:
 ~/.local/share/outrider/journal.jsonl    event log and restart counters
 ~/.local/share/outrider/logs/<svc>/      rotated process logs
 ~/.local/share/outrider/daemon.log       daemon process log
+~/.local/share/outrider/certs/           routing CA and leaf certificate (TLS mode only)
 $XDG_RUNTIME_DIR/outrider.sock           control socket (fallback: ~/.cache/outrider)
 ```
 
@@ -102,7 +103,11 @@ rm -rf ~/.config/outrider ~/.config/outrider.yml   # daemon config + sync mirror
 
 `outrider off` must run first: it removes the launchd agent / systemd user
 unit (so nothing resurrects the daemon) and shuts services down cleanly. The
-`~/.local/share/outrider` removal is what erases your registered services;
-skip it to keep your desired state for a later reinstall. outrider does not
-touch portless's own state or the CA it installed; remove those with
-portless's own tooling if you no longer want it.
+`~/.local/share/outrider` removal is what erases your registered services and
+the routing CA (`~/.local/share/outrider/certs/`); skip it to keep your
+desired state for a later reinstall. If you'd previously granted the CA
+system trust, remove it from your OS trust store separately (`security
+delete-certificate` on macOS, or drop the file from
+`/etc/pki/ca-trust/source/anchors` / `/usr/local/share/ca-certificates` and
+re-run `update-ca-trust` / `update-ca-certificates` on Linux) — outrider
+never removes trust-store entries itself.

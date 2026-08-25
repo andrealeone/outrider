@@ -1,88 +1,140 @@
-import { describe, expect, test } from 'bun:test'
+import { afterAll, describe, expect, test } from 'bun:test'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-import type { Router } from '@/shared/types/router'
-
-import { resetPortlessCache } from '@/shared/utils/portless'
+import { EventBus } from '@/daemon/event-bus'
+import { Registry } from '@/daemon/registry'
 import { createRouter } from '@/daemon/router'
+import { CertAuthority } from '@/daemon/router/cert-authority'
+import { HostsSync } from '@/daemon/router/hosts-sync'
+import { StateStore } from '@/daemon/state-store'
 
-const noop = () => {}
+const tmp = mkdtempSync(join(tmpdir(), 'outrider-router-'))
+const store = new StateStore(join(tmp, 'registry.json'), join(tmp, 'journal.jsonl'))
+const registry = new Registry(store, new EventBus())
 
-describe('createRouter factory', () => {
-  test('returns NoopRouter when portless is absent', () => {
-    const prev = process.env.OUTRIDER_PORTLESS_BIN
-    process.env.OUTRIDER_PORTLESS_BIN = '/nonexistent'
-    resetPortlessCache()
-    const router = createRouter(noop)
-    expect(router.constructor.name).toBe('NoopRouter')
-    process.env.OUTRIDER_PORTLESS_BIN = prev
-    resetPortlessCache()
+afterAll(() => {
+  rmSync(tmp, { recursive: true, force: true })
+})
+
+describe('NativeRouter (default: plain HTTP)', () => {
+  const router = createRouter(registry, () => {})
+
+  test('hostnameFor appends the default tld', () => {
+    expect(router.hostnameFor('api')).toBe('api.localhost')
+  })
+
+  test('urlFor builds a plain http URL for a hostname', () => {
+    const url = router.urlFor('myroute.localhost')
+    expect(url).toContain('myroute.localhost')
+    expect(url.startsWith('http://')).toBe(true)
+  })
+
+  test('register starts the proxy and returns a binding', async () => {
+    const binding = await router.register('api.localhost', 8080, 'managed', 'api')
+    expect(binding.hostname).toBe('api.localhost')
+    expect(binding.port).toBe(8080)
+    expect(binding.url).toContain('api.localhost')
+  })
+
+  test('ensureReady reports the proxy listening, no TLS, no issues', async () => {
+    const inspection = await router.ensureReady()
+    expect(inspection.listening).toBe(true)
+    expect(inspection.tls).toBe(false)
+    expect(inspection.issues).toEqual([])
+  })
+
+  test('list reflects registered routes and their liveness', async () => {
+    const routes = await router.list()
+    const route = routes.find((r) => r.hostname === 'api.localhost')
+    expect(route?.service).toBe('api')
+    // Nothing is actually listening on 9090 in this test, so it dials false.
+    expect(route?.live).toBe(false)
+  })
+
+  test('re-registering the same service is idempotent', async () => {
+    const binding = await router.register('api.localhost', 9090, 'managed', 'api')
+    expect(binding.port).toBe(9090)
+  })
+
+  test('registering a hostname claimed by a different service conflicts', async () => {
+    let error: Error | undefined
+    try {
+      await router.register('api.localhost', 8081, 'managed', 'other')
+    } catch (err) {
+      error = err as Error
+    }
+    expect(error?.message).toMatch(/claimed/)
+  })
+
+  test('unregister removes the route', async () => {
+    await router.unregister('api.localhost')
+    const routes = await router.list()
+    expect(routes.some((r) => r.hostname === 'api.localhost')).toBe(false)
   })
 })
 
-describe('NoopRouter', () => {
-  // Use a guaranteed absent portless by setting OUTRIDER_PORTLESS_BIN to a non-existent path
-  // beforeEach would be nice but bun:test doesn't support it in the same way, so we create
-  // the router in each test with the override set
-  const withAbsentPortless = (fn: (router: Router) => void | Promise<void>): (() => void | Promise<void>) => {
-    return async () => {
-      const prev = process.env.OUTRIDER_PORTLESS_BIN
-      process.env.OUTRIDER_PORTLESS_BIN = '/nonexistent/portless'
-      resetPortlessCache()
-      const r = createRouter(noop)
-      try {
-        await fn(r)
-      } finally {
-        process.env.OUTRIDER_PORTLESS_BIN = prev
-        resetPortlessCache()
-      }
-    }
-  }
+describe('NativeRouter (TLS explicitly enabled)', () => {
+  // TLS is opt-in, not the default (see state-store.ts): Bun's node:http2
+  // shim currently rejects ALPN offers that omit h2, which breaks browser
+  // WebSockets. The CA/leaf/hot-swap machinery is still fully exercised here.
+  const tlsTmp = mkdtempSync(join(tmpdir(), 'outrider-router-tls-'))
+  const tlsStore = new StateStore(join(tlsTmp, 'registry.json'), join(tlsTmp, 'journal.jsonl'))
+  tlsStore.saveRegistry({
+    version: 1,
+    stacks: {},
+    services: {},
+    routes: {},
+    proxy: { port: 443, tls: true, tld: 'localhost' },
+  })
+  const tlsRegistry = new Registry(tlsStore, new EventBus())
 
-  test(
-    'ensureProxy returns false',
-    withAbsentPortless(async (r) => {
-      const result = await r.ensureProxy()
-      expect(result).toBe(false)
-    }),
-  )
+  const certAuthority = new CertAuthority({
+    ca: join(tlsTmp, 'ca.pem'),
+    caKey: join(tlsTmp, 'ca-key.pem'),
+    leaf: join(tlsTmp, 'leaf.pem'),
+    leafKey: join(tlsTmp, 'leaf-key.pem'),
+    trustMarker: join(tlsTmp, 'trusted.flag'),
+  })
+  const hostsSync = new HostsSync(join(tlsTmp, 'hosts'))
+  const router = createRouter(tlsRegistry, () => {}, { certAuthority, hostsSync })
 
-  test(
-    'register returns a binding with computed hostname',
-    withAbsentPortless(async (r) => {
-      const binding = await r.register('testapi', 8080)
-      expect(binding.route).toBe('testapi')
-      expect(binding.port).toBe(8080)
-      expect(binding.hostname).toBe('testapi.localhost')
-      expect(binding.url).toContain('testapi.localhost')
-      expect(binding.url.startsWith('http://')).toBe(true)
-    }),
-  )
+  afterAll(() => {
+    rmSync(tlsTmp, { recursive: true, force: true })
+  })
 
-  test(
-    'unregister resolves without error',
-    withAbsentPortless(async (r) => {
-      await r.unregister('testapi')
-      // Should not throw
-      expect(true).toBe(true)
-    }),
-  )
+  test('urlFor builds an https URL for a hostname', () => {
+    const url = router.urlFor('myroute.localhost')
+    expect(url.startsWith('https://')).toBe(true)
+  })
 
-  test(
-    'urlFor returns computed URL for a route',
-    withAbsentPortless((r) => {
-      const url = r.urlFor('myroute')
-      expect(url).toContain('myroute.localhost')
-      expect(url.startsWith('http://')).toBe(true)
-    }),
-  )
+  test('register mints a CA-signed leaf and starts the TLS listener', async () => {
+    const binding = await router.register('api.localhost', 8080, 'managed', 'api')
+    expect(binding.url.startsWith('https://')).toBe(true)
 
-  test(
-    'status returns unavailable',
-    withAbsentPortless(async (r) => {
-      const status = await r.status()
-      expect(status.available).toBe(false)
-      expect(status.proxyRunning).toBe(false)
-      expect(status.routes).toEqual([])
-    }),
-  )
+    const leaf = certAuthority.leafCert().toString()
+    const ca = certAuthority.caCert().toString()
+    expect(leaf).toContain('BEGIN CERTIFICATE')
+    expect(ca).toContain('BEGIN CERTIFICATE')
+  })
+
+  test('ensureReady reports TLS on with an untrusted CA (needs a foreground sudo prompt)', async () => {
+    const inspection = await router.ensureReady()
+    expect(inspection.listening).toBe(true)
+    expect(inspection.tls).toBe(true)
+    expect(inspection.certTrusted).toBe(false)
+    expect(inspection.issues.some((i) => i.includes('not trusted'))).toBe(true)
+  })
+
+  test('a new hostname re-mints the leaf; the same set does not', async () => {
+    const sansBefore = certAuthority.leafCert()
+    // Same hostname set as before: no re-mint.
+    await router.register('api.localhost', 9090, 'managed', 'api')
+    expect(certAuthority.leafCert().equals(sansBefore)).toBe(true)
+
+    await router.register('second.localhost', 7070, 'managed', 'second')
+    expect(certAuthority.leafCert().equals(sansBefore)).toBe(false)
+    await router.unregister('second.localhost')
+  })
 })

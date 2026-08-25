@@ -17,12 +17,12 @@ honour reverse dependency order when any participant opted into
 `ordered_shutdown`, and always for full daemon shutdown. Routes die with
 their service: terminal states trigger route unregistration.
 
-Route allocation happens here: for an `x-portless` service the reconciler
-takes the fixed port or asks the OS for an ephemeral one, registers the route
-through the Router, and injects `PORT`, `PORTLESS_URL`, and `OUTRIDER_URL`
-into the spawn environment. Registration failure degrades to starting without
-a route, logged to the service's system stream. A route marked `alias`
-registers as a static pid-0 alias on its fixed port instead of a
-daemon-owned one (see [Router](router.md)); because portless never prunes
-those, the reconciler clears every known alias on boot before the resume
-pass, so a prior crash can't leave one dangling.
+Route allocation happens here: for an `x-route` service the reconciler takes
+the fixed port or asks the OS for a free one in the conventional 4000-4999
+range, registers the route through the Router with `entry.routeKind` (managed
+by default, `static` when the port is pinned via `aliasPort` or the
+portless-era `alias: true` flag — see [Router](router.md)), and injects
+`PORT`, `HOST=127.0.0.1`, `OUTRIDER_URL`, and `PORTLESS_URL` (plus
+`NODE_EXTRA_CA_CERTS` when TLS is on) into the spawn environment. Registration
+failure degrades to starting without a route, logged to the service's system
+stream.

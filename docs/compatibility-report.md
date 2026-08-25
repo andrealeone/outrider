@@ -1,10 +1,12 @@
 # Compatibility report
 
-Target: process-compose **v1.110.0** (verified May 2026) and portless
-**v0.14.0** (pinned). This report records every deliberate divergence, with the
-reasoning behind each one; the [config schema](config-schema.md) records
-per-key support status, and the [feature parity](architecture/feature-parity.md)
-page gives the coarser, checklist-style comparison for a first read.
+Target: process-compose **v1.110.0** (verified May 2026). This report records
+every deliberate divergence, with the reasoning behind each one; the
+[config schema](config-schema.md) records per-key support status, and the
+[feature parity](architecture/feature-parity.md) page gives the coarser,
+checklist-style comparison for a first read. The [router](architecture/router.md)
+section below records the swap from the portless CLI to outrider's own
+in-process routing subsystem.
 
 ## Verified equivalences
 
@@ -24,16 +26,16 @@ page gives the coarser, checklist-style comparison for a first read.
 
 ## Deliberate divergences
 
-| Area                                            | Upstream                                            | outrider                                                            | Why                                                                                                                           |
-| ----------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Lifetime                                        | project-bound, exits with the session               | system-wide per-user daemon; desired state persists                 | the tool's premise                                                                                                            |
-| exit_on_end / exit_on_failure / exit_on_skipped | terminate the binary                                | warned and ignored in persistent mode; will apply to ephemeral runs | a daemon never exits with a process                                                                                           |
-| Ports                                           | hard-coded per service                              | optional named routes via portless (`x-portless`)                   | opt-in extension key; untouched configs behave identically                                                                    |
-| Replica naming                                  | all instances renamed `name-N`                      | instance 0 keeps the plain name; 1+ get `-N`                        | stable identity across rescaling; counters and probes stay attached                                                           |
-| Project update (Ctrl+E edits)                   | ephemeral in-memory edits                           | re-import the stack; the registry is the source of truth            | persisted desired state contradicts unsaved edits                                                                             |
-| TUI                                             | tview, themes, mouse                                | Ink, one light/dark pair, vim keymap, keyboard-only                 | cuts discussion in the brief                                                                                                  |
-| Env expansion of command strings                | at load                                             | at import (frozen into the registry; re-import refreshes)           | system-wide model imports once                                                                                                |
-| `success_threshold`                             | placeholder, not evaluated                          | same, documented                                                    | honesty over invented semantics                                                                                               |
+| Area                                            | Upstream                                            | outrider                                                            | Why                                                                                                                          |
+| ----------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Lifetime                                        | project-bound, exits with the session               | system-wide per-user daemon; desired state persists                 | the tool's premise                                                                                                           |
+| exit_on_end / exit_on_failure / exit_on_skipped | terminate the binary                                | warned and ignored in persistent mode; will apply to ephemeral runs | a daemon never exits with a process                                                                                          |
+| Ports                                           | hard-coded per service                              | optional named routes via the native router (`x-route`)             | opt-in extension key; untouched configs behave identically                                                                   |
+| Replica naming                                  | all instances renamed `name-N`                      | instance 0 keeps the plain name; 1+ get `-N`                        | stable identity across rescaling; counters and probes stay attached                                                          |
+| Project update (Ctrl+E edits)                   | ephemeral in-memory edits                           | re-import the stack; the registry is the source of truth            | persisted desired state contradicts unsaved edits                                                                            |
+| TUI                                             | tview, themes, mouse                                | Ink, one light/dark pair, vim keymap, keyboard-only                 | cuts discussion in the brief                                                                                                 |
+| Env expansion of command strings                | at load                                             | at import (frozen into the registry; re-import refreshes)           | system-wide model imports once                                                                                               |
+| `success_threshold`                             | placeholder, not evaluated                          | same, documented                                                    | honesty over invented semantics                                                                                              |
 | Liveness failure                                | restart behaviour mirrors upstream per restart mode | always restarts the instance (counts toward max_restarts)           | **assumption**: upstream behaviour must still be verified against the real binary per the open questions; revisit before 1.0 |
 
 ## Cut features (parse + named warning, never a crash)
@@ -52,11 +54,57 @@ per-instance replica dependency conditions, scheduled processes (cron and
 interval; schema fields parse today, execution later), the MCP control
 plane (planned as the first value addition).
 
-## portless integration surface (pinned at 0.14.0)
+## Routing: from portless to native
 
-Programmatic: `RouteStore` (file-locked route table; routes registered under
-the daemon's pid so they self-prune if the daemon dies), `parseHostname`,
-`formatUrl`, and the `X-Portless` health header. CLI (shelled out, optional):
-`portless proxy start`. Portless is explicitly pre-1.0 and warns its state
-format may change between releases, so every call lives behind the `Router`
-interface in `src/daemon/router.ts`, so a break stays local to one file.
+outrider's routing subsystem was originally a bridge to the [portless](https://www.npmjs.com/package/portless)
+CLI, shelled out to and detected on `PATH`. That integration has been
+removed entirely (no compatibility alias, no fallback path) and replaced
+with `src/daemon/router.ts` and `src/daemon/router/`: an in-process reverse
+proxy backed by the registry's own route table, with no external dependency.
+See [the router](architecture/router.md) for the implementation and
+[native routing](features/native-routing.md) for the user-facing feature.
+
+**What changed for configs.** `x-route` is the native spelling, with the same
+`route`/`framework`/`port` fields; `x-portless` remains a permanent alias so
+existing compose files and registry entries keep working. The portless-era
+`alias: true` flag is still honoured (it pins the route as `kind: static`);
+new configs use a pinned `port` / the TUI "alias port" field instead.
+Reserved-subcommand-name validation on route labels is gone — that was a
+constraint from portless's own CLI subcommands, which no longer exist.
+`PORTLESS_URL` is still injected next to `OUTRIDER_URL` so scripts written
+against the old integration survive the swap.
+
+**Static aliases**, kept from the original design as "the only bridge to
+processes the daemon does not directly manage the port of," are derived
+automatically: a pinned port (`aliasPort`, `x-route.port`, or the portless-era
+`alias: true` flag) gets `routeKind: 'static'` on its registry entry, which
+only affects how its liveness is reported (`list()` dials the port on demand
+rather than mirroring supervisor state) — registration and env injection are
+identical to a managed route.
+
+**TLS defaults to off — an upstream Bun bug, not a design choice.**
+The routing engine supports HTTPS/HTTP2 end to end (local CA, per-hostname
+leaf certificate hot-swapped on route changes, trust-store enrolment, hosts
+sync for non-`.localhost` TLDs) and every piece of it is built and tested.
+It isn't switched on by default because Bun 1.3.14's `node:http2` shim
+rejects TLS connections whose ALPN offer omits `h2` — exactly what real
+browsers send when opening a WebSocket connection — which would silently
+break WebSockets/HMR for anyone using it. `ProxySettings.tls` in the registry
+is `false` by default; flip it and the daemon reads it on next restart, but
+there is currently no CLI surface to do so (a natural follow-up once the
+Bun bug is fixed).
+
+**Probes never go through the route,** even for TLS-enabled routes: Bun's
+`fetch` cannot self-connect to the daemon's own `node:http2` TLS listener
+from within the same process — confirmed independently of the ALPN issue
+above — so `src/daemon/prober.ts` always dials the service's port directly.
+This is arguably the more correct design regardless: a health check
+shouldn't depend on the proxy being healthy.
+
+**Acceptance, adjusted for the above.** On a clean machine, importing a stack
+that routes `web` and `api` serves `http://myapp.localhost` and
+`http://api.myapp.localhost` (HTTP/1.1; HTTPS/HTTP2 work when TLS is
+manually enabled in the registry, with the WebSocket caveat above); an http
+readiness probe passes by dialing the service's own port; the lockfile
+contains no routing dependency (`bun.lock` has never listed `portless` since
+this swap; `package.json` `dependencies` is `ink` and `react` only).

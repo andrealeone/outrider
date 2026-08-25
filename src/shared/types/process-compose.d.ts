@@ -72,18 +72,12 @@ export interface LoggerConfig {
   no_metadata?: boolean
 }
 
-/** The x-portless extension block: opt-in named routing for one process. */
-export interface PortlessExtension {
+/** The x-route / x-portless extension block: opt-in named routing for one process. */
+export interface RouteExtension {
   route: string
   framework?: string
   port?: number
-  /**
-   * Register a static portless alias instead of a managed route. External
-   * tools that bind a fixed port and ignore the injected PORT (e.g. kubectl
-   * port-forward, tsh proxy) are routed this way: the alias points at `port`
-   * directly. Aliases use pid 0 and survive portless's stale-route cleanup,
-   * so the daemon clears them explicitly on shutdown and boot.
-   */
+  /** Portless-era flag: the command already owns this port. Treated as a pinned/static route. */
   alias?: boolean
 }
 
@@ -117,7 +111,9 @@ export interface ProcessConfig {
   'vars'?: Record<string, unknown>
   'is_template_disabled'?: boolean
   'ordered_shutdown'?: boolean
-  'x-portless'?: PortlessExtension
+  'x-route'?: RouteExtension
+  /** Permanent alias of x-route; configs written against the portless integration. */
+  'x-portless'?: RouteExtension
   [extension: `x-${string}`]: unknown
 }
 

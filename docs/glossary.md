@@ -71,22 +71,25 @@ the rest get `-N` suffixes, so identity stays stable when you scale up and down.
 ## Routing
 
 A **route** is a hostname your service answers on: give it the label `api` and
-it becomes reachable at `api.localhost` through the **portless** proxy, instead
-of a port you have to remember. By default the daemon picks a free port, injects
-it as `PORT`, and points the route at it (a **managed route**, owned by the
-daemon and cleaned up automatically if the daemon dies).
+it becomes reachable at `api.localhost` through outrider's own in-process
+routing proxy, instead of a port you have to remember. By default the daemon
+picks a free port, injects it as `PORT`, and points the route at it (a
+**managed route**, owned by the daemon and cleaned up automatically when the
+service stops).
 
 An **alias** (or **alias port**) is for tools that bind their own fixed port and
 ignore the injected `PORT`, like `kubectl port-forward` or `tsh proxy`. The
-route then points straight at that fixed port as a static portless alias.
+route then points straight at that fixed port as a **static route** — the
+same route table, just a different liveness check (an on-demand dial instead
+of mirroring supervisor state).
 
 ## Health and lifecycle
 
 A **probe** is a periodic check on a service. A **readiness probe** answers "is
 it ready to be depended on yet?"; a **liveness probe** answers "is it still
 healthy?", restarting the service when it isn't. Probes come in two flavours,
-`exec` (run a command) and `http_get` (hit a URL, taking the portless route for
-routed services so it tests the exact path a user would).
+`exec` (run a command) and `http_get` (hit a URL, always dialing the
+service's own port directly rather than going through the routing proxy).
 
 A **ready_log_line** is the lightweight alternative to a readiness probe: a line
 of output that, once it appears, flips the service to ready.

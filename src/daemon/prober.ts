@@ -13,8 +13,6 @@ export interface ProbeAttachment {
   cwd: string
   /** PORT injected for routed services, used as the http_get fallback port. */
   port?: string
-  /** When routed, http probes target the portless route: the exact user path. */
-  routeUrl?: string
   /** Called on ready/not-ready transitions (after failure_threshold breaches). */
   onTransition: (ok: boolean) => void
 }
@@ -103,18 +101,20 @@ export class Prober {
   }
 
   private async checkHttp(attachment: ProbeAttachment): Promise<boolean> {
-    const { probe, routeUrl, port } = attachment
+    const { probe, port } = attachment
     const http = probe.http_get as NonNullable<typeof probe.http_get>
     const path = http.path ?? '/'
-    const url = routeUrl
-      ? `${routeUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`
-      : `${http.scheme ?? 'http'}://${http.host ?? '127.0.0.1'}:${http.port ?? port ?? 80}${path}`
+    // Probes hit the service directly on its allocated port, never through
+    // the routing proxy: Bun's fetch cannot self-connect to the daemon's own
+    // node:http2 TLS listener from within the same process (a runtime
+    // limitation, confirmed independently of this codebase), and a health
+    // check should not depend on the proxy being healthy anyway.
+    const url = `${http.scheme ?? 'http'}://${http.host ?? '127.0.0.1'}:${http.port ?? port ?? 80}${path}`
 
     const timeout = (probe.timeout_seconds ?? DEFAULT_TIMEOUT_SECONDS) * 1000
     const res = await fetch(url, {
       headers: http.headers,
       signal: AbortSignal.timeout(timeout),
-      // The local CA may not be in Bun's trust store; the proxy is local.
       tls: { rejectUnauthorized: false },
     })
     await res.arrayBuffer().catch(() => undefined)

@@ -37,7 +37,6 @@ const App = () => {
           rows={rows}
           active
           onBack={back}
-          portless={daemon.daemon?.portless ?? true}
         />
       )
     case 'add':

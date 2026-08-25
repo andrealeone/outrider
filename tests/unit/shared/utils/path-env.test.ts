@@ -9,7 +9,7 @@ describe('commonPathEntries', () => {
     const entries = commonPathEntries()
     const home = homedir()
     // ~/.bun/bin and ~/.local/bin are where `bun add -g` / `npm i -g` land
-    // portless; the daemon must look here even when PATH does not list them.
+    // global tools; the daemon must look here even when PATH omits them.
     expect(entries).toContain(join(home, '.bun', 'bin'))
     expect(entries).toContain(join(home, '.local', 'bin'))
   })

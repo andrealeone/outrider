@@ -61,7 +61,7 @@ services:
     autostart: true # optional, default false
     restart: on_failure # optional: no | on_failure | always
     tags: [web, edge] # optional: list or comma-separated string
-    route: api # optional: portless hostname label
+    route: api # optional: hostname label (see native routing)
     alias_port: 10020 # optional: fixed-port (alias) route
     namespace: backend # optional
     env: # optional, a KEY: value mapping
@@ -77,10 +77,10 @@ A few semantics worth knowing before you edit:
 
 - **`tags`** may be a YAML list (`[web, edge]`) or a comma-separated string
   (`"web, edge"`); both normalise to the same set.
-- **`alias_port`** turns the route into a static portless alias pointing at a
-  port the command owns itself (`kubectl port-forward`, `tsh proxy`); it
-  requires `route` to be set. Leave it out for a normal daemon-managed route.
-  See [add a routed service](add-a-routed-service.md).
+- **`alias_port`** turns the route into a static route pinned at a port the
+  command owns itself (`kubectl port-forward`, `tsh proxy`); it requires
+  `route` to be set. Leave it out for a normal daemon-managed route. See
+  [add a routed service](add-a-routed-service.md).
 - **`env`** is a mapping of `KEY: value`, not a list of `KEY=value` lines.
 - **Renames aren't expressed here.** Changing a map key reads as deleting the
   old service and creating a new one, because the id is the identity. Rename in

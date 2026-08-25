@@ -37,7 +37,7 @@ curl --unix-socket "$SOCK" http://outrider/v1/info
 ```
 
 ```json
-{ "version": "0.0.0-rc.0", "protocol": 2, "pid": 4213, "startedAt": "...", "portless": true }
+{ "version": "0.0.0-rc.0", "protocol": 2, "pid": 4213, "startedAt": "..." }
 ```
 
 ## Read the current state
