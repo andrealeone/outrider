@@ -5,6 +5,7 @@ import type { ServiceState } from '@/shared/types/protocol'
 import { fit } from '@/shared/utils/format'
 import { formatUptime } from '@/shared/utils/time'
 import { theme } from '@/tui/lib/theme'
+import { isServiceChecked } from '@/tui/lib/service-checked'
 import { StatusBadge } from '@/tui/components/status-badge'
 
 interface Props {
@@ -65,7 +66,7 @@ export const ServiceTable = ({
       {visible.map((state, i) => {
         const index = offset + i
         const isSelected = index === selected
-        const desiredUp = state.entry.desired === 'up'
+        const checked = isServiceChecked(state, online)
         const rowColor = isSelected ? theme.select : undefined
         const uptime =
           state.status === 'running' && state.startedAt !== undefined
@@ -85,7 +86,7 @@ export const ServiceTable = ({
             <Text color={rowColor} bold={isSelected}>
               {isSelected ? '› ' : '  '}
             </Text>
-            <Text color={desiredUp ? theme.ok : theme.dim}>{desiredUp ? '◉ ' : '○ '}</Text>
+            <Text color={checked ? theme.ok : theme.dim}>{checked ? '◉ ' : '○ '}</Text>
             <Text color={rowColor} bold={isSelected} dimColor={!online && !isSelected}>
               {cells.join('  ')}
               {'  '}

@@ -215,6 +215,7 @@ export const Dashboard = ({
           {SORTS[sortIndex % SORTS.length]}
           {searching || search !== '' ? ' · /' : ''}
         </Text>
+
         {searching || search !== '' ? (
           <TextInput
             value={search}

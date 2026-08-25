@@ -13,6 +13,7 @@ import type { RegistryModel } from '@/shared/types/registry'
 import { ApiCallError, Client } from '@/shared/client'
 import { installUnit, startUnit } from '@/shared/service-unit'
 import { registryPath } from '@/shared/utils/paths'
+import { isServiceChecked } from '@/tui/lib/service-checked'
 
 const RECONNECT_MS = 1200
 const FLUSH_MS = 80
@@ -195,12 +196,15 @@ export const useDaemon = (): DaemonHook => {
     toggle: useCallback(
       (state: ServiceState) => {
         const id = state.entry.id
-        const next = (optimistic.current.get(id) ?? state.entry.desired) === 'up' ? 'down' : 'up'
+        const want = optimistic.current.get(id)
+        const view =
+          want === undefined ? state : { ...state, entry: { ...state.entry, desired: want } }
+        const next = isServiceChecked(view, connection === 'online') ? 'down' : 'up'
         optimistic.current.set(id, next)
         dirty.current = true
         guard(() => client.patchService(id, { desired: next }))
       },
-      [client, guard],
+      [client, guard, connection],
     ),
     restart: useCallback(
       (id: string) => {
