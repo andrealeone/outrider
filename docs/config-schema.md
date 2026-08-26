@@ -18,7 +18,7 @@ are supported natively.
 
 | Key                                          | Status                                                          |
 | -------------------------------------------- | --------------------------------------------------------------- |
-| `name`                                       | supported (stack name; defaults to the directory name)          |
+| `name`                                       | supported (import source tag; defaults to the directory name)   |
 | `environment`                                | supported (prepended to every process env)                      |
 | `vars` + `is_template_disabled`              | supported (see Templating)                                      |
 | `shell` (`shell_command`, `shell_argument`)  | supported (default `bash -c`)                                   |
@@ -48,7 +48,7 @@ are supported natively.
 | `log_location`, `log_configuration` / `loggerConfig`                      | supported (rotation by size/backups/age, compression, no_color, add_timestamp)                                                |
 | `vars`, `is_template_disabled`                                            | supported                                                                                                                     |
 | `is_tty`, `is_foreground`                                                 | parsed, deferred with a named warning                                                                                         |
-| `is_elevated`                                                             | parsed, cut with a named warning; write `sudo` in the command                                                                |
+| `is_elevated`                                                             | parsed, cut with a named warning; write `sudo` in the command                                                                 |
 | `x-*` extension keys                                                      | tolerated (x-route and x-tags are read, others pass through)                                                                  |
 
 Unknown keys warn by name in normal mode and fail in strict mode. Every cut or
@@ -119,7 +119,7 @@ labels; conflicts fail the import naming both claimants. `framework` feeds
 the quirk table that appends `--port` for tools that ignore the injected
 `PORT` (Vite, Astro, Expo, React Router, Angular).
 
-**Static aliases.** Standalone services (not stack processes) can pin an
+**Static aliases.** Standalone services (not imported processes) can pin an
 "alias port" via the CLI/TUI add-service form instead of the injected `PORT`,
 for external tools that manage their own fixed port and ignore it (e.g.
 `kubectl port-forward`, `tsh proxy`, `docker run -p`). This sets
@@ -141,7 +141,7 @@ processes:
 
 Tags are grouping labels. `outrider start <tag>` / `outrider stop <tag>` act on
 every service carrying the tag. In the daemon's `up`/`down` `names`, an exact id
-wins outright; otherwise a name resolves to the union of every stack, namespace,
+wins outright; otherwise a name resolves to the union of every source tag, namespace,
 and tag that bears it. Tags are normalised on load (trimmed,
 lowercased, de-duplicated) and must be letters, digits, and dashes. Standalone
 services set tags in the dashboard add/edit form instead. See

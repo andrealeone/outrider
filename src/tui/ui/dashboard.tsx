@@ -6,9 +6,11 @@ import type { ServiceEntry } from '@/shared/types/registry'
 import type { DaemonHook } from '@/tui/lib/use-daemon'
 
 import { theme } from '@/tui/lib/theme'
-import { Header } from '@/tui/views/dashboard/header'
-import { ServiceTable } from '@/tui/views/dashboard/service-table'
-import { TextInput } from '@/tui/components/text-input'
+import { Header } from '@/tui/ui/dashboard-header'
+import { ServiceTable } from '@/tui/ui/service-table'
+import { TextInput } from '@/tui/ui/text-input'
+import { ConfirmPrompt } from '@/tui/ui/confirm-prompt'
+import { HintBar } from '@/tui/ui/hint-bar'
 
 export type View =
   | { name: 'dashboard' }
@@ -23,14 +25,13 @@ interface Props {
   width: number
   frame: number
   active: boolean
-  /** Cursor position, lifted to the parent so it survives leaving for a sub-view. */
   selected: number
   onSelect: Dispatch<SetStateAction<number>>
   onOpen: (view: View) => void
   onQuit: () => void
 }
 
-const SORTS = ['name', 'status', 'stack', 'uptime'] as const
+const SORTS = ['name', 'status', 'uptime'] as const
 
 const fuzzyMatch = (needle: string, haystack: string): boolean => {
   let i = 0
@@ -57,20 +58,11 @@ export const Dashboard = ({
   const [search, setSearch] = useState('')
   const [searching, setSearching] = useState(false)
   const [sortIndex, setSortIndex] = useState(0)
-  const [stackFilter, setStackFilter] = useState<string>()
   const [confirmOff, setConfirmOff] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState<ServiceState>()
 
-  const stacks = useMemo(
-    () => [...new Set(daemon.services.map((s) => s.entry.stack ?? '(standalone)'))].sort(),
-    [daemon.services],
-  )
-
   const filtered = useMemo(() => {
     let list = daemon.services
-    if (stackFilter !== undefined) {
-      list = list.filter((s) => (s.entry.stack ?? '(standalone)') === stackFilter)
-    }
     if (search !== '') {
       list = list.filter(
         (s) =>
@@ -83,11 +75,6 @@ export const Dashboard = ({
       switch (sort) {
         case 'status':
           return a.status.localeCompare(b.status) || a.entry.id.localeCompare(b.entry.id)
-        case 'stack':
-          return (
-            (a.entry.stack ?? '').localeCompare(b.entry.stack ?? '') ||
-            a.entry.id.localeCompare(b.entry.id)
-          )
         case 'uptime':
           return (b.startedAt ?? '').localeCompare(a.startedAt ?? '')
         case 'name':
@@ -95,7 +82,7 @@ export const Dashboard = ({
           return a.entry.id.localeCompare(b.entry.id)
       }
     })
-  }, [daemon.services, stackFilter, search, sortIndex])
+  }, [daemon.services, search, sortIndex])
 
   const tableHeight = Math.max(3, rows - 7)
   const clampedSelection = Math.min(selected, Math.max(0, filtered.length - 1))
@@ -125,13 +112,6 @@ export const Dashboard = ({
     return false
   }
 
-  const cycleStackFilter = (): void => {
-    setStackFilter((f) => {
-      const index = f === undefined ? -1 : stacks.indexOf(f)
-      return index + 1 >= stacks.length ? undefined : stacks[index + 1]
-    })
-  }
-
   const globalActions: Record<string, () => void> = {
     'q': onQuit,
     'j': () => {
@@ -152,7 +132,6 @@ export const Dashboard = ({
     's': () => {
       setSortIndex((i) => i + 1)
     },
-    'f': cycleStackFilter,
     'a': () => {
       onOpen({ name: 'add' })
     },
@@ -211,8 +190,7 @@ export const Dashboard = ({
       />
       <Box paddingX={1}>
         <Text color={theme.dim}>
-          {stackFilter === undefined ? 'All stacks' : `stack: ${stackFilter}`} · sort:{' '}
-          {SORTS[sortIndex % SORTS.length]}
+          sort: {SORTS[sortIndex % SORTS.length]}
           {searching || search !== '' ? ' · /' : ''}
         </Text>
 
@@ -239,19 +217,15 @@ export const Dashboard = ({
       />
       <Box flexGrow={1} />
       {confirmOff ? (
-        <Box paddingX={1} borderStyle="round" borderColor={theme.warn}>
-          <Text color={theme.warn}>
-            switch the daemon off? services stop in reverse dependency order. [y]es [n]o
-          </Text>
-        </Box>
+        <ConfirmPrompt
+          type="warning"
+          message="switch the daemon off? services stop in reverse dependency order. [y]es [n]o"
+        />
       ) : confirmDelete !== undefined ? (
-        <Box paddingX={1} borderStyle="round" borderColor={theme.error}>
-          <Text color={theme.error}>
-            {confirmDelete.entry.stack === undefined
-              ? `delete service "${confirmDelete.entry.id}"? it will be stopped and removed from the registry. [y]es [n]o`
-              : `"${confirmDelete.entry.id}" belongs to stack "${confirmDelete.entry.stack}" — delete the whole stack and stop its services? [y]es [n]o`}
-          </Text>
-        </Box>
+        <ConfirmPrompt
+          type="error"
+          message={`delete service "${confirmDelete.entry.id}"? it will be stopped and removed from the registry. [y]es [n]o`}
+        />
       ) : daemon.notice !== undefined ? (
         <Box paddingX={1}>
           <Text color={theme.error}>{daemon.notice}</Text>
@@ -262,11 +236,29 @@ export const Dashboard = ({
         </Box>
       ) : null}
       <Box paddingX={1}>
-        <Text color={theme.dim}>
-          {daemon.connection === 'offline'
-            ? 'daemon is off — registry shown read-only · [D] switch on · [q]uit'
-            : '[space] toggle · [r]estart · [e]dit · [x] delete · [l]ogs · [i]nfo · [a]dd · i[m]port · [/] search · [f]ilter · [s]ort · [A]utostart · [D]aemon · [q]uit'}
-        </Text>
+        {daemon.connection === 'offline' ? (
+          <HintBar
+            hints={['daemon is off — registry shown read-only', '[D] switch on', '[q]uit']}
+          />
+        ) : (
+          <HintBar
+            hints={[
+              '[space] toggle',
+              '[r]estart',
+              '[e]dit',
+              '[x] delete',
+              '[l]ogs',
+              '[i]nfo',
+              '[a]dd',
+              'i[m]port',
+              '[/] search',
+              '[s]ort',
+              '[A]utostart',
+              '[D]aemon',
+              '[q]uit',
+            ]}
+          />
+        )}
       </Box>
     </Box>
   )

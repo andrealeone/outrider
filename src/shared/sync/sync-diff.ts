@@ -1,7 +1,13 @@
 import type { ServiceDefinition } from '@/shared/types/protocol'
 import type { RegistryModel } from '@/shared/types/registry'
 
-import { canonical, entryToSyncService, type SyncDoc, type SyncService, toDefinition } from '@/shared/sync/sync-file'
+import {
+  canonical,
+  entryToSyncService,
+  type SyncDoc,
+  type SyncService,
+  toDefinition,
+} from '@/shared/sync/sync-file'
 
 export type SyncOp =
   | { kind: 'create'; name: string; def: ServiceDefinition }
@@ -25,32 +31,32 @@ const changedFields = (a: SyncService, b: SyncService): string[] =>
 
 /**
  * Compare the registry's standalone services against the desired YAML and
- * produce the operations that would reconcile them. Stack members never
+ * produce the operations that would reconcile them. Imported services never
  * participate: they are owned by their compose files. Pure and deterministic.
  */
 export const diff = (current: RegistryModel, desired: SyncDoc): SyncOp[] => {
-  const standalone = Object.values(current.services).filter((e) => e.stack === undefined)
-  const byName = new Map(standalone.map((e) => [e.id, e]))
-  const ops: SyncOp[] = []
+  const standalone = Object.values(current.services).filter((e) => e.sourceTag === undefined),
+    byName = new Map(standalone.map((e) => [e.id, e])),
+    ops: SyncOp[] = []
 
   for (const [name, rawSvc] of Object.entries(desired.services)) {
-    const want = canonical(rawSvc)
-    const entry = byName.get(name)
+    const want = canonical(rawSvc),
+      entry = byName.get(name)
+
     if (entry === undefined) {
       ops.push({ kind: 'create', name, def: toDefinition(name, want) })
       continue
     }
+
     const changes = changedFields(canonical(entryToSyncService(entry)), want)
-    if (changes.length > 0) {
+
+    if (changes.length > 0)
       ops.push({ kind: 'update', name, def: toDefinition(name, want), changes })
-    }
   }
 
-  for (const entry of standalone) {
-    if (!Object.prototype.hasOwnProperty.call(desired.services, entry.id)) {
+  for (const entry of standalone)
+    if (!Object.prototype.hasOwnProperty.call(desired.services, entry.id))
       ops.push({ kind: 'delete', name: entry.id })
-    }
-  }
 
   return ops.sort((a, b) => a.name.localeCompare(b.name))
 }

@@ -3,19 +3,20 @@ import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs'
 import type { DaemonInfo } from '@/shared/types/protocol'
 
 import { Client } from '@/shared/client'
-import { writeSyncFile } from '@/shared/sync/sync-file'
-import { lockPath, runtimeDir, socketPath } from '@/shared/utils/paths'
 import { nowIso } from '@/shared/utils/time'
+import { writeSyncFile } from '@/shared/sync/sync-file'
 import { APP_VERSION, PROTOCOL_VERSION } from '@/shared/version'
+import { lockPath, runtimeDir, socketPath } from '@/shared/utils/paths'
+
 import { Api } from '@/daemon/api'
-import { EventBus } from '@/daemon/event-bus'
 import { Logger } from '@/daemon/logger'
 import { Prober } from '@/daemon/prober'
-import { Reconciler } from '@/daemon/reconciler'
 import { Registry } from '@/daemon/registry'
-import { createRouter } from '@/daemon/router'
-import { StateStore } from '@/daemon/state-store'
+import { EventBus } from '@/daemon/event-bus'
+import { Reconciler } from '@/daemon/reconciler'
 import { Supervisor } from '@/daemon/supervisor'
+import { StateStore } from '@/daemon/state-store'
+import { createRouter } from '@/daemon/router'
 
 const log = (message: string): void => {
   console.log(`${nowIso()} ${message}`)
@@ -35,6 +36,7 @@ export const runDaemon = async (): Promise<void> => {
     console.error('Another Outrider daemon is already running (or speaks a newer protocol)')
     process.exit(1)
   }
+
   mkdirSync(runtimeDir, { recursive: true })
   removeIfExists(socketPath)
 
@@ -45,43 +47,50 @@ export const runDaemon = async (): Promise<void> => {
     startedAt: nowIso(),
   }
 
-  const store = new StateStore()
-  const bus = new EventBus()
-  const registry = new Registry(store, bus)
-  const router = createRouter(registry, log)
-  const logger = new Logger(bus)
-  const prober = new Prober()
-  const supervisor = new Supervisor(
-    logger,
-    prober,
-    bus,
-    (record) => {
-      store.appendJournal(record)
-    },
-    store.loadRestartCounters(),
-  )
-  const reconciler = new Reconciler(registry, supervisor, router, bus, logger)
-  const api = new Api({
-    info,
-    registry,
-    reconciler,
-    logger,
-    router,
-    bus,
-    onShutdown: () => void shutdown('shutdown requested over the socket'),
-  })
+  const store = new StateStore(),
+    bus = new EventBus(),
+    registry = new Registry(store, bus),
+    router = createRouter(registry, log),
+    logger = new Logger(bus),
+    prober = new Prober(),
+    supervisor = new Supervisor(
+      logger,
+      prober,
+      bus,
+      (record) => {
+        store.appendJournal(record)
+      },
+      store.loadRestartCounters(),
+    ),
+    reconciler = new Reconciler(registry, supervisor, router, bus, logger),
+    api = new Api({
+      info,
+      registry,
+      reconciler,
+      logger,
+      router,
+      bus,
+      onShutdown: () => void shutdown('shutdown requested over the socket'),
+    })
 
   let shuttingDown = false
+
   const shutdown = async (reason: string): Promise<void> => {
     if (shuttingDown) return
+
     shuttingDown = true
     log(`shutting down: ${reason}`)
+
     bus.emit({ type: 'daemon', status: 'shutting-down' })
     store.appendJournal({ ts: nowIso(), type: 'daemon', data: { event: 'stop', reason } })
+
     await reconciler.shutdownAll()
+
     api.stop()
+
     removeIfExists(socketPath)
     removeIfExists(lockPath)
+
     process.exit(0)
   }
 
@@ -90,6 +99,7 @@ export const runDaemon = async (): Promise<void> => {
   // never take the daemon down.
   bus.on((event) => {
     if (event.type !== 'registry') return
+
     try {
       writeSyncFile(event.registry)
     } catch (err) {
@@ -102,11 +112,15 @@ export const runDaemon = async (): Promise<void> => {
 
   api.listen(socketPath)
   writeFileSync(lockPath, String(process.pid))
+
   store.appendJournal({ ts: nowIso(), type: 'daemon', data: { event: 'start', pid: process.pid } })
+
   await router.ensureReady().catch((err: Error) => {
     log(`routing proxy not ready: ${err.message}`)
   })
+
   reconciler.start()
   bus.emit({ type: 'daemon', status: 'ready' })
+
   log(`outrider daemon ${APP_VERSION} listening on ${socketPath}`)
 }

@@ -47,18 +47,23 @@ export const applyFrameworkQuirks = (
 ): string => {
   const hint = framework ?? 'auto'
   if (hint === 'none') return command
+
   const name = hint === 'auto' ? detect(command) : hint
   if (name === undefined || !(name in FRAMEWORKS)) return command
-  const spec = FRAMEWORKS[name as FrameworkName]
 
-  const flags: string[] = []
+  const spec = FRAMEWORKS[name as FrameworkName],
+    flags: string[] = []
+
   if (!hasFlag(command, '--port')) {
     flags.push(`--port ${port}`)
+
     if (spec.strictPort) flags.push('--strictPort')
   }
+
   if (!hasFlag(command, '--host')) flags.push(`--host ${spec.host}`)
   if (flags.length === 0) return command
 
   const separator = PACKAGE_MANAGER_RUN.test(command) && !command.includes(' -- ') ? ' --' : ''
+
   return `${command}${separator} ${flags.join(' ')}`
 }

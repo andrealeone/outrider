@@ -8,13 +8,16 @@ import {
   readPreferences,
   setPreference,
 } from '@/shared/utils/preferences'
+import { useListCursor } from '@/tui/lib/use-list-cursor'
+import { FocusRow } from '@/tui/ui/focus-row'
+import { HintBar } from '@/tui/ui/hint-bar'
 
 type Field = 'theme'
 
 const FIELDS: Field[] = ['theme']
 
 const DESCRIPTIONS: Record<Field, string> = {
-  'theme': 'dashboard palette',
+  theme: 'dashboard palette',
 }
 
 /**
@@ -25,7 +28,7 @@ const DESCRIPTIONS: Record<Field, string> = {
 export const PreferencesView = () => {
   const { exit } = useApp()
   const [prefs, setPrefs] = useState<Preferences>(() => readPreferences())
-  const [cursor, setCursor] = useState(0)
+  const cursor = useListCursor(FIELDS.length)
 
   const flip = (): void => {
     const next: Preferences['theme'] = prefs.theme === 'default' ? 'light' : 'default'
@@ -35,8 +38,8 @@ export const PreferencesView = () => {
 
   useInput((input, key) => {
     if (input === 'q' || key.escape) exit()
-    else if (key.downArrow || input === 'j') setCursor((c) => Math.min(c + 1, FIELDS.length - 1))
-    else if (key.upArrow || input === 'k') setCursor((c) => Math.max(c - 1, 0))
+    else if (key.downArrow || input === 'j') cursor.next()
+    else if (key.upArrow || input === 'k') cursor.prev()
     else if (input === ' ' || key.return || key.leftArrow || key.rightArrow) flip()
     else if (input === 'r') {
       setPreference('theme', DEFAULT_PREFERENCES.theme)
@@ -50,23 +53,15 @@ export const PreferencesView = () => {
         preferences
       </Text>
       <Box flexDirection="column" marginTop={1}>
-        {FIELDS.map((field, i) => {
-          const focused = i === cursor
-          const value = prefs.theme
-          return (
-            <Box key={field}>
-              <Text color={focused ? theme.accent : undefined}>{focused ? '› ' : '  '}</Text>
-              <Box width={14}>
-                <Text bold={focused}>{field}</Text>
-              </Box>
-              <Text>{value}</Text>
-              <Text color={theme.dim}> · {DESCRIPTIONS[field]}</Text>
-            </Box>
-          )
-        })}
+        {FIELDS.map((field, i) => (
+          <FocusRow key={field} label={field} focused={i === cursor.index}>
+            <Text>{prefs.theme}</Text>
+            <Text color={theme.dim}> · {DESCRIPTIONS[field]}</Text>
+          </FocusRow>
+        ))}
       </Box>
       <Box marginTop={1}>
-        <Text color={theme.dim}>[space/↵] toggle · [r] reset all · [q] close</Text>
+        <HintBar hints={['[space/↵] toggle', '[r] reset all', '[q] close']} />
       </Box>
     </Box>
   )

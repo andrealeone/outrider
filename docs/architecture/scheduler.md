@@ -10,7 +10,7 @@
   `process_log_ready` need readiness (probe success or matched
   `ready_log_line`).
 - `withDependencies(ids, get)` expands a start set with its transitive
-  in-stack dependencies.
+  dependencies, walking `depends_on` across the whole registry.
 - `shutdownLevels(entries)` reverses the DAG for ordered stops: dependents
   stop before the services they depend on, level by level.
 

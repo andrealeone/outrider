@@ -5,7 +5,7 @@ import type { ProjectConfig } from '@/shared/types/process-compose'
 
 import { startOrder } from '@/daemon/config/dag'
 import { expandEnv } from '@/daemon/config/expand'
-import { ConfigLoadError, hashProject, loadProject, stackNameFor } from '@/daemon/config/load'
+import { ConfigLoadError, importTagFor, loadProject } from '@/daemon/config/load'
 import { deepMerge } from '@/daemon/config/merge'
 import { renderTemplate, TemplateError } from '@/daemon/config/template'
 import { validateProject } from '@/daemon/config/validate'
@@ -164,8 +164,7 @@ describe('loadProject (golden fixtures)', () => {
     expect(processes.worker?.disabled).toBe(true)
     expect(processes.db?.command).toBe('run-db --data /tmp/outrider-fixture-data')
     expect(processes.api?.['x-route']?.route).toBe('api')
-    expect(stackNameFor(project)).toBe('webstack')
-    expect(hashProject(project)).toHaveLength(16)
+    expect(importTagFor(project)).toBe('webstack')
   })
 
   test('discovery accepts a directory and fails cycles at import time', () => {

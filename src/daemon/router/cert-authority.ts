@@ -18,8 +18,8 @@ import {
   trustMarkerPath as defaultTrustMarkerPath,
 } from '@/shared/utils/paths'
 
-const CA_DAYS = 3650
-const LEAF_DAYS = 825
+const CA_DAYS = 3650,
+  LEAF_DAYS = 825
 
 const openssl = (args: string[]): void => {
   execFileSync('openssl', args, { stdio: ['ignore', 'ignore', 'pipe'] })
@@ -63,6 +63,7 @@ export class CertAuthority {
   ensureCA(): void {
     const { ca, caKey } = this.paths
     if (existsSync(ca) && existsSync(caKey)) return
+
     ensureDir(ca)
     openssl(['genrsa', '-out', caKey, '2048'])
     openssl([
@@ -80,27 +81,33 @@ export class CertAuthority {
       '-subj',
       '/CN=outrider local CA',
     ])
+
     chmodSync(caKey, 0o600)
   }
 
   /** Re-mint the leaf only when the hostname set actually changed. */
   ensureLeaf(hostnames: string[]): boolean {
     const sans = [...new Set(hostnames)].sort()
-    if (this.mintedSans && sans.length === this.mintedSans.length && existsSync(this.paths.leaf)) {
+
+    if (this.mintedSans && sans.length === this.mintedSans.length && existsSync(this.paths.leaf))
       if (sans.every((h, i) => h === this.mintedSans?.[i])) return false
-    }
+
     this.mintLeaf(sans)
     this.mintedSans = sans
+
     return true
   }
 
   private mintLeaf(sans: string[]): void {
     this.ensureCA()
-    const { ca, caKey, leaf, leafKey } = this.paths
-    const csrPath = `${leaf}.csr`
-    const extPath = `${leaf}.ext`
-    const cn = sans[0] ?? 'outrider.localhost'
+
+    const { ca, caKey, leaf, leafKey } = this.paths,
+      csrPath = `${leaf}.csr`,
+      extPath = `${leaf}.ext`,
+      cn = sans[0] ?? 'outrider.localhost'
+
     writeFileSync(extPath, `subjectAltName = ${sans.map((h) => `DNS:${h}`).join(',')}\n`)
+
     openssl(['genrsa', '-out', leafKey, '2048'])
     openssl(['req', '-new', '-key', leafKey, '-out', csrPath, '-subj', `/CN=${cn}`])
     openssl([
@@ -121,6 +128,7 @@ export class CertAuthority {
       '-extfile',
       extPath,
     ])
+
     unlinkSync(csrPath)
     unlinkSync(extPath)
   }
@@ -140,7 +148,9 @@ export class CertAuthority {
   /** Read-only: has a previous `trust()` call succeeded since the CA was (re)minted? */
   isTrusted(): boolean {
     const { trustMarker, ca } = this.paths
+
     if (!existsSync(trustMarker) || !existsSync(ca)) return false
+
     return statSync(trustMarker).mtimeMs >= statSync(ca).mtimeMs
   }
 
@@ -150,7 +160,9 @@ export class CertAuthority {
    */
   trust(): { ok: boolean; message: string } {
     this.ensureCA()
+
     const { ca, trustMarker } = this.paths
+
     try {
       if (process.platform === 'darwin') {
         execFileSync('security', [
@@ -169,7 +181,9 @@ export class CertAuthority {
         execFileSync('sudo', ['cp', ca, '/usr/local/share/ca-certificates/outrider-ca.crt'])
         execFileSync('sudo', ['update-ca-certificates'])
       }
+
       writeFileSync(trustMarker, new Date().toISOString())
+
       return { ok: true, message: 'the outrider CA is now trusted system-wide' }
     } catch (err) {
       return { ok: false, message: `trust enrolment failed: ${(err as Error).message}` }

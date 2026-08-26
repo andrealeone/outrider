@@ -31,7 +31,7 @@ top.
 
 - [Standalone services](features/standalone-services.md): registry-native services
   with no backing file, defined straight from the dashboard.
-- [Stacks and import](features/stacks-and-import.md): run an existing
+- [Stacks and import](features/importing-processes.md): run an existing
   `process-compose.yaml` unedited, linked to its source by path and content hash.
 - [Autostart and boot](features/autostart-and-boot.md): desired state that survives
   reboots, reconciled when the daemon comes back up.

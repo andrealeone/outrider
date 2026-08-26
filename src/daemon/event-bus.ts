@@ -8,6 +8,7 @@ export class EventBus {
 
   on(listener: Listener): () => void {
     this.listeners.add(listener)
+
     return () => {
       this.listeners.delete(listener)
     }

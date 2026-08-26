@@ -8,8 +8,8 @@ inside the dashboard.
 
 ## The dashboard
 
-`outrider` opens a table of every registered service: name, stack, status,
-health, uptime, restart count, autostart flag (AUTO), and route. Each row
+`outrider` opens a table of every registered service: name, status, health,
+uptime, restart count, autostart flag, and route. Each row
 carries an on/off toggle (`◉`/`○`). Flipping it sets _desired state_ through
 the daemon; the row then animates through its transition states (pending →
 launching → running) as the reconciler does the work. Toggles update
@@ -17,24 +17,23 @@ optimistically and reconcile against daemon events. The status cell keeps its
 semantic colour (green running, red error); every other cell follows the
 terminal's own colours, so the dashboard adapts to any theme.
 
-| Key               | Action                                   |
-| ----------------- | ---------------------------------------- |
-| `j` / `k`, arrows | move selection                           |
-| `g` / `G`         | jump to top / bottom                     |
-| `space` / `enter` | toggle the service up/down               |
-| `r`               | restart                                  |
-| `e`               | edit the selected service                |
-| `x`               | delete the selected service (confirmed)  |
-| `A`               | toggle autostart (start at daemon boot)  |
-| `l`               | logs view                                |
-| `i`               | detail view                              |
-| `a`               | add a standalone service                 |
-| `m`               | import a stack                           |
-| `/`               | fuzzy search                             |
-| `f`               | cycle stack filter                       |
-| `s`               | cycle sort (name, status, stack, uptime) |
-| `D`               | daemon master switch                     |
-| `q`               | quit (services keep running)             |
+| Key               | Action                                  |
+| ----------------- | --------------------------------------- |
+| `j` / `k`, arrows | move selection                          |
+| `g` / `G`         | jump to top / bottom                    |
+| `space` / `enter` | toggle the service up/down              |
+| `r`               | restart                                 |
+| `e`               | edit the selected service               |
+| `x`               | delete the selected service (confirmed) |
+| `A`               | toggle autostart (start at daemon boot) |
+| `l`               | logs view                               |
+| `i`               | detail view                             |
+| `a`               | add a standalone service                |
+| `m`               | import processes                        |
+| `/`               | fuzzy search                            |
+| `s`               | cycle sort (name, status, uptime)       |
+| `D`               | daemon master switch                    |
+| `q`               | quit (services keep running)            |
 
 The header shows aggregate counts and the daemon switch. Switching the daemon
 off asks one confirmation, streams the reverse-order shutdown live, then drops
@@ -76,24 +75,30 @@ route pinned at that port; it requires a route to be set. See the
 
 ## Editing and deleting
 
-`e` reopens the same form prefilled for the selected service. The name is
-fixed (delete and recreate to rename); saving persists the new definition and
-restarts the service if it is running, so the change takes effect
-immediately. Stack members cannot be edited in place; their compose file is
-the source of truth, so edit the file and re-import.
+`e` reopens the same form prefilled for the selected service, including its
+name: renaming is supported for any service, imported or standalone. Saving
+persists the new definition and restarts the service if it is running, so the
+change takes effect immediately. An imported service's other fields are best
+edited by changing the compose file and re-importing, since the file stays
+the source of truth for its contents; the dashboard editor still works, but a
+later re-import can present the same fields again for review.
 
 `x` deletes the selected service after one confirmation: it is stopped,
-unrouted, and removed from the registry. For a stack member the confirmation
-offers to remove the whole stack instead, since partial stacks would drift
-from their source file.
+unrouted, and removed from the registry, imported or standalone alike.
 
-## Importing a stack
+## Importing processes
 
-`m` asks for a path to a `process-compose.yaml` (or a directory containing
-one), runs a dry-run validation first, and shows the merged result: processes,
-resolved start order, and any compatibility warnings. Nothing registers until
-you confirm. Re-importing the same stack refreshes it: new processes appear,
-removed ones are stopped and dropped, desired states are preserved.
+`m` opens the import wizard: enter a path to a `process-compose.yaml` (or a
+directory containing one), and it previews the parsed result first, one
+editable page per process (name, command, working directory, route, alias
+port, tags, restart policy, autostart), plus the resolved start order and any
+compatibility warnings. Approve or reject each process, then confirm on the
+summary page with `y`. Nothing registers until then. Re-importing the same
+path refreshes it: new or changed processes get their own review pages,
+processes that left the file get a removal page requiring approval, and
+desired/autostart flags survive on anything you keep. See
+[importing processes](features/importing-processes.md) and the
+[guide](guides/import-processes.md) for the full walkthrough.
 
 ## Desired state, autostart, and reboots
 
@@ -120,7 +125,7 @@ list):
 
 ```bash
 curl -s --unix-socket "$XDG_RUNTIME_DIR/outrider.sock" \
-  http://outrider/v1/up -X POST -d '{"names":["mystack"]}'
+  http://outrider/v1/up -X POST -d '{"names":["myservice"]}'
 ```
 
 A hidden `outrider state` prints the full state snapshot as JSON.

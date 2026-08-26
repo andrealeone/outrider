@@ -8,7 +8,7 @@ import { Client } from '@/shared/client'
 import { fail, reply } from '@/cli/output'
 import { configYmlPath } from '@/shared/utils/paths'
 
-import { type ApplyResult, SyncView } from '@/tui/views/sync/sync-view'
+import { type ApplyResult, SyncView } from '@/tui/ui/sync-view'
 
 const applyOp = (client: Client, op: SyncOp): Promise<unknown> => {
   if (op.kind === 'create') return client.addService(op.def)

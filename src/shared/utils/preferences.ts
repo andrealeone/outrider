@@ -14,7 +14,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
 }
 
 /** CLI key, description shown by `outrider preferences`, and default. */
-export const PREFERENCE_KEYS = [{ key: 'theme', description: 'dashboard palette (default/light)' }] as const
+export const PREFERENCE_KEYS = [
+  { key: 'theme', description: 'dashboard palette (default/light)' },
+] as const
 
 // Only the real, default path is memoized — tests pass a throwaway path to
 // stay isolated from each other, and must always see a fresh read.
@@ -46,7 +48,9 @@ const parseTheme = (raw: string): Preferences['theme'] => {
 }
 
 const unknownKey = (key: string): Error =>
-  new Error(`Unknown preference "${key}". Available: ${PREFERENCE_KEYS.map((k) => k.key).join(', ')}`)
+  new Error(
+    `Unknown preference "${key}". Available: ${PREFERENCE_KEYS.map((k) => k.key).join(', ')}`,
+  )
 
 /** Read the current preferences, defaults included. */
 export const readPreferences = (path = preferencesPath): Preferences => ({ ...load(path) })

@@ -32,33 +32,37 @@ stop it.
 A **service** is a single supervised program: a command, its environment, its
 restart policy, its probes. (process-compose calls these _processes_, and outrider
 uses that word too when talking about the contents of a compose file.) Every
-service has an **id**, which is its permanent identity across logs, journals, and
-routes; you rename by deleting and recreating, never in place.
+service has an **id**, its plain `name`, which is its permanent identity across
+logs, journals, and routes until you rename it: renaming is supported in place
+for any service, and a live one restarts to pick up the change.
 
 Services come from one of two places:
 
-A **stack** is a set of services imported together from a `process-compose.yaml`
-file (plus its auto-discovered override). The file stays the source of truth:
-you change a stack member by editing the file and re-importing, not in the
-dashboard. Stack-member ids are written `stack/process`.
+An **imported service** comes from a `process-compose.yaml` file (plus its
+auto-discovered override), brought in through the [import wizard](features/importing-processes.md).
+It carries a **source tag** identifying the import batch it came from, and a
+**source process** name (the original process-compose key) so re-import can
+still find it after a rename. The file stays the source of truth for its
+contents: you change one by editing the file and re-importing, approving the
+update in the wizard, not by editing in the dashboard.
 
 A **standalone service** has no backing file. You define it directly in the
 dashboard (or in `~/.config/outrider.yml`), and the **registry** _is_ its source
-of truth. Its id is just a plain name.
+of truth.
 
-The **registry** is the daemon's record of every service it knows about (stacks
-and standalone alike), together with each one's desired state. It's persisted to
-disk so nothing is forgotten across restarts.
+The **registry** is the daemon's record of every service it knows about
+(imported and standalone alike), together with each one's desired state. It's
+persisted to disk so nothing is forgotten across restarts.
 
 ## Organising and grouping
 
 **Namespaces** are an upstream grouping label carried through from
 process-compose; outrider keeps them as a filter dimension in the dashboard.
 
-**Tags** are outrider's own free-form labels. They cut across stacks and
-namespaces, so you can group whatever belongs together (everything one
-repository needs, every database) and act on the whole group at once with
-`outrider start <tag>`.
+**Tags** are outrider's own free-form labels. They cut across import batches and
+namespaces (a source tag works as a tag too), so you can group whatever
+belongs together (everything one repository needs, every database) and act on
+the whole group at once with `outrider start <tag>`.
 
 **Autostart** is a per-service flag, separate from desired state. A service comes
 back after a reboot only when it is _both_ marked autostart _and_ desired up, so
@@ -122,9 +126,11 @@ daemon's socket that never supervises anything itself.
 renders the persisted registry read-only, and offers to switch the daemon back
 on.
 
-**Import** is loading a compose file into a stack; it always runs a **dry run**
-first, showing the merged processes, the resolved start order, and any
-compatibility warnings before anything is registered.
+**Import** is loading a compose file's processes into the registry through a
+paginated approval wizard: it always previews first, showing each process's
+merged definition, the resolved start order, and any compatibility warnings,
+and nothing is registered until you approve the processes you want and
+confirm.
 
 ---
 

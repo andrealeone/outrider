@@ -3,8 +3,8 @@
 // (pipes, conditionals, ranges) is a hard error naming the expression,
 // per the cuts policy for Go-template parity.
 
-const EXPRESSION = /\{\{([^}]*)\}\}/g
-const DOTTED_LOOKUP = /^\.([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)$/
+const EXPRESSION = /\{\{([^}]*)\}\}/g,
+  DOTTED_LOOKUP = /^\.([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)$/
 
 const isPrintable = (value: unknown): value is string | number | boolean =>
   typeof value !== 'object'
@@ -25,24 +25,27 @@ export const renderTemplate = (
   context: string,
 ): string =>
   input.replace(EXPRESSION, (_, rawExpr: string) => {
-    const expr = rawExpr.trim()
-    const match = DOTTED_LOOKUP.exec(expr)
-    if (!match) {
+    const expr = rawExpr.trim(),
+      match = DOTTED_LOOKUP.exec(expr)
+
+    if (!match)
       throw new TemplateError(
         expr,
         'only simple dotted lookups like {{.NAME}} are supported',
         context,
       )
-    }
+
     let value: unknown = vars
+
     for (const part of (match[1] as string).split('.')) {
-      if (typeof value !== 'object' || value === null || !(part in value)) {
+      if (typeof value !== 'object' || value === null || !(part in value))
         throw new TemplateError(expr, `"${part}" is not defined in vars`, context)
-      }
+
       value = (value as Record<string, unknown>)[part]
     }
-    if (!isPrintable(value)) {
+
+    if (!isPrintable(value))
       throw new TemplateError(expr, 'resolves to a map, not a printable value', context)
-    }
+
     return String(value)
   })

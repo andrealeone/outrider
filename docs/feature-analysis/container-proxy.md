@@ -14,8 +14,8 @@ the same desired-state model, and routed through the same Router boundary.
 outrider's core is "a persistent daemon that owns desired state and reconciles reality
 against it." That model is runtime-agnostic. Today the supervisor drives `Bun.spawn`
 process groups; a container is just a different backend for the same lifecycle:
-start, health, restart, shutdown. And the routing story already separates *the service*
-from *the port it answers on*, which is exactly what a container needs: the runtime
+start, health, restart, shutdown. And the routing story already separates _the service_
+from _the port it answers on_, which is exactly what a container needs: the runtime
 publishes a port, outrider maps a hostname onto it.
 
 This turns outrider into one control surface for both local processes and containers,
@@ -72,7 +72,7 @@ services with no new concepts.
 - **Cross-runtime drift.** Docker and Podman differ in CLI and socket APIs; the
   `ContainerRuntime` boundary is what keeps that from leaking everywhere.
 - **Dependency posture.** A container runtime is a heavy external dependency; it
-  should be *detected and optional*, never bundled or assumed.
+  should be _detected and optional_, never bundled or assumed.
 
 ## Sequencing
 

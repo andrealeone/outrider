@@ -39,8 +39,8 @@ feature reopens both. They must be settled here first.
 
 - **"No TCP listener in v1."** The control plane is unix-socket only, which is what lets
   the daemon skip token auth. An HTTP server that binds a TCP port, even on loopback,
-  changes the trust boundary. The server should bridge to the daemon *over the existing
-  socket* and own its own auth, rather than the daemon growing a TCP listener.
+  changes the trust boundary. The server should bridge to the daemon _over the existing
+  socket_ and own its own auth, rather than the daemon growing a TCP listener.
 - **"User-only socket permissions, so v1 needs no token auth."** Any HTTP surface needs
   an explicit auth story: at minimum a local-only bind (`127.0.0.1`) plus a token, and a
   clear answer for remote use. This is the single most important open question.
@@ -76,7 +76,7 @@ browser / remote client
   on first `api on`, or run from source? Each has a trade-off between binary size, the
   single-file install promise, and update cadence.
 - The "any dependency beyond ink and react needs written justification" rule
-  applies to the *core*; the `/api` app is a separate dependency surface and should
+  applies to the _core_; the `/api` app is a separate dependency surface and should
   carry its own, smaller, justification policy documented alongside it.
 
 ## Open questions to settle before building

@@ -1,15 +1,15 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { appendFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync, unlinkSync } from 'node:fs'
 
 import type { JournalRecord, RegistryModel } from '@/shared/types/registry'
 
+import { nowIso } from '@/shared/utils/time'
 import { atomicWrite } from '@/shared/utils/atomic-file'
 import { journalPath, registryPath } from '@/shared/utils/paths'
-import { nowIso } from '@/shared/utils/time'
 
-const JOURNAL_MAX_BYTES = 5 * 1024 * 1024
-const JOURNAL_BACKUPS = 2
+const JOURNAL_MAX_BYTES = 5 * 1024 * 1024,
+  JOURNAL_BACKUPS = 2
 
 // TLS defaults to off: Bun 1.3.14's node:http2 shim rejects TLS connections
 // whose ALPN offer omits h2, which is exactly what browsers send for a
@@ -19,7 +19,6 @@ const JOURNAL_BACKUPS = 2
 // they are simply not switched on by default yet.
 const emptyModel = (): RegistryModel => ({
   version: 1,
-  stacks: {},
   services: {},
   routes: {},
   proxy: { port: 80, tls: false, tld: 'localhost' },
@@ -75,8 +74,8 @@ export class StateStore {
    * restarts is part of the persistence contract.
    */
   loadRestartCounters(): Map<string, number> {
-    const counters = new Map<string, number>()
-    const files: string[] = []
+    const counters = new Map<string, number>(),
+      files: string[] = []
     for (let i = JOURNAL_BACKUPS; i >= 1; i--) files.push(`${this.journalFile}.${i}`)
     files.push(this.journalFile)
     for (const file of files) {
@@ -85,9 +84,8 @@ export class StateStore {
         if (line === '') continue
         try {
           const record = JSON.parse(line) as JournalRecord
-          if (record.type === 'restart' && record.service !== undefined) {
+          if (record.type === 'restart' && record.service !== undefined)
             counters.set(record.service, (counters.get(record.service) ?? 0) + 1)
-          }
         } catch {
           // Skip torn lines from a crash mid-append.
         }

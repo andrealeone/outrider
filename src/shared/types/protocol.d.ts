@@ -69,16 +69,6 @@ export interface LogLine {
   line: string
 }
 
-export interface ImportReport {
-  stack: string
-  sources: string[]
-  services: string[]
-  /** Resolved start order, one array per dependency level. */
-  startOrder: string[][]
-  warnings: ConfigWarning[]
-  dryRun: boolean
-}
-
 export interface ServiceDefinition {
   name: string
   command: string
@@ -91,7 +81,7 @@ export interface ServiceDefinition {
    * injected PORT. Requires `route`.
    */
   aliasPort?: number
-  restart?: 'no' | 'on_failure' | 'always'
+  restart?: 'no' | 'on_failure' | 'always' | 'exit_on_failure'
   autostart?: boolean
   namespace?: string
   /**
@@ -99,6 +89,37 @@ export interface ServiceDefinition {
    * on edit; an array (including `[]`) replaces them.
    */
   tags?: string[]
+}
+
+/** One process from a compose file, paired with its editable-field preview. */
+export interface ImportProcessPreview {
+  /** The process-compose key; stable across renames, used to correlate on apply. */
+  processName: string
+  definition: ServiceDefinition
+}
+
+export interface ImportPreview {
+  sourceTag: string
+  sources: string[]
+  processes: ImportProcessPreview[]
+  /** Previously-imported process names no longer present in the file. */
+  toRemove: string[]
+  /** Resolved start order, one array per dependency level. */
+  startOrder: string[][]
+  warnings: ConfigWarning[]
+}
+
+export interface ImportApplyBody {
+  path: string
+  sourceTag: string
+  approved: ImportProcessPreview[]
+  removedProcessNames: string[]
+}
+
+export interface ImportApplyResult {
+  created: string[]
+  updated: string[]
+  removed: string[]
 }
 
 export interface ApiError {
@@ -120,14 +141,9 @@ export interface PatchServiceBody {
 }
 
 export interface UpDownBody {
-  /** Service ids, stack names, or empty for everything. */
+  /** Service ids, namespaces, tags (including import source tags), or empty for everything. */
   names?: string[]
   noDeps?: boolean
-}
-
-export interface ImportBody {
-  path: string
-  dryRun?: boolean
 }
 
 export interface ScaleBody {

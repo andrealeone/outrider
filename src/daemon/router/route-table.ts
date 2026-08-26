@@ -8,9 +8,8 @@ const REFUSED_TLDS = new Set(['local', 'dev'])
 
 class RouteConflictError extends Error {}
 
-const normalizeTld = (tld: string): string => (REFUSED_TLDS.has(tld) ? 'localhost' : tld)
-
-const hostnameFor = (label: string, tld: string): string => `${label}.${normalizeTld(tld)}`
+const normalizeTld = (tld: string): string => (REFUSED_TLDS.has(tld) ? 'localhost' : tld),
+  hostnameFor = (label: string, tld: string): string => `${label}.${normalizeTld(tld)}`
 
 /** Registry-backed route CRUD and hostname conflict checks. */
 export class RouteTable {
@@ -35,12 +34,16 @@ export class RouteTable {
   /** Idempotent upsert: re-registering the same owner just refreshes the port. */
   upsert(hostname: string, port: number, kind: RouteKind, service?: string): RouteRecord {
     const existing = this.get(hostname)
+
     if (existing && existing.service !== service) {
       const claimant = existing.service ?? 'a static route'
       throw new RouteConflictError(`route "${hostname}" is already claimed by "${claimant}"`)
     }
+
     const record: RouteRecord = { hostname, kind, service, port }
+
     this.registry.upsertRoute(record)
+
     return record
   }
 

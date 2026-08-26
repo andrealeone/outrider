@@ -83,7 +83,6 @@ describe('NativeRouter (TLS explicitly enabled)', () => {
   const tlsStore = new StateStore(join(tlsTmp, 'registry.json'), join(tlsTmp, 'journal.jsonl'))
   tlsStore.saveRegistry({
     version: 1,
-    stacks: {},
     services: {},
     routes: {},
     proxy: { port: 443, tls: true, tld: 'localhost' },

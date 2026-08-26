@@ -3,7 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type {
   DaemonInfo,
-  ImportReport,
+  ImportApplyBody,
+  ImportApplyResult,
+  ImportPreview,
   LogLine,
   ServiceDefinition,
   ServiceState,
@@ -38,10 +40,10 @@ export interface DaemonHook {
   daemonOff: () => void
   addService: (def: ServiceDefinition) => Promise<string | undefined>
   updateService: (id: string, def: ServiceDefinition) => Promise<string | undefined>
-  /** Removes a standalone service, or the whole stack for a stack member. */
   removeService: (state: ServiceState) => void
   validateService: (def: ServiceDefinition, editOf?: string) => Promise<string[]>
-  importStack: (path: string, dryRun: boolean) => Promise<ImportReport>
+  previewImport: (path: string) => Promise<ImportPreview>
+  applyImport: (body: ImportApplyBody) => Promise<ImportApplyResult>
   fetchLogs: (id: string, tail?: number) => Promise<LogLine[]>
   clearLogs: (id: string) => Promise<string | undefined>
 }
@@ -256,12 +258,7 @@ export const useDaemon = (): DaemonHook => {
     ),
     removeService: useCallback(
       (state: ServiceState) => {
-        const { entry } = state
-        guard(() =>
-          entry.stack === undefined
-            ? client.removeService(entry.id)
-            : client.removeStack(entry.stack),
-        )
+        guard(() => client.removeService(state.entry.id))
       },
       [client, guard],
     ),
@@ -276,10 +273,8 @@ export const useDaemon = (): DaemonHook => {
       },
       [client],
     ),
-    importStack: useCallback(
-      (path: string, dryRun: boolean) => client.importStack({ path, dryRun }),
-      [client],
-    ),
+    previewImport: useCallback((path: string) => client.previewImport(path), [client]),
+    applyImport: useCallback((body: ImportApplyBody) => client.applyImport(body), [client]),
     fetchLogs: useCallback((id: string, tail = 300) => client.logs(id, tail), [client]),
     clearLogs: useCallback(
       async (id: string) => {

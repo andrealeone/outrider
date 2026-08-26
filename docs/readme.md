@@ -10,7 +10,7 @@ manage them, and a native in-process router so services answer on hostnames like
 - [Installing](install.md): requirements, the install script or building from source, first run, uninstalling
 - [Day-to-day usage](usage.md): the dashboard, logs, adding services, desired state
 - [Guides](guides/): step-by-step walkthroughs
-  - [Import a stack](guides/import-a-stack.md): load a `process-compose.yaml`
+  - [Import processes](guides/import-processes.md): load a `process-compose.yaml`
   - [Add a routed service](guides/add-a-routed-service.md): create a service with networking
   - [Add a demo process](guides/add-a-demo-process.md): register a standalone service with no compose file
   - [Sync services at scale](guides/sync-services-at-scale.md): bulk-edit services via `~/.config/outrider.yml`
@@ -25,7 +25,7 @@ broader context.
 - [Service tags](features/service-tags.md): group services and control them as a unit
 - [Config sync](features/sync-config.md): edit services at scale in `~/.config/outrider.yml`
 - [Standalone services](features/standalone-services.md): registry-native services with no backing file
-- [Stacks and import](features/stacks-and-import.md): run existing `process-compose.yaml` files unedited
+- [Importing processes](features/importing-processes.md): run existing `process-compose.yaml` files unedited
 - [Native routing](features/native-routing.md): hostnames instead of memorised ports
 - [The dashboard](features/the-dashboard.md): interactive TUI for managing everything
 - [Socket API](features/socket-api.md): control the daemon over its unix socket instead of the TUI
@@ -48,7 +48,7 @@ How outrider works under the hood:
 - [Overview](architecture/overview.md): system diagram and layering rules
 - [Daemon](architecture/daemon.md): the control plane
 - [API](architecture/api.md): the socket dispatcher CLI, TUI, and scripts all speak
-- [Registry](architecture/registry.md): service and stack model
+- [Registry](architecture/registry.md): service and import model
 - [Reconciler](architecture/reconciler.md): desired-state engine
 - [Supervisor](architecture/supervisor.md): process lifecycle
 - [Scheduler](architecture/scheduler.md): start order and dependency resolution

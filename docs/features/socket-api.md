@@ -16,9 +16,9 @@ liveness check and a protocol-version handshake.
 
 Reasons to reach for it instead of the TUI:
 
-- **Automation.** Bring a stack up or down from a deploy script, a git hook,
-  or a Makefile target, with real exit-code-shaped feedback instead of
-  scraping terminal output.
+- **Automation.** Bring a service or a whole tag up or down from a deploy
+  script, a git hook, or a Makefile target, with real exit-code-shaped
+  feedback instead of scraping terminal output.
 - **Editors and other tools.** Anything that wants live state (an editor
   extension, a status-bar widget) can subscribe to `/v1/events` rather than
   shelling out repeatedly.

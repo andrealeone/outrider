@@ -4,6 +4,9 @@ import { useState } from 'react'
 import type { SyncOp } from '@/shared/sync/sync-diff'
 
 import { theme } from '@/tui/lib/theme'
+import { useListCursor } from '@/tui/lib/use-list-cursor'
+import { FocusMarker } from '@/tui/ui/focus-row'
+import { HintBar } from '@/tui/ui/hint-bar'
 
 export interface ApplyResult {
   op: SyncOp
@@ -37,7 +40,7 @@ const summary = (op: SyncOp): string =>
 export const SyncView = ({ ops, onApply }: Props) => {
   const { exit } = useApp()
   const [checked, setChecked] = useState<boolean[]>(() => ops.map(() => true))
-  const [cursor, setCursor] = useState(0)
+  const cursor = useListCursor(ops.length)
   const [phase, setPhase] = useState<Phase>('review')
   const [results, setResults] = useState<ApplyResult[]>([])
 
@@ -57,9 +60,9 @@ export const SyncView = ({ ops, onApply }: Props) => {
       return
     }
     if (input === 'q' || key.escape) exit()
-    else if (key.downArrow || input === 'j') setCursor((c) => Math.min(c + 1, ops.length - 1))
-    else if (key.upArrow || input === 'k') setCursor((c) => Math.max(c - 1, 0))
-    else if (input === ' ') setChecked((c) => c.map((v, i) => (i === cursor ? !v : v)))
+    else if (key.downArrow || input === 'j') cursor.next()
+    else if (key.upArrow || input === 'k') cursor.prev()
+    else if (input === ' ') setChecked((c) => c.map((v, i) => (i === cursor.index ? !v : v)))
     else if (input === 'a') {
       const next = selectedCount < ops.length
       setChecked(ops.map(() => next))
@@ -83,7 +86,7 @@ export const SyncView = ({ ops, onApply }: Props) => {
           ))}
         </Box>
         <Box marginTop={1}>
-          <Text color={theme.dim}>[q] close</Text>
+          <HintBar hints={['[q] close']} />
         </Box>
       </Box>
     )
@@ -96,10 +99,10 @@ export const SyncView = ({ ops, onApply }: Props) => {
       </Text>
       <Box flexDirection="column" marginTop={1}>
         {ops.map((op, i) => {
-          const focused = i === cursor && phase === 'review'
+          const focused = i === cursor.index && phase === 'review'
           return (
             <Box key={op.name}>
-              <Text color={focused ? theme.accent : undefined}>{focused ? '› ' : '  '}</Text>
+              <FocusMarker focused={focused} />
               <Text color={checked[i] ? theme.ok : theme.dim}>{checked[i] ? '[x]' : '[ ]'}</Text>
               <Text color={kindColor(op.kind)}> {KIND_LABEL[op.kind]}</Text>
               <Text bold={focused}> {op.name}</Text>
@@ -109,11 +112,13 @@ export const SyncView = ({ ops, onApply }: Props) => {
         })}
       </Box>
       <Box marginTop={1}>
-        <Text color={theme.dim}>
-          {phase === 'applying'
-            ? 'applying…'
-            : `[space] toggle · [a] all/none · [↵] apply ${selectedCount} · [q] cancel`}
-        </Text>
+        {phase === 'applying' ? (
+          <Text color={theme.dim}>applying…</Text>
+        ) : (
+          <HintBar
+            hints={['[space] toggle', '[a] all/none', `[↵] apply ${selectedCount}`, '[q] cancel']}
+          />
+        )}
       </Box>
     </Box>
   )

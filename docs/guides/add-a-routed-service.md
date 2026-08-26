@@ -15,7 +15,7 @@ plain `http://` until that's fixed upstream — see
 [the router](../architecture/router.md) for the full story and
 [the compatibility report](../compatibility-report.md).
 
-## In a stack file
+## In a compose file
 
 ```yaml
 processes:
@@ -28,7 +28,7 @@ processes:
         path: /healthz # probed directly on PORT, not through the route
 ```
 
-Import the stack and toggle `api` up. At start the daemon allocates a free
+Import it, approve `api` on its review page, and toggle it up. At start the daemon allocates a free
 port (in the conventional 4000-4999 range), injects `PORT` and
 `OUTRIDER_URL`, registers the route, and the dashboard shows the URL in the
 ROUTE column.

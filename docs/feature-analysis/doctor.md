@@ -27,7 +27,7 @@ got orphaned".
 
 **One command, one pass, no side effects.** `outrider doctor` runs every check and
 prints a report; it never repairs anything itself in the first cut (unlike the daemon's
-own `ensureProxy`, which *does* self-heal the proxy as part of normal operation). Keeping
+own `ensureProxy`, which _does_ self-heal the proxy as part of normal operation). Keeping
 it read-only makes the command safe to run any time, including when something is already
 broken, and keeps the first version small.
 

@@ -5,7 +5,8 @@ import type { LogLine } from '@/shared/types/protocol'
 import type { DaemonHook } from '@/tui/lib/use-daemon'
 
 import { theme } from '@/tui/lib/theme'
-import { TextInput } from '@/tui/components/text-input'
+import { TextInput } from '@/tui/ui/text-input'
+import { HintBar } from '@/tui/ui/hint-bar'
 
 interface Props {
   daemon: DaemonHook
@@ -210,10 +211,18 @@ export const LogsView = ({ daemon, id, rows, width, active, onBack }: Props) => 
       ) : notice !== undefined ? (
         <Text color={notice.kind === 'error' ? theme.error : theme.info}>{notice.text}</Text>
       ) : null}
-      <Text color={theme.dim}>
-        [f]ollow · [w]rap · [p] hide past · [d] delete logs · [/] regex · [j/k] scroll · [G] tail ·
-        [q] back
-      </Text>
+      <HintBar
+        hints={[
+          '[f]ollow',
+          '[w]rap',
+          '[p] hide past',
+          '[d] delete logs',
+          '[/] regex',
+          '[j/k] scroll',
+          '[G] tail',
+          '[q] back',
+        ]}
+      />
     </Box>
   )
 }

@@ -25,23 +25,18 @@ export interface ProxySettings {
   keyPath?: string
 }
 
-export interface StackEntry {
-  name: string
-  /** Absolute path of the primary compose file the stack was imported from. */
-  sourcePath: string
-  /** Hash of the merged config content, for drift detection. */
-  contentHash: string
-  /** All files merged into the import, in merge order. */
-  sources: string[]
-  importedAt: string
-}
-
 export interface ServiceEntry {
-  /** Unique id: "stack/process" for stack members, plain name for standalone. */
+  /** Unique id: the service's own name. Flat namespace across the whole registry. */
   id: string
-  /** Process name without the stack prefix. */
   name: string
-  stack?: string
+  /**
+   * Import batch tag, set when this service came from a process-compose
+   * import (`outrider start/stop <sourceTag>` targets the whole batch, and
+   * `outrider sync` excludes services carrying one).
+   */
+  sourceTag?: string
+  /** The process-compose key this service was imported as, for re-import correlation across renames. */
+  sourceProcess?: string
   namespace?: string
   desired: DesiredState
   /** Start at daemon boot. */
@@ -65,7 +60,6 @@ export interface ServiceEntry {
 
 export interface RegistryModel {
   version: 1
-  stacks: Record<string, StackEntry>
   services: Record<string, ServiceEntry>
   routes: Record<string, RouteRecord>
   proxy: ProxySettings

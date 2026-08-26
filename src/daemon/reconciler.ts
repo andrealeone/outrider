@@ -1,9 +1,9 @@
+import type { Router } from '@/shared/types/router'
 import type { ServiceState } from '@/shared/types/protocol'
 import type { ServiceEntry } from '@/shared/types/registry'
-import type { Router } from '@/shared/types/router'
 
-import type { EventBus } from '@/daemon/event-bus'
 import type { Logger } from '@/daemon/logger'
+import type { EventBus } from '@/daemon/event-bus'
 import type { Registry } from '@/daemon/registry'
 import type { Supervisor } from '@/daemon/supervisor'
 
@@ -11,8 +11,8 @@ import { freePort } from '@/shared/utils/net'
 import { caPath } from '@/shared/utils/paths'
 import { evaluateGate, shutdownLevels, withDependencies } from '@/daemon/scheduler'
 
-const TICK_INTERVAL_MS = 1000
-const TICK_DEBOUNCE_MS = 30
+const TICK_INTERVAL_MS = 1000,
+  TICK_DEBOUNCE_MS = 30
 
 /**
  * The control loop: compares the registry's desired state against observed
@@ -103,9 +103,8 @@ export class Reconciler {
 
     const ordered = forceOrdered || entries.some((e) => e.config.ordered_shutdown)
     if (ordered) {
-      for (const level of shutdownLevels(entries)) {
+      for (const level of shutdownLevels(entries))
         await Promise.all(level.map((entry) => this.supervisor.stop(entry.id)))
-      }
     } else {
       await Promise.all(entries.map((entry) => this.supervisor.stop(entry.id)))
     }
@@ -193,11 +192,11 @@ export class Reconciler {
     let routeUrl: string | undefined
 
     if (entry.route) {
-      const port = entry.route.port ?? freePort()
-      const hostname = this.router.hostnameFor(entry.route.route)
-      const kind =
-        entry.routeKind ??
-        (entry.route.port !== undefined || entry.route.alias === true ? 'static' : 'managed')
+      const port = entry.route.port ?? freePort(),
+        hostname = this.router.hostnameFor(entry.route.route),
+        kind =
+          entry.routeKind ??
+          (entry.route.port !== undefined || entry.route.alias === true ? 'static' : 'managed')
       try {
         const binding = await this.router.register(hostname, port, kind, entry.id)
         routeUrl = binding.url

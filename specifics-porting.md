@@ -62,12 +62,12 @@ Five parts, one owner. The **route table** lives in the registry and is written 
 
 Routes are registry entries, written atomically with the rest of registry.json by its single writer, the daemon. A managed route follows its service's **desired state**, not its process lifetime: the hostname registers when the service goes up and deregisters when it goes down, while the port field refreshes at each spawn. A route whose service is not currently running answers 503 naming the service's state, and restart churn therefore never touches the certificate or the hosts block, since re-minting and hosts sync fire only when the hostname set changes.
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| hostname | string | Full name, label plus TLD (api.myapp.localhost); globally unique in the registry |
-| kind | managed or static | Managed routes follow a supervised service; static routes pin a fixed port (the Docker case) |
-| service | string, optional | Owning service for managed routes, absent for static ones |
-| port | number | Allocated at spawn for managed routes, declared for static ones |
+| Field    | Type              | Notes                                                                                        |
+| -------- | ----------------- | -------------------------------------------------------------------------------------------- |
+| hostname | string            | Full name, label plus TLD (api.myapp.localhost); globally unique in the registry             |
+| kind     | managed or static | Managed routes follow a supervised service; static routes pin a fixed port (the Docker case) |
+| service  | string, optional  | Owning service for managed routes, absent for static ones                                    |
+| port     | number            | Allocated at spawn for managed routes, declared for static ones                              |
 
 Proxy settings form one further record: listen port (default 443), TLS on or off (default on), the TLD (default localhost), and certificate paths. Persisted in registry.json so a daemon restart reuses the last configuration, mirroring portless's persistence behaviour. Port allocation keeps the upstream 4000 to 4999 random-free convention, so firewall rules and muscle memory survive the migration.
 
@@ -97,14 +97,14 @@ Proxy settings form one further record: listen port (default 443), TLS on or off
 
 ### Environment contract and quirks
 
-| Variable | Value |
-| --- | --- |
-| PORT | Ephemeral port the service must bind |
-| HOST | 127.0.0.1 |
-| OUTRIDER_URL | Primary public URL (https://api.myapp.localhost) |
-| PORTLESS_URL | Same value, compatibility alias |
-| PC_PROC_NAME, PC_REPLICA_NUM | Inherited from the parent brief, unchanged |
-| NODE_EXTRA_CA_CERTS | Path to the CA certificate when TLS is on |
+| Variable                     | Value                                            |
+| ---------------------------- | ------------------------------------------------ |
+| PORT                         | Ephemeral port the service must bind             |
+| HOST                         | 127.0.0.1                                        |
+| OUTRIDER_URL                 | Primary public URL (https://api.myapp.localhost) |
+| PORTLESS_URL                 | Same value, compatibility alias                  |
+| PC_PROC_NAME, PC_REPLICA_NUM | Inherited from the parent brief, unchanged       |
+| NODE_EXTRA_CA_CERTS          | Path to the CA certificate when TLS is on        |
 
 The supervisor injects --port and, where needed, --host flags for the frameworks that ignore PORT: Vite, Astro, React Router, Angular, Expo, and React Native, following portless's table. The exact flag set is a volatile fact: lift it from the portless source at implementation time and keep it as one data table in the quirks file, so a new framework is a one-line addition.
 
@@ -114,13 +114,13 @@ The supervisor injects --port and, where needed, --host flags for the frameworks
 
 The Router interface from the parent brief is the whole public surface. Handlers stay thin shells over it, so the daemon, TUI, and future CLI commands cannot drift apart.
 
-| Method | Behaviour |
-| --- | --- |
-| ensureReady() | Confirms listener, certificates, and hosts block; repairs what it can, reports what it cannot |
+| Method                         | Behaviour                                                                                                                                                                          |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ensureReady()                  | Confirms listener, certificates, and hosts block; repairs what it can, reports what it cannot                                                                                      |
 | register(hostname, port, kind) | Idempotent upsert: adds a route or refreshes the port of an existing one; a hostname-set change re-mints the leaf and queues a hosts sync; fails on conflict naming both claimants |
-| unregister(hostname) | Removes the route and queues the removal of its hosts entry |
-| list() | Routes with kind, target, owning service, and liveness; managed liveness mirrors supervisor state, static liveness is an on-demand TCP dial with a short cache |
-| inspect() | Diagnostic detail: bind status, CA trust, openssl presence, resolution; surfaced by outrider on and the TUI detail view, folded into doctor when that command arrives |
+| unregister(hostname)           | Removes the route and queues the removal of its hosts entry                                                                                                                        |
+| list()                         | Routes with kind, target, owning service, and liveness; managed liveness mirrors supervisor state, static liveness is an on-demand TCP dial with a short cache                     |
+| inspect()                      | Diagnostic detail: bind status, CA trust, openssl presence, resolution; surfaced by outrider on and the TUI detail view, folded into doctor when that command arrives              |
 
 The config block keeps its three fields, route, framework, and port, under the x-route key with x-portless accepted forever. In the TUI, the dashboard's route column shows the live URL, and the detail view adds certificate and hosts status alongside the inspect() findings; doctor stays parent-brief polish and simply reuses them when it lands.
 
@@ -128,13 +128,13 @@ The config block keeps its three fields, route, framework, and port, under the x
 
 ### Dependencies
 
-| Need | Choice | Notes |
-| --- | --- | --- |
-| Listener and TLS | node:http2 | Server-side HTTP/2 and SNI callbacks are still open requests in Bun.serve, so node:http2 is the working assumption; the R0 spike decides whether Bun.serve can take over |
-| Upgrade splice | Bun socket API with node:net primitives | Raw byte forwarding for WebSockets and HMR |
-| Certificates | System openssl subprocess | No crypto library enters the bundle |
-| Trust store | System tools (security, update-ca-certificates, update-ca-trust) | One sudo prompt, clearly explained |
-| Hosts sync | Direct file write | Marked begin and end block, atomic rewrite, executed by the foreground elevation path |
+| Need             | Choice                                                           | Notes                                                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Listener and TLS | node:http2                                                       | Server-side HTTP/2 and SNI callbacks are still open requests in Bun.serve, so node:http2 is the working assumption; the R0 spike decides whether Bun.serve can take over |
+| Upgrade splice   | Bun socket API with node:net primitives                          | Raw byte forwarding for WebSockets and HMR                                                                                                                               |
+| Certificates     | System openssl subprocess                                        | No crypto library enters the bundle                                                                                                                                      |
+| Trust store      | System tools (security, update-ca-certificates, update-ca-trust) | One sudo prompt, clearly explained                                                                                                                                       |
+| Hosts sync       | Direct file write                                                | Marked begin and end block, atomic rewrite, executed by the foreground elevation path                                                                                    |
 
 **Hard rule.** The swap removes portless and adds nothing in its place: the runtime dependency set tightens to ink and react alone. Any addition beyond that requires a written justification in the change that introduces it.
 

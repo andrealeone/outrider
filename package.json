@@ -17,7 +17,7 @@
     "lint:fix": "oxlint --fix",
     "check": "fallow",
     "check:fix": "fallow fix",
-    "compile": "bun scripts/build.ts && rm ~/.local/bin/outrider && cp dist/bin/outrider ~/.local/bin/outrider && outrider off && outrider on",
+    "compile": "bun scripts/build.ts && rm -f ~/.local/bin/outrider && cp dist/bin/outrider ~/.local/bin/outrider && outrider off && outrider on",
     "generate-manifest": "bun scripts/generate-manifest.ts",
     "sync-version": "bun scripts/sync-version.ts",
     "version:major": "npm version major --no-git-tag-version && bun scripts/sync-version.ts",

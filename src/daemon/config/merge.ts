@@ -11,15 +11,13 @@ export const deepMerge = (
   override: Record<string, unknown>,
 ): Record<string, unknown> => {
   const out: Record<string, unknown> = { ...base }
+
   for (const [key, value] of Object.entries(override)) {
-    if (value === null) {
-      delete out[key]
-    } else if (isPlainObject(value) && isPlainObject(out[key])) {
-      out[key] = deepMerge(out[key], value)
-    } else {
-      out[key] = value
-    }
+    if (value === null) delete out[key]
+    else if (isPlainObject(value) && isPlainObject(out[key])) out[key] = deepMerge(out[key], value)
+    else out[key] = value
   }
+
   return out
 }
 

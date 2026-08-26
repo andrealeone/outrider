@@ -3,21 +3,21 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 
 import { hostsFilePath } from '@/shared/utils/paths'
 
-const BEGIN = '# BEGIN outrider'
-const END = '# END outrider'
+const BEGIN = '# BEGIN outrider',
+  END = '# END outrider'
 
 const blockLines = (hostnames: string[]): string[] =>
   [...new Set(hostnames)].sort().map((h) => `127.0.0.1 ${h}`)
 
 const withBlock = (text: string, hostnames: string[]): string => {
-  const block = [BEGIN, ...blockLines(hostnames), END].join('\n')
-  const beginAt = text.indexOf(BEGIN)
-  const endAt = text.indexOf(END)
-  if (beginAt !== -1 && endAt !== -1) {
+  const block = [BEGIN, ...blockLines(hostnames), END].join('\n'),
+    beginAt = text.indexOf(BEGIN),
+    endAt = text.indexOf(END)
+
+  if (beginAt !== -1 && endAt !== -1)
     return `${text.slice(0, beginAt)}${block}${text.slice(endAt + END.length)}`
-  }
-  const sep = text.endsWith('\n') || text === '' ? '' : '\n'
-  return `${text}${sep}${block}\n`
+
+  return `${text}${text.endsWith('\n') || text === '' ? '' : '\n'}${block}\n`
 }
 
 /**
@@ -36,22 +36,30 @@ export class HostsSync {
 
   /** Read-only: is the marked block already in sync with the given hostnames? */
   isSynced(hostnames: string[]): boolean {
-    const text = this.current()
-    const beginAt = text.indexOf(BEGIN)
-    const endAt = text.indexOf(END)
+    const text = this.current(),
+      beginAt = text.indexOf(BEGIN),
+      endAt = text.indexOf(END)
+
     if (beginAt === -1 || endAt === -1) return hostnames.length === 0
-    const current = text.slice(beginAt, endAt + END.length)
-    const expected = [BEGIN, ...blockLines(hostnames), END].join('\n')
+
+    const current = text.slice(beginAt, endAt + END.length),
+      expected = [BEGIN, ...blockLines(hostnames), END].join('\n')
+
     return current === expected
   }
 
   sync(hostnames: string[]): void {
     const next = withBlock(this.current(), hostnames)
+
     try {
       writeFileSync(this.path, next)
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'EACCES') throw err
-      execFileSync('sudo', ['tee', this.path], { input: next, stdio: ['pipe', 'ignore', 'inherit'] })
+
+      execFileSync('sudo', ['tee', this.path], {
+        input: next,
+        stdio: ['pipe', 'ignore', 'inherit'],
+      })
     }
   }
 }

@@ -2,16 +2,16 @@
 
 ## v1 commands
 
-| Command                         | Behaviour                                                                                                                                                                                                      |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `outrider`                      | Opens the dashboard TUI. With the daemon off it opens in offline mode, showing the persisted registry and a prompt to switch the daemon on. With no TTY it degrades to a JSON state dump.                      |
-| `outrider on`                   | Starts the daemon: installs the launchd agent (macOS) or systemd user unit (Linux) pointing back at this binary, waits for the socket, reconciles autostart services, prints a one-line summary. Also runs the routing proxy's foreground repair (CA trust, hosts sync) when TLS is on and something has drifted. Idempotent.   |
-| `outrider off`                  | Stops the daemon: removes the service unit (so nothing resurrects it), shuts services down through the signal ladder in reverse dependency order, persists state, removes the socket. Idempotent.              |
-| `outrider start <name…>`        | Sets the named targets desired up and starts them (dependencies included). Each name is a service id, stack, namespace, or [tag](features/service-tags.md). Requires the daemon to be running.                 |
-| `outrider stop <name…>`         | Sets the named targets desired down and stops them. Same name resolution as `start`. Requires the daemon to be running.                                                                                        |
-| `outrider sync [--yes]`         | Reconciles `~/.config/outrider.yml` into the registry. Seeds the file on first run; otherwise shows the diff as a checklist (or applies it directly with `--yes`). See [config sync](features/sync-config.md). |
-| `outrider preferences`          | Views or changes persisted user preferences (feature switches), e.g. `theme`. `[list]` / `get <key>` / `set <key> <value>` / `reset [<key>]`. See [Preferences](#preferences) below.        |
-| `outrider --help` / `--version` | The usual.                                                                                                                                                                                                     |
+| Command                         | Behaviour                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `outrider`                      | Opens the dashboard TUI. With the daemon off it opens in offline mode, showing the persisted registry and a prompt to switch the daemon on. With no TTY it degrades to a JSON state dump.                                                                                                                                     |
+| `outrider on`                   | Starts the daemon: installs the launchd agent (macOS) or systemd user unit (Linux) pointing back at this binary, waits for the socket, reconciles autostart services, prints a one-line summary. Also runs the routing proxy's foreground repair (CA trust, hosts sync) when TLS is on and something has drifted. Idempotent. |
+| `outrider off`                  | Stops the daemon: removes the service unit (so nothing resurrects it), shuts services down through the signal ladder in reverse dependency order, persists state, removes the socket. Idempotent.                                                                                                                             |
+| `outrider start <name…>`        | Sets the named targets desired up and starts them (dependencies included). Each name is a service id, namespace, or [tag](features/service-tags.md) (a service's import source tag works as a tag). Requires the daemon to be running.                                                                                        |
+| `outrider stop <name…>`         | Sets the named targets desired down and stops them. Same name resolution as `start`. Requires the daemon to be running.                                                                                                                                                                                                       |
+| `outrider sync [--yes]`         | Reconciles `~/.config/outrider.yml` into the registry. Seeds the file on first run; otherwise shows the diff as a checklist (or applies it directly with `--yes`). See [config sync](features/sync-config.md).                                                                                                                |
+| `outrider preferences`          | Views or changes persisted user preferences (feature switches), e.g. `theme`. `[list]` / `get <key>` / `set <key> <value>` / `reset [<key>]`. See [Preferences](#preferences) below.                                                                                                                                          |
+| `outrider --help` / `--version` | The usual.                                                                                                                                                                                                                                                                                                                    |
 
 ## Hidden commands
 
@@ -42,9 +42,9 @@ renders an interactive checklist (see [config sync](features/sync-config.md)).
 `outrider preferences` persists feature switches to `~/.config/outrider-preferences.json`
 (`src/shared/utils/preferences.ts`), read by the CLI, daemon, and TUI:
 
-| Key            | Values           | Effect                                                                                                            |
-| -------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `theme`        | `default` / `light` | Persisted equivalent of `OUTRIDER_THEME=light`.                                                                   |
+| Key     | Values              | Effect                                          |
+| ------- | ------------------- | ----------------------------------------------- |
+| `theme` | `default` / `light` | Persisted equivalent of `OUTRIDER_THEME=light`. |
 
 An env var always overrides the matching preference, so scripts and tests can force
 either mode regardless of what's on disk.
@@ -66,30 +66,30 @@ All endpoints are versioned under `/v1` on the unix socket; errors share one
 shape: `{ "error": { "code", "message" } }`. Clients handshake via `GET
 /v1/info` and compare protocol versions.
 
-| Endpoint                                          | Meaning                                                              |
-| ------------------------------------------------- | -------------------------------------------------------------------- |
-| `GET /v1/info`                                    | daemon version, protocol, pid (handshake)                            |
-| `GET /v1/state`                                   | full snapshot of every service                                       |
-| `GET /v1/registry`                                | the persisted desired model                                          |
-| `GET /v1/routes`                                  | the route table, with per-route liveness                             |
-| `GET /v1/proxy`                                   | routing proxy status: `inspect()`, TLD, and every registered hostname (what `outrider on`'s repair step reads) |
-| `POST /v1/up` `{names?, noDeps?}`                 | set desired up (deps included unless noDeps) and start               |
-| `POST /v1/down` `{names?}`                        | set desired down and stop                                            |
-| `POST /v1/import` `{path, dryRun?}`               | import or refresh a stack; dry run returns the report only           |
-| `DELETE /v1/stacks/:name`                         | stop and remove a stack                                              |
-| `POST /v1/services`                               | register a standalone service                                        |
-| `PUT /v1/services/:id`                            | replace a standalone definition; a live service restarts to apply it |
-| `POST /v1/services/validate`                      | validate a definition without saving (`editOf` allows the own name)  |
-| `PATCH /v1/services/:id` `{desired?, autostart?}` | desired-state and autostart changes                                  |
-| `POST /v1/services/:id/start·stop·restart`        | immediate lifecycle actions                                          |
-| `POST /v1/services/:id/scale` `{replicas}`        | runtime replica change (persisted)                                   |
-| `GET /v1/services/:id/logs?tail=N`                | ring-buffer tail                                                     |
-| `DELETE /v1/services/:id/logs`                    | clear this service's in-memory and persisted logs                    |
-| `DELETE /v1/services/:id`                         | remove a standalone service                                          |
-| `POST /v1/shutdown`                               | full ordered shutdown, daemon exits                                  |
-| `WS /v1/events`                                   | event stream: snapshots, state changes, log lines, probe transitions |
+| Endpoint                                                                   | Meaning                                                                                                        |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/info`                                                             | daemon version, protocol, pid (handshake)                                                                      |
+| `GET /v1/state`                                                            | full snapshot of every service                                                                                 |
+| `GET /v1/registry`                                                         | the persisted desired model                                                                                    |
+| `GET /v1/routes`                                                           | the route table, with per-route liveness                                                                       |
+| `GET /v1/proxy`                                                            | routing proxy status: `inspect()`, TLD, and every registered hostname (what `outrider on`'s repair step reads) |
+| `POST /v1/up` `{names?, noDeps?}`                                          | set desired up (deps included unless noDeps) and start                                                         |
+| `POST /v1/down` `{names?}`                                                 | set desired down and stop                                                                                      |
+| `POST /v1/import/preview` `{path}`                                         | parse a compose file and return a per-process editable preview, non-mutating                                   |
+| `POST /v1/import/apply` `{path, sourceTag, approved, removedProcessNames}` | write the approved processes and removals to the registry in one batch                                         |
+| `POST /v1/services`                                                        | register a standalone service                                                                                  |
+| `PUT /v1/services/:id`                                                     | replace a standalone definition; a live service restarts to apply it                                           |
+| `POST /v1/services/validate`                                               | validate a definition without saving (`editOf` allows the own name)                                            |
+| `PATCH /v1/services/:id` `{desired?, autostart?}`                          | desired-state and autostart changes                                                                            |
+| `POST /v1/services/:id/start·stop·restart`                                 | immediate lifecycle actions                                                                                    |
+| `POST /v1/services/:id/scale` `{replicas}`                                 | runtime replica change (persisted)                                                                             |
+| `GET /v1/services/:id/logs?tail=N`                                         | ring-buffer tail                                                                                               |
+| `DELETE /v1/services/:id/logs`                                             | clear this service's in-memory and persisted logs                                                              |
+| `DELETE /v1/services/:id`                                                  | remove a standalone service                                                                                    |
+| `POST /v1/shutdown`                                                        | full ordered shutdown, daemon exits                                                                            |
+| `WS /v1/events`                                                            | event stream: snapshots, state changes, log lines, probe transitions                                           |
 
-`names` accepts service ids (`stack/proc` or standalone names), stack names,
+`names` accepts service ids, source tags (a service's import batch identifier),
 namespaces, and [tags](features/service-tags.md), resolved in that order.
 
 ## Planned scripting surface

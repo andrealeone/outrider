@@ -15,8 +15,8 @@ It is a one-file, two-direction loop:
 - **File → registry (on demand).** Edit the file directly to define or change
   many services at once, then run `outrider sync` to apply your edits.
 
-Only **standalone** services appear in the file. Stack members are owned by
-their `process-compose.yaml` and are managed by re-importing; `sync` never
+Only **standalone** services appear in the file. Imported services are owned
+by their `process-compose.yaml` and are managed by re-importing; `sync` never
 touches them.
 
 ## `outrider sync`

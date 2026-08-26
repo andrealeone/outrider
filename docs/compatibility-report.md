@@ -26,17 +26,17 @@ in-process routing subsystem.
 
 ## Deliberate divergences
 
-| Area                                            | Upstream                                            | outrider                                                            | Why                                                                                                                          |
-| ----------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Lifetime                                        | project-bound, exits with the session               | system-wide per-user daemon; desired state persists                 | the tool's premise                                                                                                           |
-| exit_on_end / exit_on_failure / exit_on_skipped | terminate the binary                                | warned and ignored in persistent mode; will apply to ephemeral runs | a daemon never exits with a process                                                                                          |
-| Ports                                           | hard-coded per service                              | optional named routes via the native router (`x-route`)             | opt-in extension key; untouched configs behave identically                                                                   |
-| Replica naming                                  | all instances renamed `name-N`                      | instance 0 keeps the plain name; 1+ get `-N`                        | stable identity across rescaling; counters and probes stay attached                                                          |
-| Project update (Ctrl+E edits)                   | ephemeral in-memory edits                           | re-import the stack; the registry is the source of truth            | persisted desired state contradicts unsaved edits                                                                            |
-| TUI                                             | tview, themes, mouse                                | Ink, one light/dark pair, vim keymap, keyboard-only                 | cuts discussion in the brief                                                                                                 |
-| Env expansion of command strings                | at load                                             | at import (frozen into the registry; re-import refreshes)           | system-wide model imports once                                                                                               |
-| `success_threshold`                             | placeholder, not evaluated                          | same, documented                                                    | honesty over invented semantics                                                                                              |
-| Liveness failure                                | restart behaviour mirrors upstream per restart mode | always restarts the instance (counts toward max_restarts)           | **assumption**: upstream behaviour must still be verified against the real binary per the open questions; revisit before 1.0 |
+| Area                                            | Upstream                                            | outrider                                                               | Why                                                                                                                          |
+| ----------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Lifetime                                        | project-bound, exits with the session               | system-wide per-user daemon; desired state persists                    | the tool's premise                                                                                                           |
+| exit_on_end / exit_on_failure / exit_on_skipped | terminate the binary                                | warned and ignored in persistent mode; will apply to ephemeral runs    | a daemon never exits with a process                                                                                          |
+| Ports                                           | hard-coded per service                              | optional named routes via the native router (`x-route`)                | opt-in extension key; untouched configs behave identically                                                                   |
+| Replica naming                                  | all instances renamed `name-N`                      | instance 0 keeps the plain name; 1+ get `-N`                           | stable identity across rescaling; counters and probes stay attached                                                          |
+| Project update (Ctrl+E edits)                   | ephemeral in-memory edits                           | re-import and approve the changes; the registry is the source of truth | persisted desired state contradicts unsaved edits                                                                            |
+| TUI                                             | tview, themes, mouse                                | Ink, one light/dark pair, vim keymap, keyboard-only                    | cuts discussion in the brief                                                                                                 |
+| Env expansion of command strings                | at load                                             | at import (frozen into the registry; re-import refreshes)              | system-wide model imports once                                                                                               |
+| `success_threshold`                             | placeholder, not evaluated                          | same, documented                                                       | honesty over invented semantics                                                                                              |
+| Liveness failure                                | restart behaviour mirrors upstream per restart mode | always restarts the instance (counts toward max_restarts)              | **assumption**: upstream behaviour must still be verified against the real binary per the open questions; revisit before 1.0 |
 
 ## Cut features (parse + named warning, never a crash)
 
@@ -101,8 +101,8 @@ above — so `src/daemon/prober.ts` always dials the service's port directly.
 This is arguably the more correct design regardless: a health check
 shouldn't depend on the proxy being healthy.
 
-**Acceptance, adjusted for the above.** On a clean machine, importing a stack
-that routes `web` and `api` serves `http://myapp.localhost` and
+**Acceptance, adjusted for the above.** On a clean machine, importing processes
+that route `web` and `api` serves `http://myapp.localhost` and
 `http://api.myapp.localhost` (HTTP/1.1; HTTPS/HTTP2 work when TLS is
 manually enabled in the registry, with the WebSocket caveat above); an http
 readiness probe passes by dialing the service's own port; the lockfile

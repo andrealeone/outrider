@@ -7,6 +7,8 @@ import type { ServiceEntry } from '@/shared/types/registry'
 import { maskSecret } from '@/shared/utils/format'
 import { formatUptime } from '@/shared/utils/time'
 import { theme } from '@/tui/lib/theme'
+import { FocusRow } from '@/tui/ui/focus-row'
+import { HintBar } from '@/tui/ui/hint-bar'
 
 interface Props {
   state: ServiceState | undefined
@@ -16,12 +18,9 @@ interface Props {
 }
 
 const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <Box>
-    <Box width={16}>
-      <Text color={theme.dim}>{label}</Text>
-    </Box>
+  <FocusRow label={label} labelWidth={16} marker={false}>
     <Text>{children}</Text>
-  </Box>
+  </FocusRow>
 )
 
 const statusLine = (state: ServiceState): string => {
@@ -123,7 +122,7 @@ export const DetailView = ({ state, rows, active, onBack }: Props) => {
         </Box>
       ) : null}
       <Box flexGrow={1} />
-      <Text color={theme.dim}>[q] back</Text>
+      <HintBar hints={['[q] back']} />
     </Box>
   )
 }

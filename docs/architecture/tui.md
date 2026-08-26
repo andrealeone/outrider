@@ -25,8 +25,10 @@ dump.
 
 **Views.** Dashboard (default), logs (follow, regex search, wrap,
 scrollback, hide-past, per-service log deletion), detail (config snapshot, instances, masked environment), add
-service (live-validated form), import stack (dry-run report before anything
-registers). A fixed vim-style keymap in v1; the config file reserves a keymap
+service (live-validated form), import processes (paginated per-process
+approval wizard sharing the same field editor, nothing registers until the
+final summary is confirmed). A fixed vim-style keymap in v1; the config file
+reserves a keymap
 key for later. Keyboard-first throughout, no mouse, per the cuts discussion.
 Theme tokens ship one dark and one light pair (`OUTRIDER_THEME=light`).
 

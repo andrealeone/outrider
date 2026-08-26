@@ -19,17 +19,16 @@ const entry = (over: Partial<ServiceEntry> & { id: string }): ServiceEntry => ({
 
 const model = (entries: ServiceEntry[]): RegistryModel => ({
   version: 1,
-  stacks: {},
   services: Object.fromEntries(entries.map((e) => [e.id, e])),
   routes: {},
   proxy: { port: 80, tls: false, tld: 'localhost' },
 })
 
 describe('sync file codec', () => {
-  test('exports standalone services and omits stack members', () => {
+  test('exports standalone services and omits imported services', () => {
     const m = model([
       entry({ id: 'api', config: { command: 'bun run api.ts' }, tags: ['web'] }),
-      entry({ id: 'demo/db', stack: 'demo', config: { command: 'postgres' } }),
+      entry({ id: 'db', sourceTag: 'demo', config: { command: 'postgres' } }),
     ])
     const doc = parseSyncFile(exportRegistry(m))
     expect(Object.keys(doc.services)).toEqual(['api'])
@@ -67,7 +66,9 @@ describe('sync file codec', () => {
   })
 
   test('rejects a service without a command', () => {
-    expect(() => parseSyncFile('services:\n  api:\n    autostart: true\n')).toThrow(/needs a command/)
+    expect(() => parseSyncFile('services:\n  api:\n    autostart: true\n')).toThrow(
+      /needs a command/,
+    )
   })
 
   test('tolerates an empty document', () => {
@@ -99,23 +100,36 @@ describe('sync file codec', () => {
   })
 
   test('omits fields left at their defaults', () => {
-    const m = model([entry({ id: 'api', autostart: false, config: { command: 'echo hi', availability: { restart: 'no' } } })])
+    const m = model([
+      entry({
+        id: 'api',
+        autostart: false,
+        config: { command: 'echo hi', availability: { restart: 'no' } },
+      }),
+    ])
     expect(parseSyncFile(exportRegistry(m)).services.api).toEqual({ command: 'echo hi' })
   })
 
   test('treats a comma-separated tag string as a tag list (normalised on diff)', () => {
     const m = model([entry({ id: 'api', config: { command: 'echo hi' }, tags: ['web', 'edge'] })])
-    const desired = parseSyncFile('services:\n  api:\n    command: echo hi\n    tags: "web, edge"\n')
+    const desired = parseSyncFile(
+      'services:\n  api:\n    command: echo hi\n    tags: "web, edge"\n',
+    )
     expect(diff(m, desired)).toEqual([])
   })
 
   test('coerces env values to strings', () => {
-    const doc = parseSyncFile('services:\n  api:\n    command: echo hi\n    env:\n      PORT: 8080\n')
+    const doc = parseSyncFile(
+      'services:\n  api:\n    command: echo hi\n    env:\n      PORT: 8080\n',
+    )
     expect(doc.services.api?.env).toEqual({ PORT: '8080' })
   })
 
   test('rejects malformed fields with named errors', () => {
-    const bad = (body: string): (() => unknown) => () => parseSyncFile(`services:\n  api:\n    command: echo hi\n${body}`)
+    const bad =
+      (body: string): (() => unknown) =>
+      () =>
+        parseSyncFile(`services:\n  api:\n    command: echo hi\n${body}`)
     expect(bad('    autostart: maybe\n')).toThrow(/autostart must be true or false/)
     expect(bad('    restart: sometimes\n')).toThrow(/restart must be one of/)
     expect(bad('    env:\n      - nope\n')).toThrow(/env must be a mapping/)
@@ -169,7 +183,7 @@ describe('writeSyncFile', () => {
       const path = join(dir, 'outrider.yml')
       const m = model([
         entry({ id: 'api', config: { command: 'bun run api.ts' }, tags: ['web'] }),
-        entry({ id: 'demo/db', stack: 'demo', config: { command: 'postgres' } }),
+        entry({ id: 'db', sourceTag: 'demo', config: { command: 'postgres' } }),
       ])
       writeSyncFile(m, path)
       const text = readFileSync(path, 'utf8')
@@ -191,10 +205,21 @@ describe('sync diff', () => {
 
   test('detects create, update, and delete', () => {
     const desired = parseSyncFile(
-      ['services:', '  api:', '    command: bun run api.ts', '    autostart: true', '  new:', '    command: echo new'].join('\n'),
+      [
+        'services:',
+        '  api:',
+        '    command: bun run api.ts',
+        '    autostart: true',
+        '  new:',
+        '    command: echo new',
+      ].join('\n'),
     )
     const ops = diff(current, desired)
-    expect(ops.map((o) => `${o.kind} ${o.name}`)).toEqual(['update api', 'create new', 'delete old'])
+    expect(ops.map((o) => `${o.kind} ${o.name}`)).toEqual([
+      'update api',
+      'create new',
+      'delete old',
+    ])
     const update = ops.find((o) => o.kind === 'update')
     expect(update?.kind === 'update' && update.changes).toEqual(['autostart'])
   })
@@ -205,20 +230,39 @@ describe('sync diff', () => {
     expect(diff(m, desired)).toEqual([])
   })
 
-  test('never touches stack members', () => {
-    const m = model([entry({ id: 'demo/api', stack: 'demo', config: { command: 'echo hi' } })])
+  test('never touches imported services', () => {
+    const m = model([entry({ id: 'api', sourceTag: 'demo', config: { command: 'echo hi' } })])
     expect(diff(m, parseSyncFile('services: {}\n'))).toEqual([])
   })
 
   test('reports every changed field in a stable order on an update', () => {
-    const m = model([entry({ id: 'api', namespace: 'old', config: { command: 'echo hi', working_dir: '/a', environment: ['X=1'] } })])
+    const m = model([
+      entry({
+        id: 'api',
+        namespace: 'old',
+        config: { command: 'echo hi', working_dir: '/a', environment: ['X=1'] },
+      }),
+    ])
     const desired = parseSyncFile(
-      ['services:', '  api:', '    command: echo bye', '    working_dir: /b', '    namespace: new', '    env:', '      X: "2"'].join('\n'),
+      [
+        'services:',
+        '  api:',
+        '    command: echo bye',
+        '    working_dir: /b',
+        '    namespace: new',
+        '    env:',
+        '      X: "2"',
+      ].join('\n'),
     )
     const ops = diff(m, desired)
     expect(ops.length).toBe(1)
     const op = ops[0]
-    expect(op?.kind === 'update' && op.changes).toEqual(['command', 'working_dir', 'namespace', 'env'])
+    expect(op?.kind === 'update' && op.changes).toEqual([
+      'command',
+      'working_dir',
+      'namespace',
+      'env',
+    ])
   })
 
   test('create carries the full definition', () => {

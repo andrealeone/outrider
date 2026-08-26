@@ -9,7 +9,7 @@ keys see the [config schema](../config-schema.md). For a detailed comparison wit
 - [Service tags](service-tags.md): group services and start/stop a whole tag at once
 - [Config sync](sync-config.md): edit services at scale in `~/.config/outrider.yml`
 - [Standalone services](standalone-services.md): registry-native services with no backing file
-- [Stacks and import](stacks-and-import.md): run existing `process-compose.yaml` files unedited
+- [Importing processes](importing-processes.md): run existing `process-compose.yaml` files unedited
 - [Native routing](native-routing.md): hostnames instead of memorised ports
 - [The dashboard](the-dashboard.md): the Ink TUI that manages everything
 - [Socket API](socket-api.md): control the daemon over its unix socket instead of the TUI

@@ -1,6 +1,6 @@
 # Feature analysis
 
-Working notes for requested features, written *before* implementation. Each note
+Working notes for requested features, written _before_ implementation. Each note
 captures the request, the motivation, the design choices it forces, and the open
 questions that must be answered before any code is written. A note is not a
 commitment to build; it is the analysis that decides whether and how to build.

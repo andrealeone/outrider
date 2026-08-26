@@ -1,3 +1,5 @@
+import { DependencyCycleError, startOrder } from '@/daemon/config/dag'
+
 import type {
   ConfigWarning,
   ProbeConfig,
@@ -5,8 +7,6 @@ import type {
   ProjectConfig,
   RouteExtension,
 } from '@/shared/types/process-compose'
-
-import { DependencyCycleError, startOrder } from '@/daemon/config/dag'
 
 const PROJECT_KEYS = new Set([
   'version',
@@ -70,7 +70,6 @@ const CONDITIONS = new Set([
 
 const RESTART_POLICIES = new Set(['no', 'on_failure', 'always', 'exit_on_failure'])
 
-// Features that parse but do not execute, each with its roadmap status.
 const DEFERRED_PROCESS_KEYS: Record<string, string> = {
   is_tty: 'interactive TTY processes are deferred; the process runs without a pseudo-terminal',
   is_foreground: 'foreground processes are deferred; the process is managed like any other',
@@ -96,12 +95,12 @@ export interface ValidationResult {
 
 const validateProbe = (name: string, kind: string, probe: ProbeConfig, errors: string[]): void => {
   const modes = [probe.exec, probe.http_get].filter((m) => m !== undefined).length
-  if (modes !== 1) {
+
+  if (modes !== 1)
     errors.push(`process "${name}": ${kind} must define exactly one of exec or http_get`)
-  }
-  if (probe.exec && !probe.exec.command) {
+
+  if (probe.exec && !probe.exec.command)
     errors.push(`process "${name}": ${kind}.exec.command is required`)
-  }
 }
 
 const validateRoute = (
@@ -114,22 +113,22 @@ const validateRoute = (
     errors.push(`process "${name}": x-route.route is required`)
     return
   }
-  if (!ROUTE_LABEL.test(route.route)) {
+
+  if (!ROUTE_LABEL.test(route.route))
     errors.push(
       `process "${name}": x-route.route "${route.route}" must be a lowercase DNS label (letters, digits, dashes)`,
     )
-  }
+
   const claimant = claims.get(route.route)
-  if (claimant !== undefined) {
+
+  if (claimant !== undefined)
     errors.push(
       `route "${route.route}" is claimed by both "${claimant}" and "${name}"; route names must be unique`,
     )
-  } else {
-    claims.set(route.route, name)
-  }
-  if (route.port !== undefined && (!Number.isInteger(route.port) || route.port < 1)) {
+  else claims.set(route.route, name)
+
+  if (route.port !== undefined && (!Number.isInteger(route.port) || route.port < 1))
     errors.push(`process "${name}": x-route.port must be a positive integer`)
-  }
 }
 
 type Warn = (code: string, message: string) => void
@@ -143,12 +142,13 @@ const validateProcessKeys = (
 ): void => {
   for (const key of Object.keys(proc)) {
     if (PROCESS_KEYS.has(key) || key.startsWith('x-')) continue
+
     if (strict) errors.push(`process "${name}": unknown key "${key}" (strict mode)`)
     else warn('unknown-key', `process "${name}": unknown key "${key}" was ignored`)
   }
-  if (!proc.command && !proc.entrypoint?.length && !proc.disabled) {
+
+  if (!proc.command && !proc.entrypoint?.length && !proc.disabled)
     errors.push(`process "${name}": command or entrypoint is required`)
-  }
 }
 
 const validateDependencies = (
@@ -160,36 +160,36 @@ const validateDependencies = (
 ): void => {
   for (const [dep, depConfig] of Object.entries(proc.depends_on ?? {})) {
     const condition = depConfig?.condition ?? 'process_started'
-    if (!CONDITIONS.has(condition)) {
+
+    if (!CONDITIONS.has(condition))
       errors.push(`process "${name}": depends_on.${dep} has unknown condition "${condition}"`)
-    }
+
     if (dep in config.processes) continue
+
     const replicaInstance = /^(.+)-\d+$/.exec(dep)
-    if (replicaInstance && (replicaInstance[1] as string) in config.processes) {
+
+    if (replicaInstance && (replicaInstance[1] as string) in config.processes)
       warn(
         'deferred-feature',
         `process "${name}": per-instance replica dependency "${dep}" is deferred; depend on "${replicaInstance[1]}" to wait for the whole group`,
       )
-    } else {
-      errors.push(`process "${name}": depends_on references unknown process "${dep}"`)
-    }
+    else errors.push(`process "${name}": depends_on references unknown process "${dep}"`)
   }
 }
 
 const validateProbes = (name: string, proc: ProcessConfig, errors: string[], warn: Warn): void => {
-  if (proc.readiness_probe && proc.ready_log_line) {
+  if (proc.readiness_probe && proc.ready_log_line)
     errors.push(
       `process "${name}": ready_log_line and readiness_probe are mutually exclusive upstream; keep one`,
     )
-  }
+
   if (proc.readiness_probe) validateProbe(name, 'readiness_probe', proc.readiness_probe, errors)
   if (proc.liveness_probe) validateProbe(name, 'liveness_probe', proc.liveness_probe, errors)
-  if (proc.readiness_probe?.success_threshold !== undefined) {
+  if (proc.readiness_probe?.success_threshold !== undefined)
     warn(
       'upstream-placeholder',
       `process "${name}": success_threshold is a placeholder upstream and is not evaluated; documented for honesty`,
     )
-  }
 }
 
 const validateAvailability = (
@@ -199,41 +199,40 @@ const validateAvailability = (
   warn: Warn,
 ): void => {
   const availability = proc.availability
-  if (availability?.restart !== undefined && !RESTART_POLICIES.has(availability.restart)) {
+
+  if (availability?.restart !== undefined && !RESTART_POLICIES.has(availability.restart))
     errors.push(
       `process "${name}": availability.restart must be one of ${[...RESTART_POLICIES].join(', ')}`,
     )
-  }
-  if (availability?.exit_on_end || availability?.exit_on_skipped) {
+
+  if (availability?.exit_on_end || availability?.exit_on_skipped)
     warn(
       'persistent-mode',
       `process "${name}": exit_on_end/exit_on_skipped apply to ephemeral runs only; the system-wide daemon never exits with a process, so they are ignored in persistent mode`,
     )
-  }
+
   if (availability?.restart === 'exit_on_failure') {
     warn(
       'persistent-mode',
       `process "${name}": restart policy exit_on_failure terminates ephemeral runs only; in persistent mode the process is treated as restart "no"`,
     )
   }
-  if (proc.replicas !== undefined && (!Number.isInteger(proc.replicas) || proc.replicas < 0)) {
+
+  if (proc.replicas !== undefined && (!Number.isInteger(proc.replicas) || proc.replicas < 0))
     errors.push(`process "${name}": replicas must be a non-negative integer`)
-  }
 }
 
 /** Cut and deferred features warn by name — never a silent ignore. */
 const warnTriagedFeatures = (name: string, proc: ProcessConfig, warn: Warn): void => {
-  if (proc.is_elevated) {
+  if (proc.is_elevated)
     warn(
       'cut-feature',
       `process "${name}": is_elevated was cut; write sudo into the command instead`,
     )
-  }
-  for (const [key, note] of Object.entries(DEFERRED_PROCESS_KEYS)) {
-    if (proc[key as keyof ProcessConfig] !== undefined) {
+
+  for (const [key, note] of Object.entries(DEFERRED_PROCESS_KEYS))
+    if (proc[key as keyof ProcessConfig] !== undefined)
       warn('deferred-feature', `process "${name}": ${note}`)
-    }
-  }
 }
 
 const validateProcess = (
@@ -244,10 +243,10 @@ const validateProcess = (
   result: ValidationResult,
   routeClaims: Map<string, string>,
 ): void => {
-  const { errors } = result
-  const warn: Warn = (code, message) => {
-    result.warnings.push({ code, message, process: name })
-  }
+  const { errors } = result,
+    warn: Warn = (code, message) => {
+      result.warnings.push({ code, message, process: name })
+    }
 
   validateProcessKeys(name, proc, strict, errors, warn)
   validateDependencies(name, proc, config, errors, warn)
@@ -256,13 +255,14 @@ const validateProcess = (
   warnTriagedFeatures(name, proc, warn)
 
   const route = routeExtension(proc)
+
   if (route !== undefined) validateRoute(name, route, routeClaims, errors)
 }
 
 /** Validate a merged project config; called at import time, never at runtime. */
 export const validateProject = (config: ProjectConfig): ValidationResult => {
-  const result: ValidationResult = { errors: [], warnings: [] }
-  const strict = config.is_strict === true
+  const result: ValidationResult = { errors: [], warnings: [] },
+    strict = config.is_strict === true
 
   if (typeof config.processes !== 'object' || config.processes === null) {
     result.errors.push('config has no processes map')
@@ -271,6 +271,7 @@ export const validateProject = (config: ProjectConfig): ValidationResult => {
 
   for (const key of Object.keys(config)) {
     if (PROJECT_KEYS.has(key) || key.startsWith('x-')) continue
+
     if (strict) result.errors.push(`unknown project key "${key}" (strict mode)`)
     else
       result.warnings.push({
@@ -280,9 +281,9 @@ export const validateProject = (config: ProjectConfig): ValidationResult => {
   }
 
   const routeClaims = new Map<string, string>()
-  for (const [name, proc] of Object.entries(config.processes)) {
+
+  for (const [name, proc] of Object.entries(config.processes))
     validateProcess(name, proc ?? {}, config, strict, result, routeClaims)
-  }
 
   try {
     result.startOrder = startOrder(config.processes)

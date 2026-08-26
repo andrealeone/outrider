@@ -25,9 +25,9 @@ Start by running it, then read just enough to find your footing.
 3. **[Architecture overview](architecture/overview.md)**: the one-screen system
    diagram and the layering rule that explains where any given change belongs.
 4. **[Glossary](glossary.md)**: the handful of terms outrider leans on
-   (reconciler, desired state, stack vs. standalone, route alias), in plain
+   (reconciler, desired state, imported vs. standalone, route alias), in plain
    language.
-5. **[Guides](guides/)**: end-to-end walkthroughs ([import a stack](guides/import-a-stack.md),
+5. **[Guides](guides/)**: end-to-end walkthroughs ([import processes](guides/import-processes.md),
    [add a routed service](guides/add-a-routed-service.md),
    [sync at scale](guides/sync-services-at-scale.md)) that double as a map of the
    real workflows.
@@ -50,7 +50,7 @@ For real features, these are the references the work runs on:
 - **[Config schema](config-schema.md)**: the per-key support status and the
   `x-route` / `x-tags` extensions, the contract every parser change answers to.
 - **[Compatibility report](compatibility-report.md)**: the deliberate
-  divergences from process-compose and *why*; check it before changing
+  divergences from process-compose and _why_; check it before changing
   upstream-facing behaviour.
 - **[Test coverage](test-coverage.md)**: what's exercised, what isn't, and a
   ranked list of the most valuable gaps to close.

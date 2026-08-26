@@ -6,7 +6,8 @@ import { fit } from '@/shared/utils/format'
 import { formatUptime } from '@/shared/utils/time'
 import { theme } from '@/tui/lib/theme'
 import { isServiceChecked } from '@/tui/lib/service-checked'
-import { StatusBadge } from '@/tui/components/status-badge'
+import { StatusBadge } from '@/tui/ui/status-badge'
+import { FocusMarker } from '@/tui/ui/focus-row'
 
 interface Props {
   services: ServiceState[]
@@ -35,11 +36,10 @@ export const ServiceTable = ({
   frame,
   online,
 }: Props) => {
-  const nameWidth = Math.max(14, Math.min(28, width - 70))
-  const stackWidth = 10
-  // Pointer+toggle prefix (4), seven padded cells, sixteen separator chars (2 per gap),
+  const nameWidth = Math.max(14, Math.min(28, width - 60))
+  // Pointer+toggle prefix (4), six padded cells, fourteen separator chars (2 per gap),
   // and the box's own horizontal padding: ROUTE gets whatever remains.
-  const fixed = 4 + nameWidth + stackWidth + 12 + 9 + 8 + 3 + 3 + 16
+  const fixed = 4 + nameWidth + 12 + 9 + 8 + 3 + 3 + 14
   const routeWidth = Math.max(6, width - 2 - fixed)
   const visible = services.slice(offset, offset + height)
 
@@ -48,8 +48,6 @@ export const ServiceTable = ({
       <Text color={theme.dim}>
         {'    '}
         {fit('NAME', nameWidth)}
-        {'  '}
-        {fit('STACK', stackWidth)}
         {'  '}
         {fit('STATUS', 12)}
         {'  '}
@@ -72,7 +70,6 @@ export const ServiceTable = ({
           state.status === 'running' && state.startedAt !== undefined
             ? formatUptime(state.startedAt)
             : '—'
-        const cells = [fit(state.entry.name, nameWidth), fit(state.entry.stack ?? '·', stackWidth)]
         const routeDisplay = state.routeUrl ?? ''
         const trailing = [
           fit(state.health === 'unknown' ? '—' : state.health, 9),
@@ -83,12 +80,10 @@ export const ServiceTable = ({
         ]
         return (
           <Box key={state.entry.id}>
-            <Text color={rowColor} bold={isSelected}>
-              {isSelected ? '› ' : '  '}
-            </Text>
+            <FocusMarker focused={isSelected} color={theme.select} />
             <Text color={checked ? theme.ok : theme.dim}>{checked ? '◉ ' : '○ '}</Text>
             <Text color={rowColor} bold={isSelected} dimColor={!online && !isSelected}>
-              {cells.join('  ')}
+              {fit(state.entry.name, nameWidth)}
               {'  '}
             </Text>
             {online ? (

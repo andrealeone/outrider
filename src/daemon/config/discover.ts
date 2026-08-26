@@ -15,13 +15,15 @@ export const discoverComposeFile = (dir: string): string | undefined => {
     const candidate = join(dir, name)
     if (existsSync(candidate)) return candidate
   }
+
   return undefined
 }
 
 /** "process-compose.yml" → "process-compose.override.yml" when it exists. */
 export const discoverOverrideFile = (composePath: string): string | undefined => {
-  const ext = extname(composePath)
-  const stem = basename(composePath, ext)
-  const candidate = join(dirname(composePath), `${stem}.override${ext}`)
+  const ext = extname(composePath),
+    stem = basename(composePath, ext),
+    candidate = join(dirname(composePath), `${stem}.override${ext}`)
+
   return existsSync(candidate) ? candidate : undefined
 }

@@ -20,9 +20,9 @@ mirror of it, and the relationship is a one-file, two-direction loop:
 - **File → registry (on demand).** You edit the file, then run `outrider sync`
   to reconcile your edits back into the registry.
 
-Only **standalone** services live in the file. Stack members are owned by their
-`process-compose.yaml` and are refreshed by re-importing; `sync` never creates,
-updates, or deletes them, and they never appear in the file.
+Only **standalone** services live in the file. Imported services are owned by
+their `process-compose.yaml` and are refreshed by re-importing; `sync` never
+creates, updates, or deletes them, and they never appear in the file.
 
 The file path honours `XDG_CONFIG_HOME`; with that unset it is
 `~/.config/outrider.yml`.
@@ -111,13 +111,13 @@ sync · 3 changes from ~/.config/outrider.yml
 
 Every row is checked by default. Drive it with:
 
-| Key                | Action                              |
-| ------------------ | ----------------------------------- |
-| `j` / `k`, arrows  | move the cursor                     |
-| `space`            | toggle the focused row              |
-| `a`                | check all / uncheck all             |
-| `enter`            | apply **only the checked rows**     |
-| `q` / `esc`        | cancel without applying anything    |
+| Key               | Action                           |
+| ----------------- | -------------------------------- |
+| `j` / `k`, arrows | move the cursor                  |
+| `space`           | toggle the focused row           |
+| `a`               | check all / uncheck all          |
+| `enter`           | apply **only the checked rows**  |
+| `q` / `esc`       | cancel without applying anything |
 
 Each operation is applied independently and reported with a ✓ or ✗, so one
 rejected change (an invalid command, a route conflict) doesn't block the rest.
@@ -185,4 +185,4 @@ the checklist; pressing `q` applies nothing.
 - [Standalone services](../features/standalone-services.md): what lives in the
   file and what doesn't.
 - [Config schema](../config-schema.md): the full field reference, including the
-  stack-file equivalents.
+  compose-file equivalents.

@@ -46,7 +46,16 @@ describe('HostsSync', () => {
   })
 
   test('detects drift when the block no longer matches', () => {
-    writeFileSync(hostsPath, ['127.0.0.1 localhost', '# BEGIN outrider', '127.0.0.1 stale.test', '# END outrider', ''].join('\n'))
+    writeFileSync(
+      hostsPath,
+      [
+        '127.0.0.1 localhost',
+        '# BEGIN outrider',
+        '127.0.0.1 stale.test',
+        '# END outrider',
+        '',
+      ].join('\n'),
+    )
     const sync = new HostsSync(hostsPath)
     expect(sync.isSynced(['fresh.test'])).toBe(false)
     expect(sync.isSynced(['stale.test'])).toBe(true)

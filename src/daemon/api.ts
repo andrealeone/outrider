@@ -1,28 +1,29 @@
 import type { Server } from 'bun'
 import type {
   DaemonInfo,
-  ImportReport,
+  ImportApplyBody,
+  ImportPreview,
   ProxyStatus,
   ServiceDefinition,
   UpDownBody,
 } from '@/shared/types/protocol'
 import type { Router } from '@/shared/types/router'
 
-import type { EventBus } from '@/daemon/event-bus'
 import type { Logger } from '@/daemon/logger'
-import type { Reconciler } from '@/daemon/reconciler'
 import type { Registry } from '@/daemon/registry'
+import type { EventBus } from '@/daemon/event-bus'
+import type { Reconciler } from '@/daemon/reconciler'
 
 import { startOrder } from '@/daemon/config/dag'
-import { ConfigLoadError, loadProject, stackNameFor } from '@/daemon/config/load'
 import { TemplateError } from '@/daemon/config/template'
 import { RegistryError } from '@/daemon/registry'
 import { withDependencies } from '@/daemon/scheduler'
+import { ConfigLoadError, loadProject } from '@/daemon/config/load'
 
-const EVENTS_TOPIC = 'events'
-const POST_SERVICE_ACTIONS = new Set(['start', 'stop', 'restart', 'scale'])
-const GET_SERVICE_ACTIONS = new Set(['logs'])
-const DELETE_SERVICE_ACTIONS = new Set(['logs'])
+const EVENTS_TOPIC = 'events',
+  POST_SERVICE_ACTIONS = new Set(['start', 'stop', 'restart', 'scale']),
+  GET_SERVICE_ACTIONS = new Set(['logs']),
+  DELETE_SERVICE_ACTIONS = new Set(['logs'])
 
 interface ApiDeps {
   info: DaemonInfo
@@ -66,6 +67,7 @@ export class Api {
         message() {},
       },
     })
+
     this.deps.bus.on((event) => {
       this.server?.publish(EVENTS_TOPIC, JSON.stringify(event))
     })
@@ -76,8 +78,9 @@ export class Api {
   }
 
   private async route(req: Request, server: Server<undefined>): Promise<Response> {
-    const url = new URL(req.url)
-    const segments = url.pathname.split('/').filter(Boolean)
+    const url = new URL(req.url),
+      segments = url.pathname.split('/').filter(Boolean)
+
     if (segments[0] !== 'v1') return errorResponse('not-found', 'unknown API version', 404)
 
     if (url.pathname === '/v1/events') {
@@ -89,94 +92,125 @@ export class Api {
     try {
       return await this.dispatch(req, url, segments.slice(1))
     } catch (err) {
-      if (err instanceof RegistryError) {
+      if (err instanceof RegistryError)
         return errorResponse(err.code, err.message, statusFor(err.code))
-      }
-      if (err instanceof ConfigLoadError || err instanceof TemplateError) {
+
+      if (err instanceof ConfigLoadError || err instanceof TemplateError)
         return errorResponse('invalid-config', err.message, 422)
-      }
+
       return errorResponse('internal', (err as Error).message, 500)
     }
   }
 
   private async dispatch(req: Request, url: URL, path: string[]): Promise<Response> {
-    const { registry, reconciler, router, info } = this.deps
-    const method = req.method
-    const body = async <T>(): Promise<T> => (await req.json().catch(() => ({}))) as T
-    const [head] = path
+    const { registry, reconciler, router, info } = this.deps,
+      method = req.method,
+      body = async <T>(): Promise<T> => (await req.json().catch(() => ({}))) as T,
+      [head] = path
 
     if (method === 'GET' && head === 'info') return json(info)
-    if (method === 'GET' && head === 'state') {
+    if (method === 'GET' && head === 'state')
       return json({ daemon: info, services: reconciler.snapshot() })
-    }
+
     if (method === 'GET' && head === 'registry') return json(registry.snapshot())
     if (method === 'GET' && head === 'routes') return json(await router.list())
     if (method === 'GET' && head === 'proxy') {
-      const routes = await router.list()
-      const status: ProxyStatus = {
-        inspection: router.inspect(),
-        tld: router.tld(),
-        hostnames: routes.map((r) => r.hostname),
-      }
+      const routes = await router.list(),
+        status: ProxyStatus = {
+          inspection: router.inspect(),
+          tld: router.tld(),
+          hostnames: routes.map((r) => r.hostname),
+        }
+
       return json(status)
     }
 
     if (method === 'POST' && head === 'up') {
-      const { names, noDeps } = await body<UpDownBody>()
-      const ids = this.bringUp(registry.resolveIds(names), noDeps)
+      const { names, noDeps } = await body<UpDownBody>(),
+        ids = this.bringUp(registry.resolveIds(names), noDeps)
+
       await reconciler.requestUp(ids, true)
-      return json(ids.map((i) => reconciler.stateOf(i)))
-    }
-    if (method === 'POST' && head === 'down') {
-      const { names } = await body<UpDownBody>()
-      const ids = registry.resolveIds(names)
-      registry.setDesired(ids, 'down')
-      await reconciler.requestDown(ids)
+
       return json(ids.map((i) => reconciler.stateOf(i)))
     }
 
-    if (method === 'POST' && head === 'import') return this.importRoute(body)
-    if (head === 'stacks' && method === 'DELETE' && path[1] !== undefined) {
-      return this.removeStackRoute(decodeURIComponent(path[1]))
+    if (method === 'POST' && head === 'down') {
+      const { names } = await body<UpDownBody>(),
+        ids = registry.resolveIds(names)
+
+      registry.setDesired(ids, 'down')
+
+      await reconciler.requestDown(ids)
+
+      return json(ids.map((i) => reconciler.stateOf(i)))
     }
+
+    if (method === 'POST' && head === 'import' && path[1] === 'preview')
+      return this.importPreviewRoute(body)
+
+    if (method === 'POST' && head === 'import' && path[1] === 'apply')
+      return this.importApplyRoute(body)
+
     if (head === 'shutdown' && method === 'POST') {
       setTimeout(this.deps.onShutdown, 20)
       return json({ ok: true })
     }
+
     if (head === 'services') return this.serviceRoutes(method, path.slice(1), url, body)
 
     return errorResponse('not-found', `No route for ${method} ${url.pathname}`, 404)
   }
 
-  private async importRoute(body: <T>() => Promise<T>): Promise<Response> {
-    const { registry, reconciler } = this.deps
-    const { path: file, dryRun } = await body<{ path?: string; dryRun?: boolean }>()
+  /** Non-mutating: parse the file and return an editable-field preview per process. */
+  private async importPreviewRoute(body: <T>() => Promise<T>): Promise<Response> {
+    const { registry } = this.deps,
+      { path: file } = await body<{ path?: string }>()
+
     if (!file) throw new RegistryError('invalid', 'path is required')
-    const project = loadProject(file, { preview: dryRun })
-    const report: ImportReport = {
-      stack: stackNameFor(project),
-      sources: project.sources,
-      services: Object.keys(project.config.processes),
-      startOrder: startOrder(project.config.processes),
-      warnings: project.warnings,
-      dryRun: dryRun === true,
-    }
-    if (!dryRun) {
-      const { removed } = registry.importProject(project)
-      await reconciler.requestDown(removed)
-    }
-    return json(report)
+
+    const project = loadProject(file, { preview: true }),
+      { sourceTag, processes, toRemove } = registry.previewImport(project),
+      preview: ImportPreview = {
+        sourceTag,
+        sources: project.sources,
+        processes,
+        toRemove,
+        startOrder: startOrder(project.config.processes),
+        warnings: project.warnings,
+      }
+
+    return json(preview)
   }
 
-  private async removeStackRoute(name: string): Promise<Response> {
-    const { registry, reconciler } = this.deps
-    if (!registry.snapshot().stacks[name]) {
-      throw new RegistryError('not-found', `no stack named "${name}"`)
+  /** Apply an approved subset of processes from a compose file, staged client-side. */
+  private async importApplyRoute(body: <T>() => Promise<T>): Promise<Response> {
+    const { registry, reconciler } = this.deps,
+      { path: file, sourceTag, approved, removedProcessNames } = await body<ImportApplyBody>()
+
+    if (!file) throw new RegistryError('invalid', 'path is required')
+
+    const project = loadProject(file)
+
+    // Stop anything about to disappear under its old id: explicit removals,
+    // and renames (the old id vanishes even though the process survives).
+    const existing = registry.list().filter((s) => s.sourceTag === sourceTag),
+      approvedByProcess = new Map(approved.map((a) => [a.processName, a.definition]))
+
+    for (const entry of existing) {
+      const processName = entry.sourceProcess ?? entry.name,
+        nextName = approvedByProcess.get(processName)?.name,
+        renamed = nextName !== undefined && nextName !== entry.name
+
+      if (removedProcessNames.includes(processName) || renamed)
+        await reconciler.forgetService(entry.id)
     }
-    const memberIds = registry.resolveIds([name])
-    await Promise.all(memberIds.map((member) => reconciler.forgetService(member)))
-    registry.removeStack(name)
-    return json({ removed: memberIds })
+
+    const result = registry.applyImportBatch(project, sourceTag, approved, removedProcessNames)
+
+    for (const name of [...result.created, ...result.updated])
+      if (registry.get(name)?.desired === 'up') await reconciler.restart(name)
+
+    return json(result)
   }
 
   /**
@@ -184,9 +218,11 @@ export class Api {
    * on the whole transitive closure so the reconciler can gate-start it.
    */
   private bringUp(ids: string[], noDeps = false): string[] {
-    const { registry } = this.deps
-    const expanded = noDeps ? ids : withDependencies(ids, (id) => registry.get(id))
+    const { registry } = this.deps,
+      expanded = noDeps ? ids : withDependencies(ids, (id) => registry.get(id))
+
     registry.setDesired(expanded, 'up')
+
     return expanded
   }
 
@@ -196,30 +232,33 @@ export class Api {
     url: URL,
     body: <T>() => Promise<T>,
   ): Promise<Response> {
-    const { registry, reconciler } = this.deps
-    const parsed = this.parseServicePath(method, rawPath)
-    const { id, action } = parsed
+    const { registry, reconciler } = this.deps,
+      parsed = this.parseServicePath(method, rawPath),
+      { id, action } = parsed
 
-    if (id === undefined && method === 'POST') {
-      const entry = registry.addStandalone(await body())
-      return json(reconciler.stateOf(entry.id), 201)
-    }
+    if (id === undefined && method === 'POST')
+      return json(reconciler.stateOf(registry.addStandalone(await body()).id), 201)
+
     if (id === 'validate' && action === undefined && method === 'POST') {
       try {
         const candidate = await body<ServiceDefinition & { editOf?: string }>()
+
         registry.validateDefinition(candidate, candidate.editOf)
+
         return json({ ok: true, errors: [] })
       } catch (err) {
         if (err instanceof RegistryError) return json({ ok: false, errors: [err.message] })
         throw err
       }
     }
+
     if (id === undefined) return errorResponse('invalid', 'service id required', 400)
 
     const handled =
       action === undefined
         ? await this.serviceEntityRoute(method, id, body)
         : await this.serviceActionRoute(method, id, action, url, body)
+
     return handled ?? errorResponse('not-found', `No route for ${method} on services/${id}`, 404)
   }
 
@@ -229,15 +268,15 @@ export class Api {
   ): { id: string | undefined; action: string | undefined } {
     if (rawPath.length === 0) return { id: undefined, action: undefined }
 
-    const decoded = rawPath.map((part) => decodeURIComponent(part))
-    const last = decoded.at(-1)
-    const hasAction =
-      last !== undefined &&
-      ((method === 'POST' && POST_SERVICE_ACTIONS.has(last)) ||
-        (method === 'GET' && GET_SERVICE_ACTIONS.has(last)) ||
-        (method === 'DELETE' && DELETE_SERVICE_ACTIONS.has(last)))
+    const decoded = rawPath.map((part) => decodeURIComponent(part)),
+      last = decoded.at(-1),
+      hasAction =
+        last !== undefined &&
+        ((method === 'POST' && POST_SERVICE_ACTIONS.has(last)) ||
+          (method === 'GET' && GET_SERVICE_ACTIONS.has(last)) ||
+          (method === 'DELETE' && DELETE_SERVICE_ACTIONS.has(last))),
+      idParts = hasAction ? decoded.slice(0, -1) : decoded
 
-    const idParts = hasAction ? decoded.slice(0, -1) : decoded
     return { id: idParts.join('/'), action: hasAction ? last : undefined }
   }
 
@@ -251,35 +290,47 @@ export class Api {
 
     if (method === 'DELETE') {
       const entry = registry.get(id)
+
       if (!entry) throw new RegistryError('not-found', `no service "${id}"`)
-      if (entry.stack !== undefined) {
-        throw new RegistryError(
-          'invalid',
-          `"${id}" belongs to stack "${entry.stack}"; remove the stack instead`,
-        )
-      }
+
       await reconciler.forgetService(id)
+
       registry.remove(id)
+
       return json({ ok: true })
     }
+
     if (method === 'PUT') {
-      const entry = registry.updateService(id, await body())
+      const def = await body<ServiceDefinition>(),
+        before = registry.get(id)
+
+      // A rename moves the entry to a new id; stop the old one first so the
+      // reconciler can still resolve it (it's about to vanish from the registry).
+      if (before !== undefined && def.name !== before.name) await reconciler.forgetService(id)
+
+      const entry = registry.updateService(id, def)
+
       // A live service restarts so the new definition takes effect; an inactive
       // service drops stale completed/error runtime state so the edited entry is visible immediately.
-      if (entry.desired === 'up') await reconciler.restart(id)
-      else reconciler.refreshInactiveService(id)
-      return json(reconciler.stateOf(id))
+      if (entry.desired === 'up') await reconciler.restart(entry.id)
+      else reconciler.refreshInactiveService(entry.id)
+
+      return json(reconciler.stateOf(entry.id))
     }
+
     if (method === 'PATCH') {
       const patch = await body<{ desired?: 'up' | 'down'; autostart?: boolean }>()
+
       if (patch.autostart !== undefined) registry.setAutostart(id, patch.autostart)
       if (patch.desired === 'up') await reconciler.requestUp(this.bringUp([id]), true)
       else if (patch.desired === 'down') {
         registry.setDesired([id], 'down')
         await reconciler.requestDown([id])
       }
+
       return json(reconciler.stateOf(id))
     }
+
     return undefined
   }
 
@@ -296,14 +347,18 @@ export class Api {
     if (action === 'logs') {
       if (method === 'GET') {
         const tail = Number(url.searchParams.get('tail') ?? 200)
+
         return json(logger.tail(id, Number.isFinite(tail) ? tail : 200))
       }
+
       if (method === 'DELETE') {
         if (!registry.get(id)) throw new RegistryError('not-found', `no service "${id}"`)
         logger.clear(id)
+
         return json({ ok: true })
       }
     }
+
     if (method !== 'POST') return undefined
     if (!registry.get(id)) throw new RegistryError('not-found', `no service "${id}"`)
 
@@ -311,22 +366,27 @@ export class Api {
       case 'start':
         await reconciler.requestUp(this.bringUp([id]), true)
         break
+
       case 'stop':
         registry.setDesired([id], 'down')
         await reconciler.requestDown([id])
         break
+
       case 'restart':
         await reconciler.restart(id)
         break
+
       case 'scale': {
         const { replicas } = await body<{ replicas?: number }>()
         registry.setReplicas(id, replicas ?? 1)
         await reconciler.applyScale(id)
         break
       }
+
       default:
         return undefined
     }
+
     return json(reconciler.stateOf(id))
   }
 }

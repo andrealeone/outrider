@@ -51,19 +51,19 @@ every service's status, health, instances, and (if routed) its URL.
 
 ## Start and stop services
 
-`names` accepts service ids, stack names, namespaces, or
+`names` accepts service ids, import source tags, namespaces, or
 [tags](../features/service-tags.md); dependencies are included unless
 `noDeps` is set.
 
 ```bash
 curl --unix-socket "$SOCK" \
   -X POST -H 'content-type: application/json' \
-  -d '{"names":["web-stack"]}' \
+  -d '{"names":["web"]}' \
   http://outrider/v1/up
 
 curl --unix-socket "$SOCK" \
   -X POST -H 'content-type: application/json' \
-  -d '{"names":["web-stack"]}' \
+  -d '{"names":["web"]}' \
   http://outrider/v1/down
 ```
 

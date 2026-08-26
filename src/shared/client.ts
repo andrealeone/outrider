@@ -2,8 +2,9 @@ import type {
   ApiError,
   DaemonEvent,
   DaemonInfo,
-  ImportBody,
-  ImportReport,
+  ImportApplyBody,
+  ImportApplyResult,
+  ImportPreview,
   LogLine,
   PatchServiceBody,
   ProxyStatus,
@@ -93,10 +94,10 @@ export class Client {
   ): Promise<{ ok: boolean; errors: string[] }> =>
     this.request('POST', '/v1/services/validate', { ...def, editOf })
 
-  importStack = (body: ImportBody): Promise<ImportReport> =>
-    this.request('POST', '/v1/import', body)
-  removeStack = (name: string): Promise<void> =>
-    this.request('DELETE', `/v1/stacks/${encodeURIComponent(name)}`)
+  previewImport = (path: string): Promise<ImportPreview> =>
+    this.request('POST', '/v1/import/preview', { path })
+  applyImport = (body: ImportApplyBody): Promise<ImportApplyResult> =>
+    this.request('POST', '/v1/import/apply', body)
 
   logs = (id: string, tail = 200): Promise<LogLine[]> =>
     this.request('GET', `/v1/services/${encodeURIComponent(id)}/logs?tail=${tail}`)

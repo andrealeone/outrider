@@ -1,6 +1,6 @@
 # Guide: add a demo process
 
-Goal: take a plain script (no `process-compose.yaml`, no stack) and get it
+Goal: take a plain script (no `process-compose.yaml` to import) and get it
 supervised, logged, and (optionally) routed by outrider as a
 [standalone service](../features/standalone-services.md).
 

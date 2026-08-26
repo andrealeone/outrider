@@ -6,5 +6,6 @@ export const hidden = true
 
 export const run = async (): Promise<void> => {
   reply('Starting the Outrider daemon in the foreground (Ctrl-C to stop)…')
+
   await runDaemon()
 }

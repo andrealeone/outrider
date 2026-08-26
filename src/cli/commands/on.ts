@@ -18,16 +18,19 @@ export const description = 'start the daemon and enable it at boot'
  */
 const repairRouting = async (client: Client): Promise<void> => {
   const { inspection, tld, hostnames } = (await client.proxyStatus().catch(() => undefined)) ?? {}
+
   if (!inspection) return
 
   if (inspection.tls && !inspection.certTrusted) {
     const result = new CertAuthority().trust()
     reply(result.message)
   }
+
   if (inspection.tls && !inspection.hostsSynced && tld !== undefined && hostnames !== undefined) {
     new HostsSync().sync([tld, ...hostnames])
     reply('/etc/hosts synced for the configured TLD')
   }
+
   for (const issue of inspection.issues) {
     if (issue.includes('not trusted') || issue.includes('/etc/hosts')) continue
     reply(`routing: ${issue}`)
@@ -36,10 +39,12 @@ const repairRouting = async (client: Client): Promise<void> => {
 
 export const run = async (): Promise<void> => {
   const client = new Client()
+
   try {
     if (await client.ping()) {
       reply(`Outrider daemon is already running (socket: ${socketPath})`)
       await repairRouting(client)
+
       return
     }
   } catch (err) {
@@ -47,6 +52,7 @@ export const run = async (): Promise<void> => {
       fail(`A stale daemon is running: ${err.message}`)
       return
     }
+
     throw err
   }
 
@@ -54,14 +60,18 @@ export const run = async (): Promise<void> => {
   startUnit()
 
   const up = await waitFor(() => client.ping().catch(() => false), 10_000, 200)
+
   if (!up) {
     fail('Outrider daemon did not start within 10s; check the daemon log')
     return
   }
-  const { services } = await client.state()
-  const resumed = services.filter((s) => s.entry.desired === 'up' && s.entry.autostart).length
+
+  const { services } = await client.state(),
+    resumed = services.filter((s) => s.entry.desired === 'up' && s.entry.autostart).length
+
   reply(
     `Outrider daemon on — ${plural(services.length, 'service')} registered, ${resumed} autostarting`,
   )
+
   await repairRouting(client)
 }

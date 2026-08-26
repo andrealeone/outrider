@@ -12,19 +12,21 @@ export interface ExpandResult {
 }
 
 export const expandEnv = (input: string, env: Record<string, string | undefined>): ExpandResult => {
-  const warnings: ConfigWarning[] = []
-  const value = input.replace(
-    TOKEN,
-    (match, braced: string | undefined, bare: string | undefined) => {
+  const warnings: ConfigWarning[] = [],
+    value = input.replace(TOKEN, (match, braced: string | undefined, bare: string | undefined) => {
       if (match === '$$') return '$'
+
       const name = braced ?? bare
+
       if (name !== undefined) return env[name] ?? ''
+
       warnings.push({
         code: 'deferred-envsubst-form',
         message: `envsubst expression "${match}" uses an unsupported function form; only $VAR, \${VAR} and $$ are expanded — the text was left as written`,
       })
+
       return match
-    },
-  )
+    })
+
   return { value, warnings }
 }

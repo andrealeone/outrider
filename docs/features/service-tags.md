@@ -1,7 +1,7 @@
 # Service tags
 
-Tags are free-form labels on a service. They cut across stacks and namespaces,
-so you can group whatever belongs together (everything a single repository
+Tags are free-form labels on a service. They cut across import batches and
+namespaces, so you can group whatever belongs together (everything a single repository
 needs, every database, every background worker) and act on the group as a
 unit.
 
@@ -11,14 +11,15 @@ outrider stop web       # stop them again
 ```
 
 The argument to `start`/`stop` resolves an exact service id first; that wins
-outright. Otherwise the name resolves to the **union** of every stack,
+outright. Otherwise the name resolves to the **union** of every source tag,
 namespace, and tag that bears it, so a name shared by, say, a namespace and a
-tag acts on the members of both. A tag matches every service that carries it.
-Unknown names fail loudly rather than silently doing nothing. You can pass
-several at once:
+tag acts on the members of both. A service's import source tag works as a tag
+for this purpose too, so `outrider start <source-tag>` targets a whole import
+batch at once. A tag matches every service that carries it. Unknown names
+fail loudly rather than silently doing nothing. You can pass several at once:
 
 ```bash
-outrider start api db cache       # any mix of ids, stacks, namespaces, tags
+outrider start api db cache       # any mix of ids, source tags, namespaces, tags
 ```
 
 Both commands go through the same daemon `up`/`down` path as the dashboard, so

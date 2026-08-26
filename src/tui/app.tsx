@@ -1,11 +1,11 @@
 import { render, useApp, useStdout } from 'ink'
 import { useState } from 'react'
 
-import { Dashboard, type View } from '@/tui/views/dashboard/dashboard'
-import { AddService } from '@/tui/views/add-service/add-service'
-import { DetailView } from '@/tui/views/detail/detail-view'
-import { ImportStack } from '@/tui/views/import-stack/import-stack'
-import { LogsView } from '@/tui/views/logs/logs-view'
+import { Dashboard, type View } from '@/tui/ui/dashboard'
+import { AddService } from '@/tui/ui/add-service'
+import { DetailView } from '@/tui/ui/detail-view'
+import { ImportProcesses } from '@/tui/ui/import-processes'
+import { LogsView } from '@/tui/ui/logs-view'
 import { useFrameClock } from '@/tui/lib/use-frame-clock'
 import { useDaemon } from '@/tui/lib/use-daemon'
 
@@ -42,7 +42,7 @@ const App = () => {
     case 'add':
       return <AddService daemon={daemon} active edit={view.edit} onDone={back} />
     case 'import':
-      return <ImportStack daemon={daemon} active onDone={back} />
+      return <ImportProcesses daemon={daemon} active onDone={back} />
     case 'dashboard':
     default:
       return (

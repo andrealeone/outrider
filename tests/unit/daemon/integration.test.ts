@@ -106,6 +106,18 @@ const waitForStatus = async (
   return state as ServiceState
 }
 
+/** Preview then apply every process in a compose file, as the import wizard would with everything approved. */
+const importAll = async (path: string): Promise<{ sourceTag: string; created: string[] }> => {
+  const preview = await client.previewImport(path)
+  const result = await client.applyImport({
+    path,
+    sourceTag: preview.sourceTag,
+    approved: preview.processes,
+    removedProcessNames: preview.toRemove,
+  })
+  return { sourceTag: preview.sourceTag, created: result.created }
+}
+
 beforeAll(() => {
   const store = new StateStore(join(tmp, 'registry.json'), join(tmp, 'journal.jsonl'))
   const bus = new EventBus()
@@ -176,11 +188,11 @@ describe('daemon over the socket', () => {
         '      max_restarts: 2',
       ].join('\n'),
     )
-    const report = await client.importStack({ path: dir })
-    expect(report.stack).toBe('crashstack')
+    const { sourceTag } = await importAll(dir)
+    expect(sourceTag).toBe('crashstack')
     await client.up({ names: ['crashstack'] })
 
-    const errored = await waitForStatus('crashstack/crasher', 'error')
+    const errored = await waitForStatus('crasher', 'error')
     expect(errored.restarts).toBe(2)
     expect(errored.exitCode).toBe(7)
   })
@@ -208,14 +220,14 @@ describe('daemon over the socket', () => {
         '      failing: { condition: process_completed_successfully }',
       ].join('\n'),
     )
-    await client.importStack({ path: dir })
+    await importAll(dir)
     await client.up({ names: ['depstack'] })
 
-    await waitForStatus('depstack/prep', 'completed')
-    await waitForStatus('depstack/main', 'running')
-    await waitForStatus('depstack/victim', 'skipped')
+    await waitForStatus('prep', 'completed')
+    await waitForStatus('main', 'running')
+    await waitForStatus('victim', 'skipped')
     await client.down({ names: ['depstack'] })
-    await waitForStatus('depstack/main', 'completed')
+    await waitForStatus('main', 'completed')
   })
 
   test('replicas fan out and scale down at runtime', async () => {
@@ -313,32 +325,33 @@ describe('daemon over the socket', () => {
     expect(updated.entry.config.command).toBe('echo after && sleep 60')
     await waitFor(async () => (await client.logs('editable')).some((l) => l.line === 'after'), 4000)
 
-    // Renaming is refused; stack members can be edited through their slash-containing id.
+    // Renaming is allowed and moves the entry to the new id.
     const errorOf = (work: Promise<unknown>): Promise<string> =>
       work.then(
         () => '',
         (err: Error) => err.message,
       )
-    expect(
-      await errorOf(client.updateService('editable', { name: 'renamed', command: 'x' })),
-    ).toContain('renaming')
-    expect((await client.validateService({ name: 'main', command: 'x' }, 'depstack/main')).ok).toBe(
-      true,
-    )
-    await client.updateService('depstack/main', { name: 'main', command: 'echo stack-edited' })
-    const stackEdited = await stateOf('depstack/main')
-    expect(stackEdited?.entry.stack).toBe('depstack')
-    expect(stackEdited?.entry.config.command).toBe('echo stack-edited')
+    await client.updateService('editable', { name: 'renamed', command: 'echo renamed && sleep 60' })
+    const renamed = await waitForStatus('renamed', 'running')
+    expect(renamed.entry.id).toBe('renamed')
+    const gone = await client.state()
+    expect(gone.services.some((s) => s.entry.id === 'editable')).toBe(false)
 
-    await client.removeService('editable')
+    expect((await client.validateService({ name: 'main', command: 'x' }, 'main')).ok).toBe(true)
+    await client.updateService('main', { name: 'main', command: 'echo import-edited' })
+    const importEdited = await stateOf('main')
+    expect(importEdited?.entry.sourceTag).toBe('depstack')
+    expect(importEdited?.entry.config.command).toBe('echo import-edited')
+
+    await client.removeService('renamed')
     const snapshot = await client.state()
-    expect(snapshot.services.some((s) => s.entry.id === 'editable')).toBe(false)
+    expect(snapshot.services.some((s) => s.entry.id === 'renamed')).toBe(false)
 
-    // Deleting a stack member is refused; deleting the stack removes all of it.
-    expect(await errorOf(client.removeService('depstack/main'))).toContain('stack')
-    await client.removeStack('depstack')
+    // An imported service deletes directly too, no separate "remove the whole batch" step.
+    await client.removeService('main')
     const after = await client.state()
-    expect(after.services.some((s) => s.entry.stack === 'depstack')).toBe(false)
+    expect(after.services.some((s) => s.entry.id === 'main')).toBe(false)
+    expect(await errorOf(client.removeService('main'))).toContain('no service')
   }, 20_000)
 
   test('events stream over the websocket', async () => {
@@ -359,7 +372,7 @@ describe('daemon over the socket', () => {
   test('registry persists desired state and survives a reload', async () => {
     const registry = await client.registry()
     expect(registry.services['fleet']?.config.replicas).toBe(1)
-    expect(registry.stacks['crashstack']?.contentHash).toHaveLength(16)
+    expect(registry.services['crasher']?.sourceTag).toBe('crashstack')
 
     const reloaded = new StateStore(
       join(tmp, 'registry.json'),
